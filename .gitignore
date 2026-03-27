@@ -45,6 +45,7 @@ yarn-error.*
 # Claude / BMad cache
 .claude/
 .bmad/
+CLAUDE.md
 
 # Misc
 .npm/
