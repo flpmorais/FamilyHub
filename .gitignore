@@ -1,5 +1,3 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 # dependencies
 node_modules/
 
@@ -32,6 +30,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env.development
+.env.preview
+.env.production
+.env
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +41,23 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# BMad artifacts
+_bmad/
+_bmad-output/
+
+# Claude / BMad cache
+.claude/
+.bmad/
+
+# Misc
+.npm/
+.bash_history
+.bash_logout
+.bash_profile
+.bashrc
+log.log
+.cursor/
+.gemini/
+.local/
+familyhub/
