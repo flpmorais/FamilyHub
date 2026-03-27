@@ -42,10 +42,6 @@ yarn-error.*
 /ios
 /android
 
-# BMad artifacts
-_bmad/
-_bmad-output/
-
 # Claude / BMad cache
 .claude/
 .bmad/
