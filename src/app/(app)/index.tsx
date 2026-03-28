@@ -4,9 +4,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { useRepository } from '../../hooks/use-repository';
 import { useAuthStore } from '../../stores/auth.store';
 import { DashboardVacationWidget } from '../../components/dashboard-vacation-widget';
+import { LeftoversWidget } from '../../components/leftovers';
 import { sortVacations } from '../../utils/vacation.utils';
 import type { Vacation, VacationLifecycle, BookingTask } from '../../types/vacation.types';
 import type { PackingItem } from '../../types/packing.types';
+import type { Leftover } from '../../types/leftover.types';
 
 interface DashboardEntry {
   vacation: Vacation;
@@ -17,14 +19,17 @@ interface DashboardEntry {
 export default function DashboardScreen() {
   const vacationRepository = useRepository('vacation');
   const packingItemRepository = useRepository('packingItem');
+  const leftoverRepo = useRepository('leftover');
   const { userAccount } = useAuthStore();
   const [entries, setEntries] = useState<DashboardEntry[]>([]);
+  const [activeLeftovers, setActiveLeftovers] = useState<Leftover[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       void loadPinned();
+      void loadLeftovers();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []),
   );
 
   async function loadPinned() {
@@ -43,6 +48,16 @@ export default function DashboardScreen() {
         })
       );
       setEntries(enriched);
+    } catch {
+      // Silently fail on dashboard
+    }
+  }
+
+  async function loadLeftovers() {
+    if (!userAccount?.familyId) return;
+    try {
+      const list = await leftoverRepo.getActive(userAccount.familyId);
+      setActiveLeftovers(list);
     } catch {
       // Silently fail on dashboard
     }
@@ -88,35 +103,33 @@ export default function DashboardScreen() {
         </View>
       )}
 
+      <View style={styles.widgetSection}>
+        <LeftoversWidget
+          items={activeLeftovers}
+          onPress={() => router.push('/(app)/leftovers')}
+        />
+      </View>
+
       <View style={styles.navSection}>
         <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/vacations')}>
           <Text style={styles.linkText}>Viagens</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => router.push('/(app)/settings/profiles')}
-        >
+        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/leftovers')}>
+          <Text style={styles.linkText}>Restos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/settings/profiles')}>
           <Text style={styles.linkText}>Perfis</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => router.push('/(app)/settings/categories')}
-        >
+        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/settings/categories')}>
           <Text style={styles.linkText}>Categorias</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/settings/tags')}>
           <Text style={styles.linkText}>Etiquetas</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => router.push('/(app)/settings/templates')}
-        >
+        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/settings/templates')}>
           <Text style={styles.linkText}>Modelos</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => router.push('/(app)/settings/tasks')}
-        >
+        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/settings/tasks')}>
           <Text style={styles.linkText}>Tarefas</Text>
         </TouchableOpacity>
       </View>
@@ -137,6 +150,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   ctaBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  widgetSection: { marginBottom: 24 },
   navSection: { gap: 12 },
   link: {
     backgroundColor: '#B5451B',

@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish']
+stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit']
 classification:
   projectType: 'mobile_app'
   domain: 'general'
@@ -13,6 +13,10 @@ briefCount: 1
 brainstormingCount: 1
 researchCount: 0
 projectDocsCount: 0
+lastEdited: '2026-03-27'
+editHistory:
+  - date: '2026-03-27'
+    changes: 'V2 Leftovers module expansion — added user journey, full functional requirements, success criteria, product scope, phased development, offline scope, NFR'
 ---
 
 # Product Requirements Document - FamilyHub
@@ -59,6 +63,9 @@ Filipe built the app and will rationalise using it. Angela has no such bias. If 
 **V1 signal — one complete vacation planned end-to-end.**
 Within six months of V1 shipping, at least one full family vacation must be planned entirely through FamilyHub: packing list built, items assigned to profiles, statuses tracked through to departure. The subjective test: did it feel better than before?
 
+**V2 signal — leftovers tracked for one full month.**
+Within one month of V2 shipping, both admins consistently log leftovers and act on them before expiry. The widget becomes part of the daily dashboard check. The subjective test: is less food being thrown away?
+
 **Ongoing signal — modules used without friction.**
 Each module in active use should feel like a shortcut, not an obligation. The moment any module becomes a chore, that module has failed its design goal.
 
@@ -82,7 +89,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 |---|---|
 | Vacation packing improved | First trip planned end-to-end in app |
 | Angela adopted | Using app without prompting or complaints |
-| No leftover spoilage | Leftovers consistently tracked and actioned (V2) |
+| No leftover spoilage | Leftovers consistently logged and acted on before expiry — thrown-out doses trend downward over first 3 months of use (V2) |
 | Shopping friction eliminated | Shopping list used every supermarket visit (V3) |
 | Version gate reached | Each module in daily use before next version begins |
 
@@ -93,7 +100,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | Version | Module | Core Capability |
 |---|---|---|
 | V1 | Vacation | Packing lists, booking tasks, templates, offline sync |
-| V2 | Leftovers | Fridge tracker, expiry alerts, meal plan bridge |
+| V2 | Leftovers | Fridge inventory with dose tracking, per-item expiry (default 5 days), eaten/thrown-out counters, dashboard widget (meals + doses + nearest expiry), full list with active/closed items and infinite scroll |
 | V3 | Shopping | Shared lists, sections, real-time sync, voice entry |
 | V4 | Finances | Budgets, envelopes, expense tracking, maid salary integration |
 | V5 | Maid | Hours logging, billing, payment register, PDF payslips |
@@ -176,6 +183,24 @@ When creating the Algarve vacation, he selects both templates. Items are merged,
 
 ---
 
+### Journey 6: Filipe — Managing Leftovers (Daily Fridge Loop, V2)
+
+It's Sunday evening. Filipe made lasagna — enough for the family plus leftovers. He opens FamilyHub, taps the Leftovers module, and adds: "Lasagna — 4 doses — 5 days". The item appears in the list immediately.
+
+Monday. Angela cooked coq au vin. She adds: "Coq au vin — 3 doses — 4 days" (she overrides the default 5-day expiry because it has cream).
+
+Tuesday morning. Filipe checks the dashboard. The Leftovers widget reads: **2 meals · 7 doses — Coq au vin expires Thursday**. He taps the widget, sees the full list. He reheated lasagna last night — taps "Eaten" twice on the lasagna row. Remaining: 2 doses.
+
+Thursday. The dashboard widget now shows the coq au vin highlighted in red — it expires today. Filipe opens the list. The coq au vin sits at the top, visually flagged. Nobody wants it. He taps "Throw out" — all 3 remaining doses are discarded at once. The item closes and moves below the active section.
+
+Friday. The lasagna still has 2 doses left, expiring Sunday. The widget reads: **1 meal · 2 doses — Lasagna expires Sunday**. Filipe eats one dose Friday, one Saturday. Two taps across two days. The lasagna closes naturally — all doses eaten, zero waste.
+
+Scrolling down in the full list, Filipe can see the closed items: lasagna (4 eaten, 0 thrown), coq au vin (0 eaten, 3 thrown). A quiet record of what got used and what didn't.
+
+**Capabilities revealed:** leftover CRUD with name/doses/expiry override, dashboard widget (meal count + dose count + nearest expiry), dose-level eaten tracking (one tap per dose), bulk throw-out of remaining doses, automatic close on zero remaining, expired item visual flagging, full list with active-first sorting by expiry, closed items visible with history, infinite scroll pagination.
+
+---
+
 ### Journey Requirements Summary
 
 | Journey | Capabilities Required |
@@ -185,6 +210,7 @@ When creating the Algarve vacation, he selects both templates. Items are merged,
 | 3. Offline use | Offline-first, local cache, sync-on-reconnect, last-write-wins |
 | 4. First-time setup | Profile CRUD, account-to-profile linking, admin user management |
 | 5. Configuration | User-defined categories + tags, template CRUD, template tagging |
+| 6. Leftovers (V2) | Leftover CRUD (name/doses/expiry), eaten counter (per dose), throw out (bulk remaining), auto-close, expiry flagging, dashboard widget (meals + doses + nearest expiry), full list with active/closed sorting, infinite scroll |
 
 ---
 
@@ -271,6 +297,7 @@ Offline-first is a first-class architectural requirement from V1, not a progress
 - **Conflict resolution:** Last-write-wins — no conflict dialogs, no manual merge required. Silent convergence
 - **Per-version offline scope:**
   - V1: Packing lists, vacation data, profile data
+  - V2: Leftover item CRUD, dose tracking, expiry calculations
   - V3: Shopping list tick/add operations
   - V5: Maid hours logging (critical — maid may be on-site without reliable connectivity)
 
@@ -326,7 +353,7 @@ No app store compliance requirements apply.
 
 ### Phase 2 — V2–V3: Core Daily Loops
 
-**V2 — Leftovers:** Fridge tracker, expiry alerts, meal plan bridge. Addresses the third household pain (invisible leftovers).
+**V2 — Leftovers:** Fridge inventory with dose-level consumption tracking. Each leftover has a name, total doses, and configurable expiry (default 5 days). Admins log consumption one dose at a time or discard all remaining doses at once. Items close automatically when all doses are accounted for. Dashboard widget surfaces active meal count, total remaining doses, and the nearest-expiring item. Full list shows active and closed items with infinite scroll. Expired items are visually flagged. Offline-first with same sync model as V1. Addresses the third household pain (invisible leftovers).
 
 **V3 — Shopping:** Shared lists, real-time sync, supermarket sections, voice entry. Addresses the second pain (supermarket memory test).
 
@@ -413,13 +440,13 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 
 ### Dashboard
 
-- **FR34:** Admin can view a home dashboard surfacing pinned vacation widgets and module entry points
+- **FR34:** Admin can view a home dashboard surfacing pinned vacation widgets, the Leftovers widget (V2), and module entry points
 - **FR35:** Vacation widget displays the vacation name, participant count, and incomplete booking tasks sorted by next due date
 - **FR36:** Admin can navigate from a dashboard widget to the full vacation detail view
 
 ### Data Sync & Offline
 
-- **FR37:** System persists all vacation, packing, profile, and category data locally on-device for offline access
+- **FR37:** System persists all vacation, packing, profile, category, and leftover (V2) data locally on-device for offline access
 - **FR38:** System queues data changes made while offline and syncs them to the backend on reconnect
 - **FR39:** System resolves concurrent Admin edit conflicts using last-write-wins without presenting conflict dialogs to the user
 - **FR40:** System checks for a newer app version on launch and notifies the user non-blockingly if an update is available
@@ -430,18 +457,33 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **FR42:** System partitions Maid account data such that a new Maid account cannot access any prior Maid's records
 - **FR43:** System enforces all privacy boundaries through database-level Row Level Security, not application-level filtering
 
-### Future Module Capabilities (V2–V6)
+### Leftovers Management (V2)
 
-- **FR44:** Admin can log and track perishable food items in the household fridge with expiry dates (V2)
-- **FR45:** System surfaces leftover items approaching expiry to Admins (V2)
-- **FR46:** Admin can maintain a shared household shopping list with sections organised by supermarket aisle (V3)
-- **FR47:** Admin and Maid can add items to the shopping list; Admin can edit or delete any item; Maid can edit or delete only her own additions (V3)
-- **FR48:** Admin can add shopping list items using voice input (V3)
-- **FR49:** Admin can record household income and expenses against budget categories and envelopes (V4)
-- **FR50:** Maid can log daily work hours with a single-tap interaction (V5)
-- **FR51:** Admin can generate a billing statement and payslip for the Maid for any period (V5)
-- **FR52:** Admin can import, search, scale, and organise recipes (V6)
-- **FR53:** Admin can build a weekly meal plan and generate a deduplicated shopping list from it (V6)
+- **FR44:** Admin can add a leftover item with a name, total doses, and expiry duration in days (default: 5 days, overridable at creation)
+- **FR45:** System records the date added automatically and calculates the expiry date from date added + expiry duration
+- **FR46:** Admin can tap "Eaten" on an active leftover item to increment the eaten dose counter by one
+- **FR47:** Admin can tap "Throw out" on an active leftover item to discard all remaining doses at once, setting thrown-out doses to the remaining count
+- **FR48:** System enforces that doses eaten + doses thrown out never exceeds total doses
+- **FR49:** System closes a leftover item automatically when doses eaten + doses thrown out equals total doses
+- **FR50:** Admin can edit an active leftover item's name, total doses, and expiry duration
+- **FR51:** Admin can delete a leftover item
+- **FR52:** System visually flags active leftover items that have passed their expiry date (highlighted/red)
+- **FR53:** Dashboard displays a Leftovers widget showing: count of active items (meals), sum of remaining doses across active items, and the name and expiry date of the nearest-expiring active item
+- **FR54:** Admin can navigate from the Leftovers dashboard widget to the full leftovers list
+- **FR55:** Full leftovers list displays all items (active and closed), sorted by status (active first) then by expiry date (nearest first for active, most recent first for closed)
+- **FR56:** Full leftovers list loads items progressively via infinite scroll
+- **FR57:** System persists all leftover data locally on-device for offline access and syncs changes to the backend on reconnect
+
+### Future Module Capabilities (V3–V6)
+
+- **FR58:** Admin can maintain a shared household shopping list with sections organised by supermarket aisle (V3)
+- **FR59:** Admin and Maid can add items to the shopping list; Admin can edit or delete any item; Maid can edit or delete only her own additions (V3)
+- **FR60:** Admin can add shopping list items using voice input (V3)
+- **FR61:** Admin can record household income and expenses against budget categories and envelopes (V4)
+- **FR62:** Maid can log daily work hours with a single-tap interaction (V5)
+- **FR63:** Admin can generate a billing statement and payslip for the Maid for any period (V5)
+- **FR64:** Admin can import, search, scale, and organise recipes (V6)
+- **FR65:** Admin can build a weekly meal plan and generate a deduplicated shopping list from it (V6)
 
 ---
 
@@ -483,3 +525,4 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 ### UX Principles
 
 - **NFR22:** The app must not present an onboarding wizard or guided setup flow on first launch. All configuration (profiles, categories, tags, templates, user management) is performed through Settings at the user's own pace. The app is usable immediately after sign-in.
+- **NFR23:** Leftover expiry date calculations and visual flagging must evaluate correctly using device-local time, including when the device is offline

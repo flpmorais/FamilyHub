@@ -1,8 +1,10 @@
 import * as Updates from 'expo-updates';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { IOtaRepository } from '../interfaces/ota.repository.interface';
 import { logger } from '../../utils/logger';
 
 export class SupabaseOtaRepository implements IOtaRepository {
+  constructor(private readonly _client: SupabaseClient) {}
   async checkForUpdate(onUpdateReady?: () => void): Promise<boolean> {
     if (__DEV__) return false;
     try {

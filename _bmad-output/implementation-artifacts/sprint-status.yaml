@@ -1,5 +1,5 @@
 # generated: 2026-03-25
-# last_updated: 2026-03-27
+# last_updated: 2026-03-27 (V2 Epic 6 added)
 # project: FamilyHub
 # project_key: NOKEY
 # tracking_system: file-system
@@ -89,3 +89,11 @@ development_status:
   5-1-home-dashboard-with-pinned-vacation-widgets: done
   5-2-ota-update-silent-auto-apply: done
   epic-5-retrospective: optional
+
+  # ─── Epic 6: Leftovers — Fridge Inventory & Dose Tracking (V2) ─────────
+  epic-6: done
+  6-1-leftovers-data-layer-and-repository: done
+  6-2-leftover-crud-and-dose-tracking: done
+  6-3-leftovers-list-screen: done
+  6-4-dashboard-leftovers-widget: done
+  epic-6-retrospective: optional

@@ -1,5 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
+v2EditedAt: '2026-03-27'
+v2EditSummary: 'Added V2 Leftovers epic (Epic 6) with 4 stories covering FR44-FR57 and NFR23'
 inputDocuments: ['_bmad-output/planning-artifacts/prd.md', '_bmad-output/planning-artifacts/ux-design-specification.md', '_bmad-output/planning-artifacts/architecture.md']
 ---
 
@@ -74,17 +76,31 @@ This document provides the complete epic and story breakdown for FamilyHub, deco
 - FR42: System partitions Maid account data such that a new Maid account cannot access any prior Maid's records
 - FR43: System enforces all privacy boundaries through database-level Row Level Security, not application-level filtering
 
-**Future Module Capabilities (V2–V6)**
-- FR44: Admin can log and track perishable food items in the household fridge with expiry dates (V2)
-- FR45: System surfaces leftover items approaching expiry to Admins (V2)
-- FR46: Admin can maintain a shared household shopping list with sections organised by supermarket aisle (V3)
-- FR47: Admin and Maid can add items to the shopping list; Admin can edit or delete any item; Maid can edit or delete only her own additions (V3)
-- FR48: Admin can add shopping list items using voice input (V3)
-- FR49: Admin can record household income and expenses against budget categories and envelopes (V4)
-- FR50: Maid can log daily work hours with a single-tap interaction (V5)
-- FR51: Admin can generate a billing statement and payslip for the Maid for any period (V5)
-- FR52: Admin can import, search, scale, and organise recipes (V6)
-- FR53: Admin can build a weekly meal plan and generate a deduplicated shopping list from it (V6)
+**Leftovers Management (V2)**
+- FR44: Admin can add a leftover item with a name, total doses, and expiry duration in days (default: 5 days, overridable at creation)
+- FR45: System records the date added automatically and calculates the expiry date from date added + expiry duration
+- FR46: Admin can tap "Eaten" on an active leftover item to increment the eaten dose counter by one
+- FR47: Admin can tap "Throw out" on an active leftover item to discard all remaining doses at once, setting thrown-out doses to the remaining count
+- FR48: System enforces that doses eaten + doses thrown out never exceeds total doses
+- FR49: System closes a leftover item automatically when doses eaten + doses thrown out equals total doses
+- FR50: Admin can edit an active leftover item's name, total doses, and expiry duration
+- FR51: Admin can delete a leftover item
+- FR52: System visually flags active leftover items that have passed their expiry date (highlighted/red)
+- FR53: Dashboard displays a Leftovers widget showing: count of active items (meals), sum of remaining doses across active items, and the name and expiry date of the nearest-expiring active item
+- FR54: Admin can navigate from the Leftovers dashboard widget to the full leftovers list
+- FR55: Full leftovers list displays all items (active and closed), sorted by status (active first) then by expiry date (nearest first for active, most recent first for closed)
+- FR56: Full leftovers list loads items progressively via infinite scroll
+- FR57: System persists all leftover data locally on-device for offline access and syncs changes to the backend on reconnect
+
+**Future Module Capabilities (V3–V6)**
+- FR58: Admin can maintain a shared household shopping list with sections organised by supermarket aisle (V3)
+- FR59: Admin and Maid can add items to the shopping list; Admin can edit or delete any item; Maid can edit or delete only her own additions (V3)
+- FR60: Admin can add shopping list items using voice input (V3)
+- FR61: Admin can record household income and expenses against budget categories and envelopes (V4)
+- FR62: Maid can log daily work hours with a single-tap interaction (V5)
+- FR63: Admin can generate a billing statement and payslip for the Maid for any period (V5)
+- FR64: Admin can import, search, scale, and organise recipes (V6)
+- FR65: Admin can build a weekly meal plan and generate a deduplicated shopping list from it (V6)
 
 ---
 
@@ -121,6 +137,7 @@ This document provides the complete epic and story breakdown for FamilyHub, deco
 
 **UX Principles**
 - NFR22: The app must not present an onboarding wizard or guided setup flow on first launch. All configuration is performed through Settings at the user's own pace.
+- NFR23: (V2) Leftover expiry date calculations and visual flagging must evaluate correctly using device-local time, including when the device is offline
 
 ---
 
@@ -138,6 +155,14 @@ _Technical requirements from Architecture that affect implementation:_
 - AR8: Repository pattern strictly enforced — zero Supabase SDK calls outside `src/repositories/supabase/`. Interfaces in `src/repositories/interfaces/`. Singleton injection via `RepositoryContext` at root `_layout.tsx`.
 - AR9: All status/lifecycle values stored as lowercase string literals: `'new' | 'buy' | 'ready' | 'issue' | 'last_minute' | 'packed'` / `'planning' | 'upcoming' | 'active' | 'completed'` / `'admin' | 'maid'`. No integer codes.
 - AR10: `snake_case` ↔ `camelCase` conversion happens exclusively in the repository layer. TypeScript domain types are always `camelCase`.
+
+**(V2) Architecture Requirements:**
+- AR-V2-1: New `leftovers` table with dose counters, expiry columns, check constraints, RLS — migration `20260327000001_leftovers_module.sql`
+- AR-V2-2: PowerSync schema update in the same commit as the migration (coupled pair rule)
+- AR-V2-3: `ILeftoverRepository` interface + Supabase implementation (9th repository, same singleton injection pattern)
+- AR-V2-4: `leftoversStore` (Zustand) for pagination cursor and scroll position
+- AR-V2-5: Auto-close logic in repository layer (not database trigger) — set `status = 'closed'` in same write as dose update
+- AR-V2-6: Expiry flagging computed client-side against device-local time — no server dependency, works offline
 
 ---
 
@@ -237,7 +262,21 @@ _Actionable UX requirements from the UX Design Specification:_
 | FR39 | Epic 3 | Last-write-wins conflict resolution |
 | FR40 | Epic 5 | OTA update check on launch |
 | FR41–FR43 | Out of V1 scope | RLS privacy enforcement — architecturally pre-positioned |
-| FR44–FR53 | Out of V1 scope | V2–V6 module capabilities |
+| FR44 | Epic 6 | (V2) Add leftover with name, doses, expiry duration |
+| FR45 | Epic 6 | (V2) Auto date-added + expiry date calculation |
+| FR46 | Epic 6 | (V2) Eaten button: increment dose counter |
+| FR47 | Epic 6 | (V2) Throw out: discard all remaining doses |
+| FR48 | Epic 6 | (V2) Dose constraint enforcement |
+| FR49 | Epic 6 | (V2) Auto-close on zero remaining |
+| FR50 | Epic 6 | (V2) Edit active leftover |
+| FR51 | Epic 6 | (V2) Delete leftover |
+| FR52 | Epic 6 | (V2) Visual flag for expired items |
+| FR53 | Epic 6 | (V2) Dashboard widget: meals + doses + nearest expiry |
+| FR54 | Epic 6 | (V2) Navigate from widget to full list |
+| FR55 | Epic 6 | (V2) List sorted by status then expiry |
+| FR56 | Epic 6 | (V2) Infinite scroll pagination |
+| FR57 | Epic 6 | (V2) Offline persistence + sync |
+| FR58–FR65 | Out of V2 scope | V3–V6 module capabilities |
 
 ---
 
@@ -287,6 +326,15 @@ Admins see a home dashboard with pinned vacation widgets showing packing progres
 
 **FRs covered:** FR34, FR35, FR36, FR40
 **NFRs covered:** NFR20
+
+---
+
+### Epic 6: Leftovers — Fridge Inventory & Dose Tracking (V2)
+Admins can log leftover food in the fridge with dose quantities and expiry dates, track consumption one dose at a time or discard remaining doses in bulk, and see at a glance from the dashboard what's in the fridge and what's about to expire. Expired items are visually flagged. The full list shows active and closed items with infinite scroll. Works offline with the same sync model as V1.
+
+**FRs covered:** FR44, FR45, FR46, FR47, FR48, FR49, FR50, FR51, FR52, FR53, FR54, FR55, FR56, FR57
+**NFRs covered:** NFR23
+**Architecture requirements:** AR-V2-1 through AR-V2-6
 
 ---
 
@@ -1068,3 +1116,174 @@ So that I'm always on the latest version without any prompts or interruptions.
 **When** the error is caught in `OtaRepository`
 **Then** the failure is silently swallowed — no error message, no crash, no impact on app launch (NFR20)
 **And** the app continues to run on the currently installed bundle
+
+---
+
+## Epic 6: Leftovers — Fridge Inventory & Dose Tracking (V2)
+
+Admins can log leftover food in the fridge with dose quantities and expiry dates, track consumption one dose at a time or discard remaining doses in bulk, and see at a glance from the dashboard what's in the fridge and what's about to expire. Expired items are visually flagged. The full list shows active and closed items with infinite scroll. Works offline with the same sync model as V1.
+
+### Story 6.1: Leftovers Data Layer & Repository
+
+As a developer,
+I want the leftovers database table, PowerSync schema, repository interface, and implementation in place,
+So that all subsequent leftovers stories can persist and sync data using the same patterns as V1.
+
+**Acceptance Criteria:**
+
+**Given** the Supabase CLI is configured
+**When** migration `20260327000001_leftovers_module.sql` is applied via `supabase db push`
+**Then** the `leftovers` table exists with columns: `id` (uuid PK), `family_id` (uuid FK), `name` (text NOT NULL), `total_doses` (integer NOT NULL), `doses_eaten` (integer NOT NULL DEFAULT 0), `doses_thrown_out` (integer NOT NULL DEFAULT 0), `expiry_days` (integer NOT NULL DEFAULT 5), `date_added` (timestamptz NOT NULL), `expiry_date` (timestamptz NOT NULL), `status` (text NOT NULL DEFAULT 'active'), `created_at`, `updated_at`
+**And** check constraints enforce: `doses_eaten + doses_thrown_out <= total_doses`, `total_doses > 0`, `expiry_days > 0`, `status IN ('active', 'closed')`
+**And** RLS is enabled: admins can read/write rows matching their `family_id`
+**And** index `idx_leftovers_family_id_status` exists
+
+**Given** the PowerSync schema is updated
+**When** `src/utils/powersync.schema.ts` is read
+**Then** the `leftovers` table is declared with columns matching the migration exactly
+**And** this update is in the same commit as the migration
+
+**Given** the repository interface is defined
+**When** `src/repositories/interfaces/leftover.repository.interface.ts` is read
+**Then** `ILeftoverRepository` declares methods: `create`, `update`, `delete`, `getById`, `getActive`, `getAll` (paginated), `incrementEaten`, `throwOutRemaining`
+**And** all methods use `camelCase` domain types (`Leftover`, `LeftoverStatus`)
+
+**Given** the Supabase implementation exists
+**When** `src/repositories/supabase/leftover.repository.ts` is read
+**Then** it implements `ILeftoverRepository` with `snake_case` ↔ `camelCase` conversion at the repository boundary
+**And** `RepositoryContext` provides the 9th repository singleton
+
+**Given** types and constants are defined
+**When** `src/types/leftover.types.ts` is read
+**Then** `Leftover`, `LeftoverStatus`, and `LeftoverWidgetData` types exist
+**And** `src/constants/leftover-defaults.ts` exports `DEFAULT_EXPIRY_DAYS = 5` and `PAGINATION_PAGE_SIZE`
+**And** `src/stores/leftovers.store.ts` exports `leftoversStore` with pagination cursor
+
+---
+
+### Story 6.2: Leftover CRUD & Dose Tracking
+
+As an Admin,
+I want to add leftovers to the fridge, eat doses one at a time, throw out what nobody wants, and edit or delete items,
+So that I have an accurate, up-to-date record of what's in the fridge and how it's being consumed.
+
+**Acceptance Criteria:**
+
+**Given** the admin is on the leftovers screen
+**When** they tap the FAB and fill in the add form with name "Lasagna", total doses 4, expiry days 5
+**Then** a new leftover is created with `date_added` set to now, `expiry_date` calculated as `date_added + 5 days`, `doses_eaten = 0`, `doses_thrown_out = 0`, `status = 'active'`
+**And** the item appears in the active list immediately (optimistic update)
+
+**Given** the admin leaves expiry days blank
+**When** the leftover is created
+**Then** `expiry_days` defaults to 5 and `expiry_date` is calculated accordingly
+
+**Given** an active leftover "Lasagna" has `total_doses = 4`, `doses_eaten = 1`, `doses_thrown_out = 0`
+**When** the admin taps the "Eaten" button once
+**Then** `doses_eaten` increments to 2
+**And** the remaining dose count displayed updates immediately
+
+**Given** an active leftover has `total_doses = 4`, `doses_eaten = 3`, `doses_thrown_out = 0`
+**When** the admin taps "Eaten" once more
+**Then** `doses_eaten` becomes 4, `doses_eaten + doses_thrown_out = total_doses`
+**And** `status` is set to `'closed'` automatically (FR49)
+**And** the item moves to the closed section of the list
+
+**Given** an active leftover "Coq au vin" has `total_doses = 3`, `doses_eaten = 0`, `doses_thrown_out = 0`
+**When** the admin taps "Throw out"
+**Then** `doses_thrown_out` is set to 3 (all remaining)
+**And** `status` is set to `'closed'` automatically
+**And** the item moves to the closed section
+
+**Given** an active leftover has `doses_eaten + doses_thrown_out = total_doses`
+**When** the admin attempts to tap "Eaten" or "Throw out"
+**Then** neither button is available — the item is closed and no further dose actions are possible (FR48)
+
+**Given** an active leftover exists
+**When** the admin edits its name, total doses, or expiry duration
+**Then** the changes are saved immediately
+**And** if `total_doses` is changed, `expiry_date` recalculates if expiry duration changed
+**And** the constraint `doses_eaten + doses_thrown_out <= total_doses` is enforced — the admin cannot reduce `total_doses` below the sum already consumed/thrown
+
+**Given** a leftover item exists (active or closed)
+**When** the admin deletes it
+**Then** the item is removed from the list permanently
+
+---
+
+### Story 6.3: Leftovers List Screen
+
+As an Admin,
+I want to see all my leftovers in a single scrollable list — active items first with expired ones flagged in red, closed items below — loading more as I scroll,
+So that I can quickly assess what's in the fridge and review the history of what was consumed or wasted.
+
+**Acceptance Criteria:**
+
+**Given** the admin navigates to `leftovers/index.tsx`
+**When** the screen loads
+**Then** all active leftover items appear first, sorted by expiry date ascending (nearest expiry at top)
+**And** all closed items appear below active items, sorted by expiry date descending (most recently expired first)
+
+**Given** an active leftover's `expiry_date` is earlier than or equal to the current device-local time
+**When** the list renders
+**Then** that item is visually flagged with red/highlighted styling (FR52)
+**And** the flagging evaluates against `Date.now()` on-device — no server round-trip (NFR23)
+
+**Given** an active leftover's `expiry_date` is in the future
+**When** the list renders
+**Then** that item displays in normal (non-flagged) styling
+
+**Given** the leftovers list contains more items than one screen can display
+**When** the admin scrolls to the bottom
+**Then** the next page of items loads automatically (infinite scroll, FR56)
+**And** `leftoversStore` pagination cursor updates to track the current position
+**And** page size is defined by `PAGINATION_PAGE_SIZE` constant
+
+**Given** there are no leftover items at all
+**When** the screen loads
+**Then** an empty state is shown with guidance to add the first leftover via the FAB
+
+**Given** the device is offline
+**When** the admin opens the leftovers list
+**Then** the list loads from local SQLite cache without error or degraded state
+**And** expiry flagging still evaluates correctly using device-local time
+
+**Given** each leftover item card is displayed
+**When** the admin views it
+**Then** they see: item name, remaining doses (total − eaten − thrown out), expiry date, and the "Eaten" / "Throw out" action buttons (for active items)
+**And** closed items show final counts: doses eaten and doses thrown out
+
+---
+
+### Story 6.4: Dashboard Leftovers Widget
+
+As an Admin,
+I want a widget on the home dashboard that tells me how many meals and doses are in the fridge and what expires next,
+So that I can decide at a glance whether to cook something new or use what's already there.
+
+**Acceptance Criteria:**
+
+**Given** there are active leftover items in the database
+**When** the admin views the home dashboard
+**Then** the Leftovers widget displays: count of active items (labeled as meals), sum of remaining doses across all active items, and the name and expiry date of the nearest-expiring active item (FR53)
+
+**Given** there are 2 active leftovers: "Lasagna" (2 remaining doses, expires Sunday) and "Coq au vin" (3 remaining doses, expires Thursday)
+**When** the widget renders
+**Then** it shows: "2 meals · 5 doses — Coq au vin expires Thursday"
+
+**Given** there are no active leftover items
+**When** the dashboard loads
+**Then** the Leftovers widget shows a zero/empty state (e.g., "Frigorífico vazio") with no meal or dose counts
+
+**Given** the nearest-expiring item has passed its expiry date
+**When** the widget renders
+**Then** the expiry information is visually flagged (red/highlighted), consistent with the list screen flagging
+
+**Given** the admin taps the Leftovers widget
+**When** the navigation executes
+**Then** the app navigates to `leftovers/index.tsx` (full leftovers list) (FR54)
+
+**Given** the device is offline
+**When** the dashboard loads
+**Then** the Leftovers widget renders correctly from local SQLite data
+**And** expiry flagging evaluates against device-local time
