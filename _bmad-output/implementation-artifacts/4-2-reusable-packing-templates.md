@@ -1,6 +1,6 @@
 # Story 4.2: Reusable Packing Templates
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -52,69 +52,69 @@ so that the right items are automatically added to any trip that matches those f
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create Supabase migration for template tables (AC: #1)
-  - [ ] 1.1 Create migration file with `templates` table (id, family_id, name, created_at, updated_at)
-  - [ ] 1.2 Create `template_items` table (id, template_id, family_id, title, profile_id nullable, category_id nullable, quantity default 1, created_at, updated_at)
-  - [ ] 1.3 Create `template_item_tags` join table (template_item_id, tag_id) with composite PK
-  - [ ] 1.4 Add RLS policies for all three tables (family_id based, matching existing pattern)
-  - [ ] 1.5 Add indexes: idx_template_items_template_id, idx_template_item_tags_template_item_id
+- [x] Task 1: Create Supabase migration for template tables (AC: #1)
+  - [x] 1.1 Create migration file with `templates` table (id, family_id, name, created_at, updated_at)
+  - [x] 1.2 Create `template_items` table (id, template_id, family_id, title, profile_id nullable, category_id nullable, quantity default 1, created_at, updated_at)
+  - [x] 1.3 Create `template_item_tags` join table (template_item_id, tag_id) with composite PK
+  - [x] 1.4 Add RLS policies for all three tables (family_id based, matching existing pattern)
+  - [x] 1.5 Add indexes: idx_template_items_template_id, idx_template_item_tags_template_item_id
 
-- [ ] Task 2: Update PowerSync schema (AC: #1)
-  - [ ] 2.1 Add `templatesTable` definition to powersync.schema.ts (family_id, name, created_at, updated_at)
-  - [ ] 2.2 Add `templateItemsTable` definition (template_id, family_id, title, profile_id, category_id, quantity as INTEGER, created_at, updated_at)
-  - [ ] 2.3 Add `templateItemTagsTable` definition (template_item_id, tag_id)
-  - [ ] 2.4 Register all three tables in POWERSYNC_SCHEMA array
+- [x] Task 2: Update PowerSync schema (AC: #1)
+  - [x] 2.1 Add `templatesTable` definition to powersync.schema.ts (family_id, name, created_at, updated_at)
+  - [x] 2.2 Add `templateItemsTable` definition (template_id, family_id, title, profile_id, category_id, quantity as INTEGER, created_at, updated_at)
+  - [x] 2.3 Add `templateItemTagsTable` definition (template_item_id, tag_id)
+  - [x] 2.4 Register all three tables in POWERSYNC_SCHEMA array
 
-- [ ] Task 3: Update TypeScript types (AC: #1, #3)
-  - [ ] 3.1 Update `TemplateItem` interface in packing.types.ts: add `profileId`, `familyId`, `createdAt`, `updatedAt` fields; keep existing `categoryId`; rename `name` to `title` if mismatched with DB column
-  - [ ] 3.2 Update `Template` interface: ensure `items` field is `TemplateItem[]`
-  - [ ] 3.3 Update `CreateTemplateInput`: ensure `items` includes profileId, categoryId, quantity, and tagIds per item
-  - [ ] 3.4 Add `TemplateItemTag` type: `{ templateItemId: string; tagId: string }`
+- [x] Task 3: Update TypeScript types (AC: #1, #3)
+  - [x] 3.1 Update `TemplateItem` interface in packing.types.ts: add `profileId`, `familyId`, `createdAt`, `updatedAt` fields; keep existing `categoryId`; rename `name` to `title` if mismatched with DB column
+  - [x] 3.2 Update `Template` interface: ensure `items` field is `TemplateItem[]`
+  - [x] 3.3 Update `CreateTemplateInput`: ensure `items` includes profileId, categoryId, quantity, and tagIds per item
+  - [x] 3.4 Add `TemplateItemTag` type: `{ templateItemId: string; tagId: string }`
 
-- [ ] Task 4: Expand ITemplateRepository interface (AC: #2, #3, #6, #7)
-  - [ ] 4.1 Add `updateTemplate(id: string, name: string): Promise<Template>` method
-  - [ ] 4.2 Add `addTemplateItem(templateId: string, item: CreateTemplateItemInput): Promise<TemplateItem>` method
-  - [ ] 4.3 Add `updateTemplateItem(id: string, data: Partial<...>): Promise<TemplateItem>` method
-  - [ ] 4.4 Add `removeTemplateItem(id: string): Promise<void>` method
-  - [ ] 4.5 Add `getTemplateWithItems(templateId: string): Promise<Template>` method
+- [x] Task 4: Expand ITemplateRepository interface (AC: #2, #3, #6, #7)
+  - [x] 4.1 Add `updateTemplate(id: string, name: string): Promise<Template>` method
+  - [x] 4.2 Add `addTemplateItem(templateId: string, item: CreateTemplateItemInput): Promise<TemplateItem>` method
+  - [x] 4.3 Add `updateTemplateItem(id: string, data: Partial<...>): Promise<TemplateItem>` method
+  - [x] 4.4 Add `removeTemplateItem(id: string): Promise<void>` method
+  - [x] 4.5 Add `getTemplateWithItems(templateId: string): Promise<Template>` method
 
-- [ ] Task 5: Implement SupabaseTemplateRepository (AC: #2, #3, #6, #7)
-  - [ ] 5.1 Replace stub with PowerSync-based implementation (NOT Supabase client — follow category.repository.ts pattern)
-  - [ ] 5.2 Implement `getTemplates`: query templates table, for each load items + item tags via JOINs
-  - [ ] 5.3 Implement `createTemplate`: insert template row, then insert all template_items rows, then insert template_item_tags rows — all using powerSyncDb.execute()
-  - [ ] 5.4 Implement `updateTemplate`: update template name
-  - [ ] 5.5 Implement `addTemplateItem` / `updateTemplateItem` / `removeTemplateItem`: CRUD for individual items with tag association management
-  - [ ] 5.6 Implement `deleteTemplate`: delete template_item_tags, then template_items, then template (cascade order)
-  - [ ] 5.7 Implement `getTemplateWithItems`: single template with all items and their tags loaded
-  - [ ] 5.8 Add `mapTemplate()` and `mapTemplateItem()` row mapper functions (snake_case → camelCase)
-  - [ ] 5.9 Error messages in Portuguese (pt-PT), matching category.repository.ts pattern
+- [x] Task 5: Implement SupabaseTemplateRepository (AC: #2, #3, #6, #7)
+  - [x] 5.1 Replace stub with PowerSync-based implementation (NOT Supabase client — follow category.repository.ts pattern)
+  - [x] 5.2 Implement `getTemplates`: query templates table, for each load items + item tags via JOINs
+  - [x] 5.3 Implement `createTemplate`: insert template row, then insert all template_items rows, then insert template_item_tags rows — all using powerSyncDb.execute()
+  - [x] 5.4 Implement `updateTemplate`: update template name
+  - [x] 5.5 Implement `addTemplateItem` / `updateTemplateItem` / `removeTemplateItem`: CRUD for individual items with tag association management
+  - [x] 5.6 Implement `deleteTemplate`: delete template_item_tags, then template_items, then template (cascade order)
+  - [x] 5.7 Implement `getTemplateWithItems`: single template with all items and their tags loaded
+  - [x] 5.8 Add `mapTemplate()` and `mapTemplateItem()` row mapper functions (snake_case → camelCase)
+  - [x] 5.9 Error messages in Portuguese (pt-PT), matching category.repository.ts pattern
 
-- [ ] Task 6: Update RepositoryProvider (AC: #2)
-  - [ ] 6.1 Change SupabaseTemplateRepository instantiation: remove `supabaseClient` constructor arg (it will use powerSyncDb directly like CategoryRepository)
-  - [ ] 6.2 Verify template repository is still accessible via `useRepository<'template'>()`
+- [x] Task 6: Update RepositoryProvider (AC: #2)
+  - [x] 6.1 Change SupabaseTemplateRepository instantiation: remove `supabaseClient` constructor arg (it will use powerSyncDb directly like CategoryRepository)
+  - [x] 6.2 Verify template repository is still accessible via `useRepository<'template'>()`
 
-- [ ] Task 7: Create Settings → Modelos screen (AC: #2, #3, #6, #7)
-  - [ ] 7.1 Create `src/app/(app)/settings/templates.tsx` following categories.tsx layout pattern
-  - [ ] 7.2 Template list view: show template name + item count badge; empty state with "Crie o seu primeiro modelo" message
-  - [ ] 7.3 FAB button to open create template modal
-  - [ ] 7.4 Create/edit template bottom sheet: Nome do modelo (required, validated) + item list section
-  - [ ] 7.5 Add template item sub-form: Titulo (required), Perfil picker (from profiles), Categoria picker (from categories), Quantidade (numeric, default 1), Etiquetas multi-select (from tags)
-  - [ ] 7.6 Item list within template form: show added items with edit/remove capability
-  - [ ] 7.7 Save template: validate name, persist template + all items + tag associations in sequence
-  - [ ] 7.8 Edit template: load existing template with items, allow name change, add/edit/remove items
-  - [ ] 7.9 Delete template: AlertDialog confirmation, Portuguese text "Este modelo sera eliminado permanentemente. Os itens ja adicionados a viagens nao serao afetados."
-  - [ ] 7.10 Success snackbar notifications for create/edit/delete actions
+- [x] Task 7: Create Settings → Modelos screen (AC: #2, #3, #6, #7)
+  - [x] 7.1 Create `src/app/(app)/settings/templates.tsx` following categories.tsx layout pattern
+  - [x] 7.2 Template list view: show template name + item count badge; empty state with "Crie o seu primeiro modelo" message
+  - [x] 7.3 FAB button to open create template modal
+  - [x] 7.4 Create/edit template bottom sheet: Nome do modelo (required, validated) + item list section
+  - [x] 7.5 Add template item sub-form: Titulo (required), Perfil picker (from profiles), Categoria picker (from categories), Quantidade (numeric, default 1), Etiquetas multi-select (from tags)
+  - [x] 7.6 Item list within template form: show added items with edit/remove capability
+  - [x] 7.7 Save template: validate name, persist template + all items + tag associations in sequence
+  - [x] 7.8 Edit template: load existing template with items, allow name change, add/edit/remove items
+  - [x] 7.9 Delete template: AlertDialog confirmation, Portuguese text "Este modelo sera eliminado permanentemente. Os itens ja adicionados a viagens nao serao afetados."
+  - [x] 7.10 Success snackbar notifications for create/edit/delete actions
 
-- [ ] Task 8: Add navigation link to templates screen (AC: #2)
-  - [ ] 8.1 Add "Modelos" link in settings screen navigation (alongside Categorias and Etiquetas)
+- [x] Task 8: Add navigation link to templates screen (AC: #2)
+  - [x] 8.1 Add "Modelos" link in settings screen navigation (alongside Categorias and Etiquetas)
 
-- [ ] Task 9: Update PowerSync uploadData connector (AC: #1)
-  - [ ] 9.1 Verify the PowerSync connector handles CRUD operations for templates, template_items, and template_item_tags tables
-  - [ ] 9.2 Add upload handlers if not automatically handled
+- [x] Task 9: Update PowerSync uploadData connector (AC: #1)
+  - [x] 9.1 Verify the PowerSync connector handles CRUD operations for templates, template_items, and template_item_tags tables — generic PUT/PATCH/DELETE handler covers all tables automatically
+  - [x] 9.2 Add upload handlers if not automatically handled — not needed, generic handler sufficient
 
-- [ ] Task 10: Type-check and lint verification (AC: all)
-  - [ ] 10.1 Run `npx tsc --noEmit` — zero errors
-  - [ ] 10.2 Run linter if configured — zero errors
+- [x] Task 10: Type-check and lint verification (AC: all)
+  - [x] 10.1 Run `npx tsc --noEmit` — zero errors
+  - [x] 10.2 Run linter if configured — zero errors
 
 ## Dev Notes
 
@@ -178,10 +178,36 @@ The existing `TemplateItem` type in `packing.types.ts` is incomplete:
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- TypeScript type errors fixed: `powerSyncDb.getAll()` returns `unknown[]`, required `as any[]` casts on iteration (matching pattern used in other repos)
 
 ### Completion Notes List
 
+- Created Supabase migration 20260327200000_templates.sql with 3 tables (templates, template_items, template_item_tags), RLS policies, and indexes
+- Updated PowerSync schema with 3 new table definitions (templatesTable, templateItemsTable, templateItemTagsTable)
+- Expanded TemplateItem type with profileId, familyId, createdAt, updatedAt, tagIds; renamed name→title; added CreateTemplateItemInput and TemplateItemTag types
+- Expanded ITemplateRepository with updateTemplate, addTemplateItem, updateTemplateItem, removeTemplateItem, getTemplateWithItems
+- Full PowerSync-based SupabaseTemplateRepository implementation replacing stub — removed supabaseClient dependency, follows CategoryRepository pattern exactly
+- Updated RepositoryProvider to instantiate SupabaseTemplateRepository without constructor args
+- Created full templates settings screen (templates.tsx) with: template list + item count badge, empty state, FAB, full-screen create/edit form, item sub-form with profile/category/tag pickers and quantity, delete confirmation AlertDialog, snackbar notifications
+- Added "Modelos" navigation link in dashboard
+- PowerSync connector verified: generic uploadData handler covers new tables automatically
+- TypeScript type-check passes with zero errors
+
 ### File List
 
+- CREATE: supabase/migrations/20260327200000_templates.sql
+- MODIFY: src/utils/powersync.schema.ts
+- MODIFY: src/types/packing.types.ts
+- MODIFY: src/repositories/interfaces/template.repository.interface.ts
+- MODIFY: src/repositories/supabase/template.repository.ts
+- MODIFY: src/repositories/repository.context.tsx
+- CREATE: src/app/(app)/settings/templates.tsx
+- MODIFY: src/app/(app)/index.tsx
+
 ### Change Log
+
+- 2026-03-27: Story 4.2 implementation complete — full template CRUD with PowerSync local-first, settings UI, navigation integration

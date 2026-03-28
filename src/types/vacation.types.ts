@@ -36,6 +36,8 @@ export interface CreateVacationInput {
   returnDate: string;
   familyId: string;
   participantProfileIds: string[];
+  categoryIds: string[];
+  tagIds?: string[];
 }
 
 export interface VacationParticipant {
@@ -66,4 +68,25 @@ export interface CreateBookingTaskInput {
   deadlineDays?: number | null;
   dueDate?: string | null;
   profileId?: string | null;
+}
+
+export interface TaskTemplate {
+  id: string;
+  familyId: string;
+  title: string;
+  deadlineDays: number;
+  isAllFamily: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  tagIds: string[];
+  profileIds: string[];
+}
+
+export interface CreateTaskTemplateInput {
+  title: string;
+  deadlineDays: number;
+  isAllFamily?: boolean;
+  tagIds?: string[];
+  profileIds?: string[];
 }

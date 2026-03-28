@@ -9,6 +9,7 @@ import { SupabaseTemplateRepository } from './supabase/template.repository';
 import { SupabaseSyncRepository } from './supabase/sync.repository';
 import { SupabaseOtaRepository } from './supabase/ota.repository';
 import { SupabaseTagRepository } from './supabase/tag.repository';
+import { SupabaseTaskTemplateRepository } from './supabase/task-template.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -19,6 +20,7 @@ import type { ITemplateRepository } from './interfaces/template.repository.inter
 import type { ISyncRepository } from './interfaces/sync.repository.interface';
 import type { IOtaRepository } from './interfaces/ota.repository.interface';
 import type { ITagRepository } from './interfaces/tag.repository.interface';
+import type { ITaskTemplateRepository } from './interfaces/task-template.repository.interface';
 export interface RepositoryContextValue {
   auth: IAuthRepository;
   profile: IProfileRepository;
@@ -27,6 +29,7 @@ export interface RepositoryContextValue {
   category: ICategoryRepository;
   template: ITemplateRepository;
   tag: ITagRepository;
+  taskTemplate: ITaskTemplateRepository;
   sync: ISyncRepository;
   ota: IOtaRepository;
 }
@@ -42,9 +45,10 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       packingItem: new SupabasePackingItemRepository(),
       category: new SupabaseCategoryRepository(),
       tag: new SupabaseTagRepository(),
-      template: new SupabaseTemplateRepository(supabaseClient),
+      template: new SupabaseTemplateRepository(),
+      taskTemplate: new SupabaseTaskTemplateRepository(),
       sync: new SupabaseSyncRepository(supabaseClient),
-      ota: new SupabaseOtaRepository(supabaseClient),
+      ota: new SupabaseOtaRepository(),
     }),
     []
   );

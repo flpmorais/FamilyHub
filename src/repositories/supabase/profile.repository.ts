@@ -12,6 +12,7 @@ function mapRow(row: {
   status: string;
   email: string | null;
   role: string;
+  sort_order?: number;
   created_at: string;
   updated_at: string;
 }): Profile {
@@ -23,13 +24,14 @@ function mapRow(row: {
     status: row.status as ProfileStatus,
     email: row.email,
     role: row.role as UserRole,
+    sortOrder: Number(row.sort_order) || 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 const SELECT_COLS =
-  'id, display_name, avatar_url, family_id, status, email, role, created_at, updated_at';
+  'id, display_name, avatar_url, family_id, status, email, role, sort_order, created_at, updated_at';
 
 export class SupabaseProfileRepository implements IProfileRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -39,7 +41,7 @@ export class SupabaseProfileRepository implements IProfileRepository {
       .from('profiles')
       .select(SELECT_COLS)
       .eq('family_id', familyId)
-      .order('display_name');
+      .order('sort_order');
 
     if (error) {
       logger.error('ProfileRepository', 'getProfilesByFamily failed', error);
@@ -57,6 +59,15 @@ export class SupabaseProfileRepository implements IProfileRepository {
     role?: UserRole
   ): Promise<Profile> {
     const status = email ? 'invited' : 'active';
+
+    const { data: maxRows } = await this.client
+      .from('profiles')
+      .select('sort_order')
+      .eq('family_id', familyId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+    const nextOrder = (Number(maxRows?.[0]?.sort_order) || 0) + 1;
+
     const { data, error } = await this.client
       .from('profiles')
       .insert({
@@ -66,6 +77,7 @@ export class SupabaseProfileRepository implements IProfileRepository {
         status,
         email: email ?? null,
         role: role ?? 'child',
+        sort_order: nextOrder,
       })
       .select(SELECT_COLS);
 
@@ -174,6 +186,58 @@ export class SupabaseProfileRepository implements IProfileRepository {
     return data.publicUrl;
   }
 
+  async reorderProfile(id: string, newOrder: number): Promise<void> {
+    const { data: rows } = await this.client
+      .from('profiles')
+      .select('sort_order, family_id')
+      .eq('id', id);
+
+    if (!rows || rows.length === 0) return;
+    const { sort_order: oldOrder, family_id } = rows[0];
+    if (oldOrder === newOrder) return;
+
+    if (newOrder < oldOrder) {
+      // Moving up: increment sort_order for items in [newOrder, oldOrder)
+      const { data: toUpdate } = await this.client
+        .from('profiles')
+        .select('id, sort_order')
+        .eq('family_id', family_id)
+        .gte('sort_order', newOrder)
+        .lt('sort_order', oldOrder);
+
+      if (toUpdate) {
+        for (const row of toUpdate) {
+          await this.client
+            .from('profiles')
+            .update({ sort_order: row.sort_order + 1 })
+            .eq('id', row.id);
+        }
+      }
+    } else {
+      // Moving down: decrement sort_order for items in (oldOrder, newOrder]
+      const { data: toUpdate } = await this.client
+        .from('profiles')
+        .select('id, sort_order')
+        .eq('family_id', family_id)
+        .gt('sort_order', oldOrder)
+        .lte('sort_order', newOrder);
+
+      if (toUpdate) {
+        for (const row of toUpdate) {
+          await this.client
+            .from('profiles')
+            .update({ sort_order: row.sort_order - 1 })
+            .eq('id', row.id);
+        }
+      }
+    }
+
+    await this.client
+      .from('profiles')
+      .update({ sort_order: newOrder })
+      .eq('id', id);
+  }
+
   async deleteProfile(id: string): Promise<void> {
     const { data: linked, error: checkError } = await this.client
       .from('user_accounts')
@@ -190,10 +254,34 @@ export class SupabaseProfileRepository implements IProfileRepository {
       throw new Error('Este perfil está associado a uma conta activa');
     }
 
+    const { data: profileRows } = await this.client
+      .from('profiles')
+      .select('sort_order, family_id')
+      .eq('id', id);
+
     const { error } = await this.client.from('profiles').delete().eq('id', id);
     if (error) {
       logger.error('ProfileRepository', 'deleteProfile: delete failed', error);
       throw new Error(`Erro ao eliminar perfil: ${error.message}`);
+    }
+
+    if (profileRows && profileRows.length > 0) {
+      const { sort_order, family_id } = profileRows[0];
+      // Decrement sort_order for profiles with higher order in the same family
+      const { data: toUpdate } = await this.client
+        .from('profiles')
+        .select('id, sort_order')
+        .eq('family_id', family_id)
+        .gt('sort_order', sort_order);
+
+      if (toUpdate) {
+        for (const row of toUpdate) {
+          await this.client
+            .from('profiles')
+            .update({ sort_order: row.sort_order - 1 })
+            .eq('id', row.id);
+        }
+      }
     }
   }
 }

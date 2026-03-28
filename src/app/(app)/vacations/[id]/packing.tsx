@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<PackingStatus, string> = {
   packed: 'Embalado',
 };
 
-const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'ready', 'issue', 'last_minute', 'packed'];
+const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'issue', 'ready', 'last_minute', 'packed'];
 
 export default function PackingListScreen() {
   const { id: vacationId } = useLocalSearchParams<{ id: string }>();
@@ -246,7 +246,6 @@ export default function PackingListScreen() {
               onChangeText={setFormName}
               placeholder="ex: T-shirts"
               autoCapitalize="sentences"
-              autoFocus
               editable={!isSaving}
             />
 

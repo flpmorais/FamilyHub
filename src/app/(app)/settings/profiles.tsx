@@ -604,7 +604,6 @@ export default function ProfilesScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoFocus
                 />
 
                 <Text style={styles.label}>Função</Text>

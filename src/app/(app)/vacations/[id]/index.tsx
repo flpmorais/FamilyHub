@@ -57,18 +57,21 @@ export default function VacationDetailScreen() {
   const loadData = useCallback(async () => {
     if (!vacationId || !userAccount?.familyId) return;
     try {
-      const [allVacs, taskList, profList, catList, tagList] = await Promise.all([
+      const [allVacs, taskList, profList, catList, tagList, vacTagIds] = await Promise.all([
         vacationRepo.getVacations(userAccount.familyId),
         vacationRepo.getBookingTasks(vacationId),
         profileRepo.getProfilesByFamily(userAccount.familyId),
         categoryRepo.getCategories(userAccount.familyId),
         tagRepo.getTags(userAccount.familyId),
+        vacationRepo.getVacationTags(vacationId),
       ]);
       setVacation(allVacs.find((v) => v.id === vacationId) ?? null);
       setTasks(taskList);
       setProfiles(profList);
       setCategories(catList);
-      setTags(tagList);
+      // Only show tags that belong to this vacation
+      const vacTagSet = new Set(vacTagIds);
+      setTags(vacTagSet.size > 0 ? tagList.filter((t) => vacTagSet.has(t.id)) : tagList);
     } catch (err) {
       logger.error('VacationDetail', 'loadData failed', err);
     } finally {
@@ -115,7 +118,8 @@ export default function VacationDetailScreen() {
     name: string,
     profileId: string | null,
     quantity: number,
-    categoryId: string | null
+    categoryId: string | null,
+    isAllFamily: boolean
   ) {
     await packingRepo.createPackingItem({
       vacationId: vacationId!,
@@ -124,6 +128,7 @@ export default function VacationDetailScreen() {
       assignedProfileId: profileId ?? undefined,
       quantity,
       categoryId: categoryId ?? undefined,
+      isAllFamily,
     });
   }
 
@@ -136,6 +141,7 @@ export default function VacationDetailScreen() {
       status: PackingStatus;
       notes: string | null;
       categoryId: string | null;
+      isAllFamily: boolean;
     }
   ) {
     await packingRepo.updatePackingItem(id, data);

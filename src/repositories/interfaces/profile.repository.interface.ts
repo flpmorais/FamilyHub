@@ -16,4 +16,5 @@ export interface IProfileRepository {
   setProfileStatus(id: string, status: ProfileStatus): Promise<Profile>;
   uploadAvatar(profileId: string, familyId: string, localUri: string): Promise<string>;
   deleteProfile(id: string): Promise<void>;
+  reorderProfile(id: string, newOrder: number): Promise<void>;
 }

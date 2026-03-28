@@ -82,7 +82,6 @@ export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
             onChangeText={setFormTitle}
             placeholder="ex: Seguro de viagem"
             autoCapitalize="sentences"
-            autoFocus
             editable={!isSaving}
           />
           {error && error.includes('título') ? (

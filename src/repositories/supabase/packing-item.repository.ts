@@ -12,6 +12,7 @@ export function mapPackingRow(row: any): PackingItem {
     name: row.title,
     status: row.status as PackingStatus,
     assignedProfileId: row.profile_id ?? null,
+    isAllFamily: row.is_all_family === 1 || row.is_all_family === true,
     quantity: Number(row.quantity) || 1,
     notes: row.notes ?? null,
     categoryId: row.category_id ?? null,
@@ -43,8 +44,8 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     const ts = now();
     try {
       await powerSyncDb.execute(
-        `INSERT INTO packing_items (id, vacation_id, family_id, title, status, profile_id, quantity, notes, category_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO packing_items (id, vacation_id, family_id, title, status, profile_id, quantity, notes, category_id, is_all_family, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           input.vacationId,
@@ -55,6 +56,7 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
           input.quantity ?? 1,
           input.notes ?? null,
           input.categoryId ?? null,
+          input.isAllFamily ? 1 : 0,
           ts,
           ts,
         ]
@@ -97,6 +99,10 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     if (data.categoryId !== undefined) {
       sets.push('category_id = ?');
       params.push(data.categoryId);
+    }
+    if (data.isAllFamily !== undefined) {
+      sets.push('is_all_family = ?');
+      params.push(data.isAllFamily ? 1 : 0);
     }
 
     sets.push('updated_at = ?');

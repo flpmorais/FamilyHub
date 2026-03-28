@@ -9,15 +9,13 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Switch,
 } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Snackbar } from 'react-native-paper';
+import { Icon, Snackbar } from 'react-native-paper';
 import { logger } from '../utils/logger';
 import { useStatusColours } from '../constants/status-colours';
-import { nextStatus, secondaryStatus } from '../utils/status-transitions';
 import { usePackingStore } from '../stores/packing.store';
 import {
-  SwipeableItemWrapper,
   StatusCountPill,
   FilterPanel,
   PackingItemCard,
@@ -34,7 +32,7 @@ const STATUS_LABELS: Record<PackingStatus, string> = {
   last_minute: 'Última hora',
   packed: 'Embalado',
 };
-const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'ready', 'issue', 'last_minute', 'packed'];
+const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'issue', 'ready', 'last_minute', 'packed'];
 
 interface PackingItemListProps {
   items: PackingItem[];
@@ -46,7 +44,8 @@ interface PackingItemListProps {
     name: string,
     profileId: string | null,
     quantity: number,
-    categoryId: string | null
+    categoryId: string | null,
+    isAllFamily: boolean
   ) => Promise<void>;
   onUpdateItem: (
     id: string,
@@ -57,6 +56,7 @@ interface PackingItemListProps {
       status: PackingStatus;
       notes: string | null;
       categoryId: string | null;
+      isAllFamily: boolean;
     }
   ) => Promise<void>;
   onDeleteItem: (id: string) => Promise<void>;
@@ -79,9 +79,11 @@ export function PackingItemList({
     activeStatusFilters,
     activeProfileFilters,
     activeCategoryFilters,
+    activeTagFilters,
     toggleStatusFilter,
     toggleProfileFilter,
     toggleCategoryFilter,
+    toggleTagFilter,
     clearAllFilters,
   } = usePackingStore();
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
@@ -100,7 +102,8 @@ export function PackingItemList({
     const hasStatusFilter = activeStatusFilters.length > 0;
     const hasProfileFilter = activeProfileFilters.length > 0;
     const hasCategoryFilter = activeCategoryFilters.length > 0;
-    if (!hasStatusFilter && !hasProfileFilter && !hasCategoryFilter) return items;
+    const hasTagFilter = activeTagFilters.length > 0;
+    if (!hasStatusFilter && !hasProfileFilter && !hasCategoryFilter && !hasTagFilter) return items;
     return items.filter((item) => {
       if (hasStatusFilter && !activeStatusFilters.includes(item.status)) return false;
       if (
@@ -113,9 +116,11 @@ export function PackingItemList({
         (!item.categoryId || !activeCategoryFilters.includes(item.categoryId))
       )
         return false;
+      // Tag filter: item needs at least one matching tag (via packing_item_tags — TODO: currently items don't carry tagIds at runtime)
+      // For now, tag filter is a no-op on items without tag data loaded
       return true;
     });
-  }, [items, activeStatusFilters, activeProfileFilters, activeCategoryFilters]);
+  }, [items, activeStatusFilters, activeProfileFilters, activeCategoryFilters, activeTagFilters]);
 
   // Count for filter panel "Ver N itens"
   const filteredCount = filteredItems.length;
@@ -124,7 +129,8 @@ export function PackingItemList({
   const hasActiveFilters =
     activeStatusFilters.length > 0 ||
     activeProfileFilters.length > 0 ||
-    activeCategoryFilters.length > 0;
+    activeCategoryFilters.length > 0 ||
+    activeTagFilters.length > 0;
   const allPacked = items.length > 0 && items.every((i) => i.status === 'packed');
   const [showAllOverride, setShowAllOverride] = useState(false);
   const showCompletionState = allPacked && !hasActiveFilters && !showAllOverride;
@@ -137,6 +143,7 @@ export function PackingItemList({
   const [formStatus, setFormStatus] = useState<PackingStatus>('new');
   const [formNotes, setFormNotes] = useState('');
   const [formCategoryId, setFormCategoryId] = useState<string | null>(null);
+  const [formAllFamily, setFormAllFamily] = useState(false);
   const [formTagIds, setFormTagIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,6 +172,7 @@ export function PackingItemList({
     setFormStatus('new');
     setFormNotes('');
     setFormCategoryId(categories.length > 0 ? categories[0].id : null);
+    setFormAllFamily(false);
     setFormTagIds([]);
     setError(null);
     setSheetVisible(true);
@@ -178,12 +186,13 @@ export function PackingItemList({
     setFormStatus(item.status);
     setFormNotes(item.notes ?? '');
     setFormCategoryId(item.categoryId);
+    setFormAllFamily(item.isAllFamily);
     setFormTagIds([]); // TODO: load from packing_item_tags when needed
     setError(null);
     setSheetVisible(true);
   }
 
-  async function doSave(closeAfter: boolean) {
+  async function doSave(keepOpen: boolean) {
     const name = formName.trim();
     if (!name) {
       setError('O nome é obrigatório.');
@@ -196,21 +205,22 @@ export function PackingItemList({
       if (editingItem) {
         await onUpdateItem(editingItem.id, {
           name,
-          assignedProfileId: formProfileId,
+          assignedProfileId: formAllFamily ? null : formProfileId,
           quantity: qty,
           status: formStatus,
           notes: formNotes || null,
           categoryId: formCategoryId,
+          isAllFamily: formAllFamily,
         });
         setSheetVisible(false);
         setSuccessMsg('Item actualizado');
         setSuccessVisible(true);
       } else {
-        await onCreateItem(name, formProfileId, qty, formCategoryId);
+        await onCreateItem(name, formAllFamily ? null : formProfileId, qty, formCategoryId, formAllFamily);
         setLastUsedProfileId(formProfileId);
         setSuccessMsg('Item adicionado');
         setSuccessVisible(true);
-        if (closeAfter) {
+        if (!keepOpen) {
           setSheetVisible(false);
         }
       }
@@ -237,7 +247,7 @@ export function PackingItemList({
     ]);
   }
 
-  async function handleSwipeStatus(item: PackingItem, newStatus: PackingStatus) {
+  async function handleStatusChange(item: PackingItem, newStatus: PackingStatus) {
     const previousStatus = item.status;
     setUndoInfo({ itemId: item.id, previousStatus });
     setSnackMessage(`Estado alterado para ${STATUS_LABELS[newStatus]}`);
@@ -245,7 +255,7 @@ export function PackingItemList({
     try {
       await onStatusChange(item.id, newStatus);
     } catch (err) {
-      logger.error('PackingItemList', 'handleSwipeStatus failed', err);
+      logger.error('PackingItemList', 'handleStatusChange failed', err);
     }
   }
 
@@ -258,38 +268,6 @@ export function PackingItemList({
       logger.error('PackingItemList', 'handleUndo failed', err);
     }
     setUndoInfo(null);
-  }
-
-  function showAccessibilityMenu(item: PackingItem) {
-    const primary = nextStatus(item.status);
-    const secondary = secondaryStatus(item.status);
-
-    const buttons: { text: string; onPress: () => void; style?: 'cancel' | 'destructive' }[] = [];
-
-    if (primary !== item.status) {
-      buttons.push({
-        text: `Avançar para ${STATUS_LABELS[primary]}`,
-        onPress: () => handleSwipeStatus(item, primary),
-      });
-    }
-    if (secondary && secondary !== primary) {
-      buttons.push({
-        text: `Marcar como ${STATUS_LABELS[secondary]}`,
-        onPress: () => handleSwipeStatus(item, secondary),
-      });
-    }
-    buttons.push({
-      text: 'Editar',
-      onPress: () => openEdit(item),
-    });
-    buttons.push({
-      text: 'Eliminar',
-      style: 'destructive',
-      onPress: () => onDeleteItem(item.id),
-    });
-    buttons.push({ text: 'Cancelar', onPress: () => {}, style: 'cancel' });
-
-    Alert.alert(item.name, undefined, buttons);
   }
 
   function profileName(id: string | null): string {
@@ -308,7 +286,7 @@ export function PackingItemList({
   }
 
   return (
-    <GestureHandlerRootView style={st.container}>
+    <View style={st.container}>
       {/* Status count pills */}
       {items.length > 0 && (
         <ScrollView
@@ -364,36 +342,17 @@ export function PackingItemList({
               </TouchableOpacity>
             </View>
           )}
-          {filteredItems.map((item) => {
-            const primary = nextStatus(item.status);
-            const secondary = secondaryStatus(item.status);
-            const primaryColor = primary !== item.status ? colours[primary].bg : '#888888';
-            const secondaryColor = secondary ? colours[secondary].bg : undefined;
-
-            return (
-              <SwipeableItemWrapper
-                key={item.id}
-                leftColor={primaryColor}
-                leftLabel={primary !== item.status ? STATUS_LABELS[primary] : ''}
-                rightColor={secondaryColor}
-                rightLabel={secondary ? STATUS_LABELS[secondary] : undefined}
-                onSwipeLeft={() => {
-                  if (primary !== item.status) handleSwipeStatus(item, primary);
-                }}
-                onSwipeRight={secondary ? () => handleSwipeStatus(item, secondary) : undefined}
-              >
-                <PackingItemCard
-                  item={item}
-                  profileName={profileName(item.assignedProfileId)}
-                  categoryName={categoryName(item.categoryId)}
-                  categoryIcon={categoryIcon(item.categoryId)}
-                  onPress={() => openEdit(item)}
-                  onLongPress={() => showAccessibilityMenu(item)}
-                  onStatusPress={() => setStatusPickerItem(item)}
-                />
-              </SwipeableItemWrapper>
-            );
-          })}
+          {filteredItems.map((item) => (
+            <PackingItemCard
+              key={item.id}
+              item={item}
+              profileName={profileName(item.assignedProfileId)}
+              categoryName={categoryName(item.categoryId)}
+              categoryIcon={categoryIcon(item.categoryId)}
+              onPress={() => openEdit(item)}
+              onStatusPress={() => setStatusPickerItem(item)}
+            />
+          ))}
         </ScrollView>
       )}
 
@@ -462,7 +421,7 @@ export function PackingItemList({
                       ]}
                       onPress={() => {
                         if (!isCurrent) {
-                          handleSwipeStatus(statusPickerItem, s);
+                          handleStatusChange(statusPickerItem, s);
                         }
                         setStatusPickerItem(null);
                       }}
@@ -497,11 +456,14 @@ export function PackingItemList({
         activeStatuses={activeStatusFilters}
         activeProfiles={activeProfileFilters}
         activeCategories={activeCategoryFilters}
+        activeTags={activeTagFilters}
         profiles={profiles}
         categories={categories}
+        tags={tags}
         onToggleStatus={toggleStatusFilter}
         onToggleProfile={toggleProfileFilter}
         onToggleCategory={toggleCategoryFilter}
+        onToggleTag={toggleTagFilter}
         onClearAll={clearAllFilters}
         filteredCount={filteredCount}
       />
@@ -523,35 +485,38 @@ export function PackingItemList({
               onChangeText={setFormName}
               placeholder="ex: T-shirts"
               autoCapitalize="sentences"
-              autoFocus
               editable={!isSaving}
             />
-            <Text style={st.label}>Pessoa</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
-              <TouchableOpacity
-                style={[st.chip, formProfileId === null && st.chipActive]}
-                onPress={() => setFormProfileId(null)}
+            <View style={st.toggleRow}>
+              <Text style={st.toggleLabel}>Toda a família</Text>
+              <Switch
+                value={formAllFamily}
+                onValueChange={(v) => { setFormAllFamily(v); if (v) setFormProfileId(null); }}
+                trackColor={{ true: '#B5451B' }}
                 disabled={isSaving}
-              >
-                <Text style={[st.chipText, formProfileId === null && st.chipTextActive]}>
-                  Todos
-                </Text>
-              </TouchableOpacity>
-              {profiles
-                .filter((p) => p.status !== 'inactive')
-                .map((p) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[st.chip, formProfileId === p.id && st.chipActive]}
-                    onPress={() => setFormProfileId(p.id)}
-                    disabled={isSaving}
-                  >
-                    <Text style={[st.chipText, formProfileId === p.id && st.chipTextActive]}>
-                      {p.displayName}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
+              />
+            </View>
+            {!formAllFamily && (
+              <>
+                <Text style={st.label}>Pessoa *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
+                  {profiles
+                    .filter((p) => p.status !== 'inactive')
+                    .map((p) => (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[st.chip, formProfileId === p.id && st.chipActive]}
+                        onPress={() => setFormProfileId(p.id)}
+                        disabled={isSaving}
+                      >
+                        <Text style={[st.chipText, formProfileId === p.id && st.chipTextActive]}>
+                          {p.displayName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </ScrollView>
+              </>
+            )}
             <Text style={st.label}>Quantidade</Text>
             <TextInput
               style={st.input}
@@ -612,6 +577,7 @@ export function PackingItemList({
                           }
                           disabled={isSaving}
                         >
+                          <Icon source={tag.icon} size={14} color={selected ? '#FFFFFF' : tag.color} />
                           <Text style={[st.chipText, selected && { color: '#FFFFFF' }]}>
                             {tag.name}
                           </Text>
@@ -623,6 +589,13 @@ export function PackingItemList({
             )}
             {error ? <Text style={st.formError}>{error}</Text> : null}
             <View style={st.sheetBtns}>
+              <TouchableOpacity
+                style={st.cancelBtn}
+                onPress={() => setSheetVisible(false)}
+                disabled={isSaving}
+              >
+                <Text style={st.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
               {editingItem && (
                 <TouchableOpacity
                   style={st.deleteBtn}
@@ -633,37 +606,30 @@ export function PackingItemList({
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={st.cancelBtn}
-                onPress={() => setSheetVisible(false)}
+                style={[st.saveBtn, isSaving && st.saveBtnDisabled]}
+                onPress={() => doSave(false)}
                 disabled={isSaving}
               >
-                <Text style={st.cancelText}>{editingItem ? 'Cancelar' : 'Fechar'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[st.saveBtn, st.saveBtnOutline, isSaving && st.saveBtnDisabled]}
-                onPress={() => doSave(true)}
-                disabled={isSaving}
-              >
-                <Text style={st.saveTextOutline}>Guardar</Text>
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={st.saveText}>Guardar</Text>
+                )}
               </TouchableOpacity>
               {!editingItem && (
                 <TouchableOpacity
-                  style={[st.saveBtn, isSaving && st.saveBtnDisabled]}
-                  onPress={() => doSave(false)}
+                  style={[st.continuarBtn, isSaving && st.saveBtnDisabled]}
+                  onPress={() => doSave(true)}
                   disabled={isSaving}
                 >
-                  {isSaving ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={st.saveText}>Próxima</Text>
-                  )}
+                  <Text style={st.continuarText}>+ Continuar</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
         </View>
       </Modal>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
@@ -720,6 +686,9 @@ const st = StyleSheet.create({
   notesInput: { minHeight: 60, textAlignVertical: 'top' },
   chipRow: { marginBottom: 16, flexGrow: 0 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -731,32 +700,25 @@ const st = StyleSheet.create({
   chipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
   chipText: { fontSize: 13, color: '#555555' },
   chipTextActive: { color: '#FFFFFF' },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  toggleLabel: { fontSize: 15, color: '#1A1A1A' },
   formError: { color: '#D32F2F', marginBottom: 12, fontSize: 14 },
   sheetBtns: { flexDirection: 'row', gap: 12, marginTop: 8 },
   cancelBtn: {
-    flex: 1,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#CCCCCC',
     alignItems: 'center',
   },
   cancelText: { color: '#1A1A1A', fontSize: 16 },
-  saveBtn: {
-    flex: 1,
-    backgroundColor: '#B5451B',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnOutline: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#B5451B',
-  },
-  saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  saveTextOutline: { color: '#B5451B', fontSize: 16, fontWeight: '600' },
   deleteBtn: {
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -766,6 +728,23 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   deleteText: { color: '#D32F2F', fontSize: 14, fontWeight: '600' },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: '#B5451B',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  continuarBtn: {
+    flex: 1,
+    backgroundColor: '#6D6D6D',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  continuarText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   noCategoriesHint: { fontSize: 13, color: '#AAAAAA', fontStyle: 'italic', marginBottom: 16 },
   // Status picker modal
   pickerOverlay: {

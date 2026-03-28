@@ -78,14 +78,14 @@ development_status:
   epic-3-retrospective: optional
 
   # ─── Epic 4: Categories, Tags & Templates ────────────────────────────────
-  epic-4: in-progress
-  4-1-packing-categories-and-tags: review
-  4-2-reusable-packing-templates: ready-for-dev
-  4-3-automatic-template-application-at-trip-creation: backlog
+  epic-4: done
+  4-1-packing-categories-and-tags: done
+  4-2-reusable-packing-templates: done
+  4-3-automatic-template-application-at-trip-creation: done
   epic-4-retrospective: optional
 
   # ─── Epic 5: Dashboard & OTA Updates ─────────────────────────────────────
-  epic-5: backlog
-  5-1-home-dashboard-with-pinned-vacation-widgets: backlog
-  5-2-ota-update-silent-auto-apply: backlog
+  epic-5: done
+  5-1-home-dashboard-with-pinned-vacation-widgets: done
+  5-2-ota-update-silent-auto-apply: done
   epic-5-retrospective: optional

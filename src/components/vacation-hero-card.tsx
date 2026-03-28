@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ImageSourcePropType } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Modal, StyleSheet, ImageSourcePropType } from 'react-native';
 import { router } from 'expo-router';
 import { countryFlag, countryIso2 } from '../utils/countries';
 import {
@@ -94,7 +94,7 @@ export function VacationHeroCard({
       </Wrapper>
 
       {/* Lifecycle picker modal */}
-      {pickerVisible && (
+      <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
         <TouchableOpacity
           style={styles.pickerOverlay}
           activeOpacity={1}
@@ -143,14 +143,14 @@ export function VacationHeroCard({
             </View>
           </View>
         </TouchableOpacity>
-      )}
+      </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 0,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -209,15 +209,10 @@ const styles = StyleSheet.create({
   lcBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
   // Lifecycle picker
   pickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.4)',
-    zIndex: 100,
   },
   pickerCard: {
     backgroundColor: '#FFFFFF',

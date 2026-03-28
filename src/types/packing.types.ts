@@ -8,6 +8,7 @@ export interface PackingItem {
   quantity: number;
   categoryId: string | null;
   assignedProfileId: string | null;
+  isAllFamily: boolean;
   notes: string | null;
   familyId: string;
   createdAt: string;
@@ -20,6 +21,7 @@ export interface CreatePackingItemInput {
   quantity?: number;
   categoryId?: string;
   assignedProfileId?: string;
+  isAllFamily?: boolean;
   notes?: string;
   familyId: string;
 }
@@ -29,6 +31,8 @@ export interface Category {
   name: string;
   icon: string;
   active: boolean;
+  isDefault: boolean;
+  sortOrder: number;
   familyId: string;
   createdAt: string;
   updatedAt: string;
@@ -37,6 +41,7 @@ export interface Category {
 export interface CreateCategoryInput {
   name: string;
   icon: string;
+  isDefault?: boolean;
   familyId: string;
 }
 
@@ -44,7 +49,9 @@ export interface Tag {
   id: string;
   name: string;
   color: string;
+  icon: string;
   active: boolean;
+  sortOrder: number;
   familyId: string;
   createdAt: string;
   updatedAt: string;
@@ -52,23 +59,22 @@ export interface Tag {
 
 export interface TemplateItem {
   id: string;
-  templateId: string;
-  name: string;
-  quantity: number;
-  categoryId: string | null;
-}
-
-export interface Template {
-  id: string;
-  name: string;
   familyId: string;
-  items: TemplateItem[];
+  title: string;
+  profileIds: string[];
+  categoryId: string;
+  quantity: number;
+  isAllFamily: boolean;
   createdAt: string;
   updatedAt: string;
+  tagIds: string[];
 }
 
-export interface CreateTemplateInput {
-  name: string;
-  familyId: string;
-  items: Omit<TemplateItem, 'id' | 'templateId'>[];
+export interface CreateTemplateItemInput {
+  title: string;
+  profileIds?: string[];
+  categoryId: string;
+  quantity?: number;
+  isAllFamily?: boolean;
+  tagIds?: string[];
 }

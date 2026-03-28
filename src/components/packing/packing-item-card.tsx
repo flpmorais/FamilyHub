@@ -19,7 +19,6 @@ interface PackingItemCardProps {
   categoryName: string;
   categoryIcon: string;
   onPress: () => void;
-  onLongPress: () => void;
   onStatusPress: () => void;
 }
 
@@ -29,7 +28,6 @@ export function PackingItemCard({
   categoryName,
   categoryIcon,
   onPress,
-  onLongPress,
   onStatusPress,
 }: PackingItemCardProps) {
   const colours = useStatusColours();
@@ -47,7 +45,6 @@ export function PackingItemCard({
     <TouchableOpacity
       style={[s.card, isPacked && s.cardPacked]}
       onPress={onPress}
-      onLongPress={onLongPress}
       accessible
       accessibilityLabel={a11yLabel}
       accessibilityRole="button"

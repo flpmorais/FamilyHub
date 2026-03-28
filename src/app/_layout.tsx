@@ -1,6 +1,6 @@
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { PaperProvider } from 'react-native-paper';
+import { PaperProvider, Snackbar } from 'react-native-paper';
 import { PowerSyncContext } from '@powersync/react';
 import { powerSyncDb } from '../utils/powersync.database';
 import { RepositoryProvider, RepositoryContext } from '../repositories/repository.context';
@@ -13,6 +13,7 @@ import { useAppTheme } from '../theme';
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const repositories = useContext(RepositoryContext);
   const { setUserAccount, setLoading } = useAuthStore();
+  const [otaVisible, setOtaVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -33,6 +34,8 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
               // Sync start failure is non-fatal — app still works offline
             });
         }
+        // OTA update check — fire and forget, never blocks launch
+        void repositories!.ota.checkForUpdate(() => setOtaVisible(true));
       })
       .catch(() => {
         if (!mounted) return;
@@ -44,7 +47,20 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <Snackbar
+        visible={otaVisible}
+        onDismiss={() => setOtaVisible(false)}
+        duration={3000}
+        style={{ position: 'absolute', top: 48, backgroundColor: '#1976D2' }}
+        theme={{ colors: { inverseSurface: '#1976D2', inverseOnSurface: '#FFFFFF' } }}
+      >
+        Actualização instalada. A reiniciar...
+      </Snackbar>
+    </>
+  );
 }
 
 // PowerSyncContext.Provider must be the outermost wrapper so RepositoryProvider

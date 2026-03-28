@@ -16,6 +16,7 @@ export interface Profile {
   status: ProfileStatus;
   email: string | null;
   role: UserRole;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }

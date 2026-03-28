@@ -1,8 +1,18 @@
-import { Template, CreateTemplateInput } from '../../types/packing.types';
+import { TemplateItem, CreateTemplateItemInput } from '../../types/packing.types';
 
 export interface ITemplateRepository {
-  getTemplates(familyId: string): Promise<Template[]>;
-  createTemplate(data: CreateTemplateInput): Promise<Template>;
-  deleteTemplate(id: string): Promise<void>;
-  applyTemplate(templateId: string, vacationId: string): Promise<void>;
+  getTemplateItems(familyId: string): Promise<TemplateItem[]>;
+  createTemplateItem(familyId: string, item: CreateTemplateItemInput): Promise<TemplateItem>;
+  updateTemplateItem(
+    id: string,
+    data: Partial<Pick<TemplateItem, 'title' | 'categoryId' | 'quantity' | 'isAllFamily'>> & { profileIds?: string[]; tagIds?: string[] }
+  ): Promise<TemplateItem>;
+  deleteTemplateItem(id: string): Promise<void>;
+  applyTemplates(
+    familyId: string,
+    vacationId: string,
+    participantProfileIds: string[],
+    vacationCategoryIds: string[],
+    vacationTagIds: string[]
+  ): Promise<number>;
 }

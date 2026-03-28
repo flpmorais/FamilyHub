@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
   Modal,
   Alert,
   Switch,
+  FlatList,
 } from 'react-native';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon, Snackbar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useRepository } from '../../../hooks/use-repository';
@@ -19,54 +22,117 @@ import { logger } from '../../../utils/logger';
 import type { Category } from '../../../types/packing.types';
 
 const ICON_OPTIONS = [
+  // Luggage & bags
   'bag-suitcase',
+  'bag-personal',
+  'bag-carry-on',
+  'briefcase',
+  'shopping',
+  // Clothing & accessories
   'tshirt-crew',
   'shoe-sneaker',
+  'shoe-formal',
+  'hat-fedora',
   'sunglasses',
+  'watch',
+  'hanger',
+  // Beach & outdoors
   'umbrella-beach',
-  'water',
   'swim',
-  'lotion',
-  'toothbrush',
-  'medical-bag',
-  'pill',
-  'baby-bottle',
-  'teddy-bear',
-  'gamepad-variant',
-  'book-open-variant',
-  'headphones',
-  'camera',
-  'laptop',
-  'cellphone',
-  'power-plug',
-  'flashlight',
-  'tools',
-  'food-apple',
-  'bottle-wine',
-  'cup',
-  'silverware-fork-knife',
-  'passport',
-  'file-document',
-  'credit-card',
-  'key',
-  'car',
-  'airplane',
-  'map-marker',
-  'compass',
-  'binoculars',
+  'water',
+  'surfing',
+  'sail-boat',
+  'palm-tree',
+  'weather-sunny',
+  'snowflake',
+  'mountain-sun',
   'tent',
   'campfire',
   'hiking',
+  'fish',
+  'binoculars',
+  'compass',
+  // Hygiene & health
+  'lotion',
+  'toothbrush',
+  'spray',
+  'medical-bag',
+  'pill',
+  'hospital-box',
+  'bandage',
+  'thermometer',
+  // Kids & family
+  'baby-bottle',
+  'baby-carriage',
+  'teddy-bear',
+  'human-child',
+  'toy-brick',
+  // Electronics & tech
+  'camera',
+  'laptop',
+  'cellphone',
+  'tablet',
+  'headphones',
+  'power-plug',
+  'battery-charging',
+  'usb',
+  'flashlight',
+  'lightbulb',
+  // Entertainment
+  'gamepad-variant',
+  'book-open-variant',
+  'music',
+  'cards-playing',
+  'puzzle',
+  // Food & drink
+  'food-apple',
+  'bottle-wine',
+  'cup',
+  'coffee',
+  'silverware-fork-knife',
+  'food',
+  // Travel & transport
+  'passport',
+  'airplane',
+  'car',
+  'train',
+  'bus',
+  'ferry',
+  'map-marker',
+  'earth',
+  'flag',
+  'star-circle-outline',
+  // Documents & money
+  'file-document',
+  'credit-card',
+  'cash',
+  'currency-usd',
+  'currency-eur',
+  'key',
+  'lock',
+  'shield-check',
+  'calendar',
+  // Sports & fitness
   'basketball',
   'soccer',
+  'tennis',
   'dumbbell',
   'yoga',
-  'music',
-  'palette',
+  'run',
+  'bike',
+  // Tools & misc
+  'tools',
+  'wrench',
+  'content-cut',
   'gift',
   'star',
   'heart',
-  'shield-check',
+  'palette',
+  'home',
+  'bed',
+  'shower',
+  'washing-machine',
+  'iron',
 ];
 
 export default function CategoriesScreen() {
@@ -81,6 +147,7 @@ export default function CategoriesScreen() {
   const [formName, setFormName] = useState('');
   const [formIcon, setFormIcon] = useState(ICON_OPTIONS[0]);
   const [formActive, setFormActive] = useState(true);
+  const [formDefault, setFormDefault] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState('');
 
@@ -123,6 +190,7 @@ export default function CategoriesScreen() {
     setFormName('');
     setFormIcon(ICON_OPTIONS[0]);
     setFormActive(true);
+    setFormDefault(false);
     setNameError('');
     setSheetVisible(true);
   }
@@ -132,11 +200,12 @@ export default function CategoriesScreen() {
     setFormName(cat.name);
     setFormIcon(cat.icon);
     setFormActive(cat.active);
+    setFormDefault(cat.isDefault);
     setNameError('');
     setSheetVisible(true);
   }
 
-  async function handleSave() {
+  async function handleSave(keepOpen: boolean = false) {
     const name = formName.trim();
     if (!name) {
       setNameError('O nome é obrigatório.');
@@ -146,20 +215,22 @@ export default function CategoriesScreen() {
     setIsSaving(true);
     try {
       if (editingCategory) {
-        await categoryRepo.updateCategory(editingCategory.id, { name, icon: formIcon });
+        await categoryRepo.updateCategory(editingCategory.id, { name, icon: formIcon, isDefault: formDefault });
         if (editingCategory.active !== formActive) {
           await categoryRepo.setActive(editingCategory.id, formActive);
         }
         setSuccessMsg('Categoria actualizada');
+        setSheetVisible(false);
       } else {
         await categoryRepo.createCategory({
           name,
           icon: formIcon,
+          isDefault: formDefault,
           familyId: userAccount!.familyId,
         });
         setSuccessMsg('Categoria criada');
+        if (!keepOpen) setSheetVisible(false);
       }
-      setSheetVisible(false);
       setSuccessVisible(true);
       await loadCategories();
     } catch (err) {
@@ -193,19 +264,78 @@ export default function CategoriesScreen() {
     ]);
   }
 
-  if (isLoading) {
-    return (
-      <View style={s.centered}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  const handleDragEnd = useCallback(
+    async ({ data: reorderedData }: { data: Category[] }) => {
+      // Update local state immediately for responsiveness
+      setCategories(reorderedData);
 
-  return (
-    <View style={s.container}>
-      <ScrollView contentContainerStyle={s.content}>
+      // Persist new sort orders for items that changed position
+      try {
+        for (let i = 0; i < reorderedData.length; i++) {
+          const item = reorderedData[i];
+          const newSortOrder = i + 1;
+          if (item.sortOrder !== newSortOrder) {
+            await categoryRepo.reorderCategory(item.id, newSortOrder);
+          }
+        }
+        // Reload to sync with DB
+        await loadCategories();
+      } catch (err) {
+        logger.error('CategoriesScreen', 'reorder failed', err);
+        // Reload to revert to DB state on error
+        await loadCategories();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [categoryRepo]
+  );
+
+  const renderDraggableItem = useCallback(
+    ({ item: cat, drag, isActive }: RenderItemParams<Category>) => (
+      <ScaleDecorator>
+        <TouchableOpacity
+          style={[s.row, !cat.active && s.rowInactive, isActive && s.rowDragging]}
+          onPress={() => openEdit(cat)}
+          onLongPress={drag}
+        >
+          <View style={s.rowIconWrap}>
+            <Icon source={cat.icon} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
+          </View>
+          <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
+          {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
+          <TouchableOpacity onPressIn={drag} disabled={isActive}>
+            <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </ScaleDecorator>
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const renderStaticItem = useCallback(
+    ({ item: cat }: { item: Category }) => (
+      <TouchableOpacity
+        style={[s.row, !cat.active && s.rowInactive]}
+        onPress={() => openEdit(cat)}
+        onLongPress={() => handleDelete(cat)}
+      >
+        <View style={s.rowIconWrap}>
+          <Icon source={cat.icon} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
+        </View>
+        <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
+        {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
+      </TouchableOpacity>
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const ListHeader = useCallback(
+    () => (
+      <View style={s.content}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backText}>← Voltar</Text>
+          <Text style={s.backText}>{'\u2190'} Voltar</Text>
         </TouchableOpacity>
         <Text style={s.heading}>Categorias</Text>
 
@@ -218,209 +348,248 @@ export default function CategoriesScreen() {
         {filteredCategories.length === 0 && (
           <Text style={s.empty}>Nenhuma categoria encontrada.</Text>
         )}
+      </View>
+    ),
+    [filterCount, filteredCategories.length]
+  );
 
-        {filteredCategories.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[s.row, !cat.active && s.rowInactive]}
-            onPress={() => openEdit(cat)}
-            onLongPress={() => handleDelete(cat)}
-          >
-            <View style={s.rowIconWrap}>
-              <Icon source={cat.icon} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
-            </View>
-            <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
-            {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+  if (isLoading) {
+    return (
+      <View style={s.centered}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
-      <TouchableOpacity style={s.fab} onPress={openAdd} activeOpacity={0.8}>
-        <Text style={s.fabText}>+</Text>
-      </TouchableOpacity>
+  const isDragEnabled = !searchText;
 
-      <Snackbar
-        visible={successVisible}
-        onDismiss={() => setSuccessVisible(false)}
-        duration={2000}
-        style={s.successSnackbar}
-        theme={{ colors: { inverseSurface: '#388E3C', inverseOnSurface: '#FFFFFF' } }}
-      >
-        {successMsg}
-      </Snackbar>
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={s.container}>
+        {isDragEnabled ? (
+          <DraggableFlatList
+            data={filteredCategories}
+            keyExtractor={(item) => item.id}
+            renderItem={renderDraggableItem}
+            onDragEnd={handleDragEnd}
+            ListHeaderComponent={ListHeader}
+            contentContainerStyle={s.listContent}
+          />
+        ) : (
+          <FlatList
+            data={filteredCategories}
+            keyExtractor={(item) => item.id}
+            renderItem={renderStaticItem}
+            ListHeaderComponent={ListHeader}
+            contentContainerStyle={s.listContent}
+          />
+        )}
 
-      {/* Create/Edit sheet */}
-      <Modal
-        visible={sheetVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSheetVisible(false)}
-      >
-        <View style={s.modalOverlay}>
-          <View style={s.sheet}>
-            <Text style={s.sheetTitle}>
-              {editingCategory ? 'Editar categoria' : 'Nova categoria'}
-            </Text>
-            <Text style={s.label}>Nome *</Text>
-            <TextInput
-              style={[s.input, nameError ? s.inputError : null]}
-              value={formName}
-              onChangeText={(t) => {
-                setFormName(t);
-                setNameError('');
-              }}
-              placeholder="ex: Roupa"
-              autoCapitalize="sentences"
-              autoFocus
-              editable={!isSaving}
-            />
-            {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
-            <Text style={s.label}>Ícone *</Text>
-            <TouchableOpacity
-              style={s.iconPickerBtn}
-              onPress={() => setIconPickerVisible(true)}
-              disabled={isSaving}
-            >
-              <Icon source={formIcon} size={24} color="#B5451B" />
-              <Text style={s.iconPickerBtnText}>Selecionar ícone</Text>
-            </TouchableOpacity>
-            {editingCategory && (
+        <TouchableOpacity style={s.fab} onPress={openAdd} activeOpacity={0.8}>
+          <Text style={s.fabText}>+</Text>
+        </TouchableOpacity>
+
+        <Snackbar
+          visible={successVisible}
+          onDismiss={() => setSuccessVisible(false)}
+          duration={2000}
+          style={s.successSnackbar}
+          theme={{ colors: { inverseSurface: '#388E3C', inverseOnSurface: '#FFFFFF' } }}
+        >
+          {successMsg}
+        </Snackbar>
+
+        {/* Create/Edit sheet */}
+        <Modal
+          visible={sheetVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setSheetVisible(false)}
+        >
+          <View style={s.modalOverlay}>
+            <View style={s.sheet}>
+              <Text style={s.sheetTitle}>
+                {editingCategory ? 'Editar categoria' : 'Nova categoria'}
+              </Text>
+              <Text style={s.label}>Nome *</Text>
+              <TextInput
+                style={[s.input, nameError ? s.inputError : null]}
+                value={formName}
+                onChangeText={(t) => {
+                  setFormName(t);
+                  setNameError('');
+                }}
+                placeholder="ex: Roupa"
+                autoCapitalize="sentences"
+                editable={!isSaving}
+              />
+              {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
+              <Text style={s.label}>Icone *</Text>
+              <TouchableOpacity
+                style={s.iconPickerBtn}
+                onPress={() => setIconPickerVisible(true)}
+                disabled={isSaving}
+              >
+                <Icon source={formIcon} size={24} color="#B5451B" />
+                <Text style={s.iconPickerBtnText}>Selecionar icone</Text>
+              </TouchableOpacity>
               <View style={s.activeRow}>
-                <Text style={s.activeLabel}>Activa</Text>
+                <Text style={s.activeLabel}>Predefinida</Text>
                 <Switch
-                  value={formActive}
-                  onValueChange={setFormActive}
+                  value={formDefault}
+                  onValueChange={setFormDefault}
                   trackColor={{ true: '#B5451B' }}
                   disabled={isSaving}
                 />
               </View>
-            )}
-            <View style={s.sheetBtns}>
               {editingCategory && (
+                <View style={s.activeRow}>
+                  <Text style={s.activeLabel}>Activa</Text>
+                  <Switch
+                    value={formActive}
+                    onValueChange={setFormActive}
+                    trackColor={{ true: '#B5451B' }}
+                    disabled={isSaving}
+                  />
+                </View>
+              )}
+              <View style={s.sheetBtns}>
                 <TouchableOpacity
-                  style={s.deleteBtn}
-                  onPress={() => {
-                    setSheetVisible(false);
-                    setTimeout(() => handleDelete(editingCategory), 300);
-                  }}
+                  style={s.cancelBtn}
+                  onPress={() => setSheetVisible(false)}
                   disabled={isSaving}
                 >
-                  <Text style={s.deleteText}>Eliminar</Text>
+                  <Text style={s.cancelText}>Cancelar</Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={s.cancelBtn}
-                onPress={() => setSheetVisible(false)}
-                disabled={isSaving}
-              >
-                <Text style={s.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={s.saveText}>Guardar</Text>
+                {editingCategory && (
+                  <TouchableOpacity
+                    style={s.deleteBtn}
+                    onPress={() => {
+                      setSheetVisible(false);
+                      setTimeout(() => handleDelete(editingCategory), 300);
+                    }}
+                    disabled={isSaving}
+                  >
+                    <Text style={s.deleteText}>Eliminar</Text>
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
+                  onPress={() => handleSave(false)}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={s.saveText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+                {!editingCategory && (
+                  <TouchableOpacity
+                    style={[s.continuarBtn, isSaving && s.saveBtnDisabled]}
+                    onPress={() => handleSave(true)}
+                    disabled={isSaving}
+                  >
+                    <Text style={s.continuarText}>+ Continuar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Icon picker */}
-      <Modal
-        visible={iconPickerVisible}
-        animationType="slide"
-        onRequestClose={() => setIconPickerVisible(false)}
-      >
-        <View style={s.iconPickerContainer}>
-          <View style={s.iconPickerHeader}>
-            <Text style={s.iconPickerTitle}>Selecionar ícone</Text>
-            <TouchableOpacity onPress={() => setIconPickerVisible(false)}>
-              <Text style={s.iconPickerClose}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={s.iconGrid}>
-            {ICON_OPTIONS.map((icon) => (
-              <TouchableOpacity
-                key={icon}
-                style={[s.iconCell, formIcon === icon && s.iconCellSelected]}
-                onPress={() => {
-                  setFormIcon(icon);
-                  setIconPickerVisible(false);
-                }}
-              >
-                <Icon source={icon} size={28} color={formIcon === icon ? '#B5451B' : '#555555'} />
+        {/* Icon picker */}
+        <Modal
+          visible={iconPickerVisible}
+          animationType="slide"
+          onRequestClose={() => setIconPickerVisible(false)}
+        >
+          <View style={s.iconPickerContainer}>
+            <View style={s.iconPickerHeader}>
+              <Text style={s.iconPickerTitle}>Selecionar icone</Text>
+              <TouchableOpacity onPress={() => setIconPickerVisible(false)}>
+                <Text style={s.iconPickerClose}>Fechar</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
-
-      {/* Filter panel */}
-      <Modal
-        visible={filterPanelVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setFilterPanelVisible(false)}
-      >
-        <View style={s.filterOverlay}>
-          <TouchableOpacity
-            style={s.filterOverlayTouch}
-            onPress={() => setFilterPanelVisible(false)}
-            activeOpacity={1}
-          />
-          <View style={s.filterPanel}>
-            <View style={s.filterPanelHeader}>
-              <Text style={s.filterPanelTitle}>Filtros</Text>
-              {filterCount > 0 && (
+            </View>
+            <ScrollView contentContainerStyle={s.iconGrid}>
+              {ICON_OPTIONS.map((icon) => (
                 <TouchableOpacity
+                  key={icon}
+                  style={[s.iconCell, formIcon === icon && s.iconCellSelected]}
                   onPress={() => {
-                    setShowActiveOnly(false);
-                    setSearchText('');
+                    setFormIcon(icon);
+                    setIconPickerVisible(false);
                   }}
                 >
-                  <Text style={s.filterPanelClear}>Limpar</Text>
+                  <Icon source={icon} size={28} color={formIcon === icon ? '#B5451B' : '#555555'} />
                 </TouchableOpacity>
-              )}
-            </View>
-            <Text style={s.label}>Nome</Text>
-            <TextInput
-              style={s.input}
-              value={searchText}
-              onChangeText={setSearchText}
-              placeholder="Pesquisar..."
-              autoCapitalize="none"
+              ))}
+            </ScrollView>
+          </View>
+        </Modal>
+
+        {/* Filter panel */}
+        <Modal
+          visible={filterPanelVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setFilterPanelVisible(false)}
+        >
+          <View style={s.filterOverlay}>
+            <TouchableOpacity
+              style={s.filterOverlayTouch}
+              onPress={() => setFilterPanelVisible(false)}
+              activeOpacity={1}
             />
-            <Text style={s.label}>Estado</Text>
-            <View style={s.filterChipRow}>
-              <TouchableOpacity
-                style={[s.filterChip, showActiveOnly && s.filterChipActive]}
-                onPress={() => setShowActiveOnly(!showActiveOnly)}
-              >
-                <Text style={[s.filterChipText, showActiveOnly && s.filterChipTextActive]}>
-                  Apenas activas
-                </Text>
+            <View style={s.filterPanel}>
+              <View style={s.filterPanelHeader}>
+                <Text style={s.filterPanelTitle}>Filtros</Text>
+                {filterCount > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowActiveOnly(false);
+                      setSearchText('');
+                    }}
+                  >
+                    <Text style={s.filterPanelClear}>Limpar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <Text style={s.label}>Nome</Text>
+              <TextInput
+                style={s.input}
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Pesquisar..."
+                autoCapitalize="none"
+              />
+              <Text style={s.label}>Estado</Text>
+              <View style={s.filterChipRow}>
+                <TouchableOpacity
+                  style={[s.filterChip, showActiveOnly && s.filterChipActive]}
+                  onPress={() => setShowActiveOnly(!showActiveOnly)}
+                >
+                  <Text style={[s.filterChipText, showActiveOnly && s.filterChipTextActive]}>
+                    Apenas activas
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={s.filterApplyBtn} onPress={() => setFilterPanelVisible(false)}>
+                <Text style={s.filterApplyBtnText}>Ver {filteredCategories.length} categorias</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={s.filterApplyBtn} onPress={() => setFilterPanelVisible(false)}>
-              <Text style={s.filterApplyBtnText}>Ver {filteredCategories.length} categorias</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
 const s = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  content: { padding: 24, paddingBottom: 80 },
+  content: { padding: 24, paddingBottom: 0 },
+  listContent: { paddingBottom: 80 },
   backBtn: { marginBottom: 16 },
   backText: { color: '#B5451B', fontSize: 16 },
   heading: { fontSize: 24, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
@@ -431,10 +600,13 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
   },
   rowInactive: { opacity: 0.5 },
+  rowDragging: { elevation: 4, shadowColor: '#000000', shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
   rowIconWrap: { width: 28, alignItems: 'center', marginRight: 12 },
   rowName: { fontSize: 16, color: '#1A1A1A', flex: 1 },
   rowNameInactive: { color: '#AAAAAA' },
@@ -446,6 +618,8 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  dragHandle: { fontSize: 20, color: '#CCCCCC', paddingHorizontal: 8 },
+  dragHandleActive: { color: '#B5451B' },
   fab: {
     position: 'absolute',
     bottom: 16,
@@ -529,6 +703,14 @@ const s = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  continuarBtn: {
+    flex: 1,
+    backgroundColor: '#6D6D6D',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  continuarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   // Icon picker
   iconPickerContainer: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 48 },
   iconPickerHeader: {

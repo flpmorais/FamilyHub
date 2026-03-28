@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { Snackbar } from 'react-native-paper';
+import { Icon, Snackbar } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { useAuthStore } from '../../../../stores/auth.store';
@@ -25,6 +25,7 @@ import { COUNTRIES, countryFlag, countryIso2, findCountry } from '../../../../ut
 import { formatDatePt } from '../../../../utils/vacation.utils';
 import type { Vacation } from '../../../../types/vacation.types';
 import type { Profile } from '../../../../types/profile.types';
+import type { Category, Tag } from '../../../../types/packing.types';
 
 function toISODate(d: Date): string {
   return d.toISOString().split('T')[0];
@@ -34,10 +35,14 @@ export default function EditVacationScreen() {
   const { id: vacationId } = useLocalSearchParams<{ id: string }>();
   const vacationRepository = useRepository('vacation');
   const profileRepository = useRepository('profile');
+  const categoryRepository = useRepository('category');
+  const tagRepository = useRepository('tag');
   const { userAccount } = useAuthStore();
 
   const [vacation, setVacation] = useState<Vacation | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form state
@@ -48,6 +53,8 @@ export default function EditVacationScreen() {
   const [showDeparturePicker, setShowDeparturePicker] = useState(false);
   const [showReturnPicker, setShowReturnPicker] = useState(false);
   const [formParticipants, setFormParticipants] = useState<Set<string>>(new Set());
+  const [formCategories, setFormCategories] = useState<Set<string>>(new Set());
+  const [formTags, setFormTags] = useState<Set<string>>(new Set());
   const [formPinned, setFormPinned] = useState(false);
   const [pendingCoverUri, setPendingCoverUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -66,11 +73,15 @@ export default function EditVacationScreen() {
   async function loadData() {
     if (!vacationId || !userAccount?.familyId) return;
     try {
-      const [vacList, profList] = await Promise.all([
+      const [vacList, profList, catList, tagList] = await Promise.all([
         vacationRepository.getVacations(userAccount.familyId),
         profileRepository.getProfilesByFamily(userAccount.familyId),
+        categoryRepository.getCategories(userAccount.familyId),
+        tagRepository.getTags(userAccount.familyId),
       ]);
       setProfiles(profList);
+      setCategories(catList.filter((c) => c.active));
+      setTags(tagList.filter((t) => t.active));
       const vac = vacList.find((v) => v.id === vacationId);
       if (vac) {
         setVacation(vac);
@@ -79,8 +90,14 @@ export default function EditVacationScreen() {
         setFormDeparture(new Date(vac.departureDate + 'T00:00:00'));
         setFormReturn(new Date(vac.returnDate + 'T00:00:00'));
         setFormPinned(vac.isPinned);
-        const parts = await vacationRepository.getParticipants(vac.id);
+        const [parts, vacCats, vacTags] = await Promise.all([
+          vacationRepository.getParticipants(vac.id),
+          vacationRepository.getVacationCategories(vac.id),
+          vacationRepository.getVacationTags(vac.id),
+        ]);
         setFormParticipants(new Set(parts.map((p) => p.profileId)));
+        setFormCategories(new Set(vacCats));
+        setFormTags(new Set(vacTags));
       }
     } catch (err) {
       logger.error('EditVacation', 'loadData failed', err);
@@ -94,6 +111,24 @@ export default function EditVacationScreen() {
       const next = new Set(prev);
       if (next.has(profileId)) next.delete(profileId);
       else next.add(profileId);
+      return next;
+    });
+  }
+
+  function toggleCategory(categoryId: string) {
+    setFormCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
+      return next;
+    });
+  }
+
+  function toggleTag(tagId: string) {
+    setFormTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) next.delete(tagId);
+      else next.add(tagId);
       return next;
     });
   }
@@ -132,6 +167,7 @@ export default function EditVacationScreen() {
     if (!formCountryCode) errors.country = 'Selecione um país.';
     if (formDeparture > formReturn) errors.dates = 'Partida deve ser anterior ao regresso.';
     if (formParticipants.size === 0) errors.participants = 'Selecione pelo menos um participante.';
+    if (formCategories.size === 0) errors.categories = 'Selecione pelo menos uma categoria.';
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -159,7 +195,7 @@ export default function EditVacationScreen() {
         isPinned: formPinned,
       };
       if (coverImageUrl) updates.coverImageUrl = coverImageUrl;
-      await vacationRepository.updateVacation(vacation.id, updates, [...formParticipants]);
+      await vacationRepository.updateVacation(vacation.id, updates, [...formParticipants], [...formCategories], [...formTags]);
       setSuccessVisible(true);
       setTimeout(() => router.back(), 600);
     } catch (err) {
@@ -180,8 +216,7 @@ export default function EditVacationScreen() {
         onPress: async () => {
           try {
             await vacationRepository.deleteVacation(vacation.id);
-            router.back();
-            router.back();
+            router.replace('/(app)/vacations');
           } catch (err) {
             logger.error('EditVacation', 'delete failed', err);
           }
@@ -330,10 +365,56 @@ export default function EditVacationScreen() {
             })}
         </View>
 
+        {fieldErrors.participants ? (
+          <Text style={s.fieldError}>{fieldErrors.participants}</Text>
+        ) : null}
+
+        {categories.length > 0 && (
+          <>
+            <Text style={s.label}>Categorias *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              {categories.map((c) => {
+                const selected = formCategories.has(c.id);
+                return (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[s.chip, selected && s.chipActive]}
+                    onPress={() => toggleCategory(c.id)}
+                    disabled={isSaving}
+                  >
+                    <Icon source={c.icon} size={14} color={selected ? '#FFFFFF' : '#555555'} />
+                    <Text style={[s.chipText, selected && s.chipTextActive]}>{c.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            {fieldErrors.categories ? <Text style={s.fieldError}>{fieldErrors.categories}</Text> : null}
+          </>
+        )}
+
+        {tags.length > 0 && (
+          <>
+            <Text style={s.label}>Etiquetas da viagem</Text>
+            <View style={s.tagWrap}>
+              {tags.map((t) => {
+                const selected = formTags.has(t.id);
+                return (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={[s.chip, selected && s.chipActive]}
+                    onPress={() => toggleTag(t.id)}
+                    disabled={isSaving}
+                  >
+                    <Icon source={t.icon} size={14} color={selected ? '#FFFFFF' : t.color} />
+                    <Text style={[s.chipText, selected && s.chipTextActive]}>{t.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
+
         <View style={s.pinRow}>
-          {fieldErrors.participants ? (
-            <Text style={s.fieldError}>{fieldErrors.participants}</Text>
-          ) : null}
           <Text style={s.pinLabel}>Fixar no dashboard</Text>
           <Switch
             value={formPinned}
@@ -393,7 +474,6 @@ export default function EditVacationScreen() {
             placeholder="Pesquisar..."
             autoCapitalize="none"
             autoCorrect={false}
-            autoFocus
           />
           <FlatList
             data={filteredCountries}
@@ -547,4 +627,20 @@ const s = StyleSheet.create({
   countryRowFlag: { fontSize: 22, marginRight: 12 },
   countryRowName: { fontSize: 15, color: '#1A1A1A', flex: 1 },
   countryRowCode: { fontSize: 13, color: '#AAAAAA' },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFFFFF',
+    marginRight: 8,
+  },
+  chipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
+  chipText: { fontSize: 13, color: '#555555' },
+  chipTextActive: { color: '#FFFFFF' },
+  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
 });

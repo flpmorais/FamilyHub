@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
+import { Icon } from 'react-native-paper';
 import { useStatusColours } from '../../constants/status-colours';
-import type { PackingStatus, Category } from '../../types/packing.types';
+import type { PackingStatus, Category, Tag } from '../../types/packing.types';
 import type { Profile } from '../../types/profile.types';
 
-const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'ready', 'issue', 'last_minute', 'packed'];
+const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'issue', 'ready', 'last_minute', 'packed'];
 
 const STATUS_LABELS: Record<PackingStatus, string> = {
   new: 'Novo',
@@ -20,11 +21,14 @@ interface FilterPanelProps {
   activeStatuses: PackingStatus[];
   activeProfiles: string[];
   activeCategories: string[];
+  activeTags: string[];
   profiles: Profile[];
   categories: Category[];
+  tags: Tag[];
   onToggleStatus: (status: PackingStatus) => void;
   onToggleProfile: (profileId: string) => void;
   onToggleCategory: (categoryId: string) => void;
+  onToggleTag: (tagId: string) => void;
   onClearAll: () => void;
   filteredCount: number;
 }
@@ -35,11 +39,14 @@ export function FilterPanel({
   activeStatuses,
   activeProfiles,
   activeCategories,
+  activeTags,
   profiles,
   categories,
+  tags,
   onToggleStatus,
   onToggleProfile,
   onToggleCategory,
+  onToggleTag,
   onClearAll,
   filteredCount,
 }: FilterPanelProps) {
@@ -54,7 +61,8 @@ export function FilterPanel({
             <Text style={s.title}>Filtros</Text>
             {(activeStatuses.length > 0 ||
               activeProfiles.length > 0 ||
-              activeCategories.length > 0) && (
+              activeCategories.length > 0 ||
+              activeTags.length > 0) && (
               <TouchableOpacity onPress={onClearAll}>
                 <Text style={s.clearText}>Limpar</Text>
               </TouchableOpacity>
@@ -125,6 +133,27 @@ export function FilterPanel({
                 </View>
               </>
             )}
+
+            {tags.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>Etiqueta</Text>
+                <View style={s.chipGrid}>
+                  {tags.map((t) => {
+                    const active = activeTags.includes(t.id);
+                    return (
+                      <TouchableOpacity
+                        key={t.id}
+                        style={[s.chip, active && { backgroundColor: t.color, borderColor: t.color }]}
+                        onPress={() => onToggleTag(t.id)}
+                      >
+                        <Icon source={t.icon} size={14} color={active ? '#FFFFFF' : t.color} />
+                        <Text style={[s.chipText, active && s.chipTextActive]}>{t.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
           </ScrollView>
 
           <TouchableOpacity style={s.applyBtn} onPress={onClose}>
@@ -178,6 +207,9 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,

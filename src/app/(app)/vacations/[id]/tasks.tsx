@@ -219,7 +219,6 @@ export default function BookingTasksScreen() {
               onChangeText={setFormTitle}
               placeholder="ex: Seguro de viagem"
               autoCapitalize="sentences"
-              autoFocus
               editable={!isSaving}
             />
 

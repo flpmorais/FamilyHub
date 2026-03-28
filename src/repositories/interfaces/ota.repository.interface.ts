@@ -1,4 +1,4 @@
 export interface IOtaRepository {
-  checkForUpdate(): Promise<boolean>;
+  checkForUpdate(onUpdateReady?: () => void): Promise<boolean>;
   applyUpdate(): Promise<void>;
 }

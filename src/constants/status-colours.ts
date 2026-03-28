@@ -22,13 +22,13 @@ export const STATUS_COLOURS: Record<
     light: { bg: '#F59300', text: '#1C1B1F', border: '#E68900' },
     dark: { bg: '#FFB300', text: '#1C1B1F', border: '#FFA000' },
   },
-  ready: {
-    light: { bg: '#1976D2', text: '#FFFFFF', border: '#1565C0' },
-    dark: { bg: '#64B5F6', text: '#1C1B1F', border: '#42A5F5' },
-  },
   issue: {
     light: { bg: '#D32F2F', text: '#FFFFFF', border: '#C62828' },
     dark: { bg: '#EF5350', text: '#1C1B1F', border: '#E53935' },
+  },
+  ready: {
+    light: { bg: '#1976D2', text: '#FFFFFF', border: '#1565C0' },
+    dark: { bg: '#64B5F6', text: '#1C1B1F', border: '#42A5F5' },
   },
   last_minute: {
     light: { bg: '#00897B', text: '#FFFFFF', border: '#00796B' },
@@ -47,8 +47,8 @@ export function useStatusColours(): Record<PackingStatus, StatusColourTokens> {
   return {
     new: STATUS_COLOURS.new[mode],
     buy: STATUS_COLOURS.buy[mode],
-    ready: STATUS_COLOURS.ready[mode],
     issue: STATUS_COLOURS.issue[mode],
+    ready: STATUS_COLOURS.ready[mode],
     last_minute: STATUS_COLOURS.last_minute[mode],
     packed: STATUS_COLOURS.packed[mode],
   };
