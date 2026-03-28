@@ -7,6 +7,7 @@ export type { ICategoryRepository } from './interfaces/category.repository.inter
 export type { ITemplateRepository } from './interfaces/template.repository.interface';
 export type { ISyncRepository } from './interfaces/sync.repository.interface';
 export type { IOtaRepository } from './interfaces/ota.repository.interface';
+export type { ILeftoverRepository } from './interfaces/leftover.repository.interface';
 // Context provider and hook
 export { RepositoryProvider, RepositoryContext } from './repository.context';
 export type { RepositoryContextValue } from './repository.context';

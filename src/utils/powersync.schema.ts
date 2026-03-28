@@ -136,6 +136,24 @@ const packingItemTagsTable = new Table({
   ],
 });
 
+// migration 20260327200000 — leftovers table (V2)
+const leftoversTable = new Table({
+  name: 'leftovers',
+  columns: [
+    new Column({ name: 'family_id', type: ColumnType.TEXT }),
+    new Column({ name: 'name', type: ColumnType.TEXT }),
+    new Column({ name: 'total_doses', type: ColumnType.INTEGER }),
+    new Column({ name: 'doses_eaten', type: ColumnType.INTEGER }),
+    new Column({ name: 'doses_thrown_out', type: ColumnType.INTEGER }),
+    new Column({ name: 'expiry_days', type: ColumnType.INTEGER }),
+    new Column({ name: 'date_added', type: ColumnType.TEXT }),
+    new Column({ name: 'expiry_date', type: ColumnType.TEXT }),
+    new Column({ name: 'status', type: ColumnType.TEXT }),
+    new Column({ name: 'created_at', type: ColumnType.TEXT }),
+    new Column({ name: 'updated_at', type: ColumnType.TEXT }),
+  ],
+});
+
 export const POWERSYNC_SCHEMA = new Schema([
   familiesTable,
   userAccountsTable,
@@ -147,4 +165,5 @@ export const POWERSYNC_SCHEMA = new Schema([
   categoriesTable,
   tagsTable,
   packingItemTagsTable,
+  leftoversTable,
 ]);

@@ -3,6 +3,8 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 lastStep: 8
 status: 'complete'
 completedAt: '2026-03-25'
+v2EditedAt: '2026-03-27'
+v2EditSummary: 'Extended architecture for V2 Leftovers module (FR44-FR57, NFR23)'
 inputDocuments: ['_bmad-output/planning-artifacts/prd.md', '_bmad-output/planning-artifacts/ux-design-specification.md', '_bmad-output/planning-artifacts/product-brief-FamilyHub-2026-03-24.md']
 workflowType: 'architecture'
 project_name: 'FamilyHub'
@@ -20,25 +22,28 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 ### Requirements Overview
 
-**Functional Requirements:** 53 total (FR1–FR53). V1 scope covers FR1–FR40.
+**Functional Requirements:** 65 total (FR1–FR65). V1 scope covers FR1–FR40. V2 scope covers FR44–FR57.
 
-Nine capability areas:
+Ten capability areas:
 1. Identity & Access Management (FR1–FR4) — Google Sign-In, profile linking, admin invitation, maid revocation
 2. Profile Management (FR5–FR8) — CRUD with name/avatar, profiles decoupled from accounts
 3. Vacation Management (FR9–FR15) — full CRUD, lifecycle, household-wide pinning
 4. Booking Tasks (FR16–FR21) — auto-generated tasks, document check with child task generation, urgency sorting
 5. Packing List (FR22–FR27) — six-status items, quantity, profile assignment, real-time sync
 6. Categories/Tags/Templates (FR28–FR33) — user-defined vocab, reusable templates with participant filtering
-7. Dashboard (FR34–FR36) — pinned widgets, booking task urgency
+7. Dashboard (FR34–FR36) — pinned widgets, booking task urgency, leftovers widget (V2)
 8. Data Sync & Offline (FR37–FR40) — offline-first, sync queue, last-write-wins, OTA check
-9. Future modules (FR41–FR53) — V2–V6 RLS-enforced privacy, leftovers, shopping, finances, maid, recipes
+9. Data Privacy (FR41–FR43) — RLS-enforced privacy (V4+)
+10. **(V2) Leftovers Management (FR44–FR57)** — leftover CRUD with dose tracking, eaten/thrown-out counters, per-item configurable expiry (default 5 days), auto-close on zero remaining, expired item visual flagging, dashboard widget (meals + doses + nearest expiry), full list with active/closed sorting, infinite scroll, offline sync
+11. Future modules (FR58–FR65) — V3–V6 shopping, finances, maid, recipes
 
-**Non-Functional Requirements:** 22 total (NFR1–NFR22). Key architectural drivers:
+**Non-Functional Requirements:** 23 total (NFR1–NFR23). Key architectural drivers:
 - Cold start <2s, offline load <1s, real-time sync <3s (NFR1–NFR5)
 - TLS 1.2+, secure credential storage, RLS-enforced privacy (NFR6–NFR12)
 - Sync queue survives app restarts, no silent data loss (NFR13–NFR15)
 - Repository pattern — all external services behind swappable interface (NFR21)
 - No onboarding wizard (NFR22)
+- (V2) Expiry calculations correct on device-local time, including offline (NFR23)
 
 **Scale & Complexity:**
 
@@ -80,6 +85,8 @@ Nine capability areas:
 5. **Framework selection** — Flutter vs Expo/React Native determines: offline library, M3 implementation path, OTA mechanism, APK build toolchain, and sync engine options. First architectural decision to resolve.
 
 6. **Custom component layer** — 6 bespoke UI components (SwipeableItemWrapper, PackingItemCard, StatusCountPill, StatusBadge, PackingCompletionState, CategoryCompletionIndicator) define the interaction contract used across all list-based modules V1–V6.
+
+7. **(V2) Expiry calculation locality** — leftover expiry dates are computed as `date_added + expiry_days`. Visual flagging (expired = red) must evaluate against device-local time, not server time. This must work correctly offline (NFR23). The calculation is pure — no server round-trip needed.
 
 ---
 
@@ -172,6 +179,44 @@ All schema changes via `supabase migration new` → apply with `supabase db push
 
 ---
 
+### 1b. (V2) Leftovers Data Architecture
+
+**`leftovers` table — Supabase PostgreSQL:**
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK | Default `gen_random_uuid()` |
+| `family_id` | `uuid` FK → `families.id` | RLS-enforced, same pattern as all V1 tables |
+| `name` | `text` NOT NULL | e.g., "Lasagna", "Coq au vin" |
+| `total_doses` | `integer` NOT NULL | Set at creation, editable while active |
+| `doses_eaten` | `integer` NOT NULL DEFAULT 0 | Incremented one at a time (FR46) |
+| `doses_thrown_out` | `integer` NOT NULL DEFAULT 0 | Set to remaining on throw-out (FR47) |
+| `expiry_days` | `integer` NOT NULL DEFAULT 5 | Configurable per item (FR44) |
+| `date_added` | `timestamptz` NOT NULL | Auto-set to `now()` on creation (FR45) |
+| `expiry_date` | `timestamptz` NOT NULL | Computed: `date_added + expiry_days * interval '1 day'` (FR45) |
+| `status` | `text` NOT NULL DEFAULT 'active' | `'active'` or `'closed'` — check constraint |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | Standard audit column |
+| `updated_at` | `timestamptz` NOT NULL DEFAULT `now()` | Standard audit column, trigger-updated |
+
+**Constraints:**
+- `CHECK (doses_eaten + doses_thrown_out <= total_doses)` (FR48)
+- `CHECK (total_doses > 0)`
+- `CHECK (expiry_days > 0)`
+- `CHECK (status IN ('active', 'closed'))`
+
+**Auto-close logic (FR49):** When `doses_eaten + doses_thrown_out = total_doses`, `status` is set to `'closed'`. This is enforced in the repository layer (not a database trigger) — the repository sets `status = 'closed'` in the same write that updates the dose counters.
+
+**Expiry flagging (FR52, NFR23):** Evaluated client-side by comparing `expiry_date` against device-local `Date.now()`. No server-side cron or trigger. Works offline by design.
+
+**Migration: `supabase/migrations/20260327000001_leftovers_module.sql`**
+- Creates `leftovers` table with all columns and constraints above
+- Adds RLS policy: admins in the same `family_id` can read/write all leftovers
+- Adds index: `idx_leftovers_family_id_status` for dashboard widget queries
+
+**PowerSync schema update:** Add `leftovers` table to `utils/powersync.schema.ts` in the same commit as the migration (existing coupled-pair rule applies).
+
+---
+
 ### 2. Auth & Security
 
 **Auth Flow: Google Sign-In → Supabase Auth → expo-secure-store**
@@ -205,6 +250,7 @@ All schema changes via `supabase migration new` → apply with `supabase db push
 | `vacationStore` | Active vacation selection, filter state |
 | `packingStore` | Status filter toggles, active item selection |
 | `uiStore` | Global UI flags (offline banner, sync indicator) |
+| `leftoversStore` | **(V2)** Active list scroll position, pagination cursor |
 
 ---
 
@@ -225,6 +271,7 @@ src/repositories/
     template.repository.interface.ts
     sync.repository.interface.ts
     ota.repository.interface.ts
+    leftover.repository.interface.ts      ← (V2) ILeftoverRepository
   supabase/
     auth.repository.ts          ← implements IAuthRepository
     profile.repository.ts       ← implements IProfileRepository
@@ -234,13 +281,14 @@ src/repositories/
     template.repository.ts      ← implements ITemplateRepository
     sync.repository.ts          ← implements ISyncRepository
     ota.repository.ts           ← implements IOtaRepository
+    leftover.repository.ts      ← (V2) implements ILeftoverRepository
 ```
 
-Supabase client instance is created once and injected into repository implementations. Repositories are never instantiated more than once — singleton pattern via Context provider at app root.
+Supabase client instance is created once and injected into repository implementations. Repositories are never instantiated more than once — singleton pattern via Context provider at app root. V2 adds `ILeftoverRepository` (9th repository) — same injection pattern.
 
 **Real-time: PowerSync-managed**
 
-PowerSync handles Supabase Realtime subscriptions internally. No manual `supabase.channel()` subscriptions needed in V1. Packing list real-time sync (FR27, NFR3 <3s) is covered by PowerSync's sync layer.
+PowerSync handles Supabase Realtime subscriptions internally. No manual `supabase.channel()` subscriptions needed. Packing list real-time sync (FR27, NFR3 <3s) and leftover sync (FR57, V2) are both covered by PowerSync's sync layer.
 
 ---
 
@@ -332,6 +380,7 @@ Never import a Supabase implementation directly — always inject via Context.
 ```ts
 type PackingStatus = 'new' | 'buy' | 'ready' | 'issue' | 'last_minute' | 'packed';
 type VacationLifecycle = 'planning' | 'upcoming' | 'active' | 'completed';
+type LeftoverStatus = 'active' | 'closed';  // (V2)
 type UserRole = 'admin' | 'maid';
 ```
 
@@ -454,6 +503,8 @@ familyhub/
 │   │       │       ├── index.tsx         ← Packing list screen (FR22–FR27)
 │   │       │       ├── edit.tsx          ← Edit vacation (FR10)
 │   │       │       └── booking-tasks.tsx ← Booking task timeline (FR16–FR21)
+│   │       ├── leftovers/              ← (V2) Leftovers module
+│   │       │   └── index.tsx          ← Full leftovers list with infinite scroll (FR54–FR56)
 │   │       └── settings/
 │   │           └── index.tsx   ← Profile management + admin invite (FR5–FR8, FR3–FR4)
 │   │
@@ -467,13 +518,18 @@ familyhub/
 │   │   │   ├── vacation-lifecycle-badge.tsx
 │   │   │   ├── booking-task-row.tsx    ← Row with urgency indicator (FR18–FR21)
 │   │   │   └── index.ts
-│   │   └── packing/                   ← 6 custom components from UX spec
-│   │       ├── swipeable-item-wrapper.tsx   ← Gesture handler wrap (FR23)
-│   │       ├── packing-item-card.tsx        ← Card with StatusBadge + profile chip (FR22–FR24)
-│   │       ├── status-count-pill.tsx        ← Header quick-filter pill (FR27)
-│   │       ├── status-badge.tsx             ← Inline status indicator (FR22)
-│   │       ├── packing-completion-state.tsx ← Empty/complete states (FR22)
-│   │       ├── category-completion-indicator.tsx ← Category-level progress (FR28)
+│   │   ├── packing/                   ← 6 custom components from UX spec
+│   │   │   ├── swipeable-item-wrapper.tsx   ← Gesture handler wrap (FR23)
+│   │   │   ├── packing-item-card.tsx        ← Card with StatusBadge + profile chip (FR22–FR24)
+│   │   │   ├── status-count-pill.tsx        ← Header quick-filter pill (FR27)
+│   │   │   ├── status-badge.tsx             ← Inline status indicator (FR22)
+│   │   │   ├── packing-completion-state.tsx ← Empty/complete states (FR22)
+│   │   │   ├── category-completion-indicator.tsx ← Category-level progress (FR28)
+│   │   │   └── index.ts
+│   │   └── leftovers/                 ← (V2) Leftovers components
+│   │       ├── leftover-item-card.tsx       ← Card with dose counters, eaten/throw-out buttons (FR46–FR47)
+│   │       ├── leftovers-widget.tsx          ← Dashboard widget: meals + doses + nearest expiry (FR53)
+│   │       ├── leftover-add-form.tsx         ← Name, doses, expiry days input (FR44)
 │   │       └── index.ts
 │   │
 │   ├── repositories/
@@ -485,7 +541,8 @@ familyhub/
 │   │   │   ├── category.repository.interface.ts      ← ICategoryRepository (FR28–FR30)
 │   │   │   ├── template.repository.interface.ts      ← ITemplateRepository (FR31–FR33)
 │   │   │   ├── sync.repository.interface.ts          ← ISyncRepository (FR37–FR39)
-│   │   │   └── ota.repository.interface.ts           ← IOtaRepository (FR40)
+│   │   │   ├── ota.repository.interface.ts           ← IOtaRepository (FR40)
+│   │   │   └── leftover.repository.interface.ts     ← (V2) ILeftoverRepository (FR44–FR57)
 │   │   ├── supabase/
 │   │   │   ├── supabase.client.ts   ← Single Supabase client instance (created once)
 │   │   │   ├── auth.repository.ts
@@ -495,14 +552,16 @@ familyhub/
 │   │   │   ├── category.repository.ts
 │   │   │   ├── template.repository.ts
 │   │   │   ├── sync.repository.ts       ← Starts/stops PowerSync connector
-│   │   │   └── ota.repository.ts        ← Calls expo-updates checkForUpdate
-│   │   ├── repository.context.tsx       ← React Context — provides all 8 repositories
+│   │   │   ├── ota.repository.ts        ← Calls expo-updates checkForUpdate
+│   │   │   └── leftover.repository.ts   ← (V2) implements ILeftoverRepository
+│   │   ├── repository.context.tsx       ← React Context — provides all 9 repositories (V2: +leftover)
 │   │   └── index.ts                     ← Barrel: exports all interfaces
 │   │
 │   ├── stores/
 │   │   ├── auth.store.ts       ← Session, UserAccount, isLoading, error
 │   │   ├── vacation.store.ts   ← activeVacationId, isPinned state
 │   │   ├── packing.store.ts    ← activeStatusFilters, selectedItemId
+│   │   ├── leftovers.store.ts  ← (V2) pagination cursor, scroll position
 │   │   └── ui.store.ts         ← isOffline, syncStatus, globalError
 │   │
 │   ├── hooks/
@@ -510,17 +569,21 @@ familyhub/
 │   │   ├── use-repository.ts       ← Typed hook: pulls repositories from Context
 │   │   ├── use-vacations.ts        ← PowerSync useQuery: vacation list
 │   │   ├── use-packing-items.ts    ← PowerSync useQuery: items by vacation + filters
-│   │   └── use-booking-tasks.ts    ← PowerSync useQuery: tasks by vacation, sorted urgency
+│   │   ├── use-booking-tasks.ts    ← PowerSync useQuery: tasks by vacation, sorted urgency
+│   │   ├── use-leftovers.ts       ← (V2) PowerSync useQuery: active leftovers + widget aggregates
+│   │   └── use-leftover-list.ts   ← (V2) PowerSync useQuery: all items with pagination (infinite scroll)
 │   │
 │   ├── types/
 │   │   ├── vacation.types.ts   ← Vacation, VacationLifecycle, BookingTask, BookingTaskType
 │   │   ├── packing.types.ts    ← PackingItem, PackingStatus, Category, Tag, Template
 │   │   ├── profile.types.ts    ← Profile, UserAccount, UserRole, Family
+│   │   ├── leftover.types.ts   ← (V2) Leftover, LeftoverStatus, LeftoverWidgetData
 │   │   └── sync.types.ts       ← SyncStatus, PowerSync table schema types
 │   │
 │   ├── constants/
 │   │   ├── status-colours.ts    ← PackingStatus → { bg, text, border } colour tokens
-│   │   └── booking-deadlines.ts ← FLIGHTS_DAYS=90, HOTEL_DAYS=60, CAR_DAYS=30, INSURANCE_DAYS=14
+│   │   ├── booking-deadlines.ts ← FLIGHTS_DAYS=90, HOTEL_DAYS=60, CAR_DAYS=30, INSURANCE_DAYS=14
+│   │   └── leftover-defaults.ts ← (V2) DEFAULT_EXPIRY_DAYS=5, PAGINATION_PAGE_SIZE
 │   │
 │   └── utils/
 │       ├── date.utils.ts           ← pt-PT formatting, ISO 8601 ↔ Date conversion
@@ -533,7 +596,8 @@ familyhub/
 │   └── migrations/
 │       ├── 20260325000001_initial_schema.sql   ← families, user_accounts, profiles + RLS
 │       ├── 20260325000002_vacation_module.sql  ← vacations, booking_tasks + RLS
-│       └── 20260325000003_packing_module.sql   ← packing_items, categories, tags, templates + RLS
+│       ├── 20260325000003_packing_module.sql   ← packing_items, categories, tags, templates + RLS
+│       └── 20260327000001_leftovers_module.sql ← (V2) leftovers table + RLS + index
 │
 └── assets/
     ├── icon.png
@@ -567,7 +631,7 @@ Remote change (Angela's device writes)
 
 **Repository boundary:**
 - Zero Supabase SDK calls outside `src/repositories/supabase/`
-- All 8 repository interfaces defined in `src/repositories/interfaces/`
+- All 9 repository interfaces defined in `src/repositories/interfaces/` (V2: +ILeftoverRepository)
 - `RepositoryContext` provides singleton instances — never instantiate repositories in components
 
 **Sync boundary:**
@@ -589,6 +653,7 @@ Remote change (Angela's device writes)
 | FR28–FR33 · Categories/Tags/Templates | `category.repository.ts`, `template.repository.ts`, `vacations/new.tsx` (template picker), `types/packing.types.ts` |
 | FR34–FR36 · Dashboard | `(app)/index.tsx`, `components/vacation/vacation-card.tsx` |
 | FR37–FR40 · Sync & OTA | `utils/powersync.schema.ts`, `sync.repository.ts`, `ota.repository.ts`, `stores/ui.store.ts`, `hooks/use-*.ts` |
+| FR44–FR57 · **(V2) Leftovers** | `leftovers/index.tsx`, `leftover.repository.ts`, `stores/leftovers.store.ts`, `components/leftovers/` (3), `hooks/use-leftovers.ts`, `hooks/use-leftover-list.ts`, `types/leftover.types.ts`, `constants/leftover-defaults.ts`, `migration_004` |
 
 ---
 
@@ -608,7 +673,7 @@ Remote change (Angela's device writes)
 
 ### Requirements Coverage Validation ✅
 
-**Functional Requirements — all 40 V1 FRs covered:**
+**Functional Requirements — all 40 V1 FRs + 14 V2 FRs covered:**
 
 | FR Group | Architectural Support |
 |---|---|
@@ -620,6 +685,7 @@ Remote change (Angela's device writes)
 | FR28–FR33 · Categories/Tags/Templates | `CategoryRepository` + `TemplateRepository` + template picker in `vacations/new.tsx` ✅ |
 | FR34–FR36 · Dashboard | `(app)/index.tsx` + `VacationCard` component ✅ |
 | FR37–FR40 · Sync & OTA | PowerSync schema + `SyncRepository` + `OtaRepository` + `uiStore` ✅ |
+| FR44–FR57 · **(V2) Leftovers** | `LeftoverRepository` + leftovers screen + 3 components + `leftoversStore` + `leftover-defaults.ts` + `migration_004` ✅ |
 
 **Non-Functional Requirements:**
 
@@ -630,6 +696,7 @@ Remote change (Angela's device writes)
 | NFR13–NFR15 · Sync resilience | PowerSync sync queue survives app restarts by design ✅ |
 | NFR21 · Repository pattern | Typed interfaces + Context injection — zero direct SDK calls in business logic ✅ |
 | NFR22 · No onboarding wizard | `(auth)/sign-in.tsx` routes directly to dashboard — no wizard screens in structure ✅ |
+| NFR23 · **(V2)** Expiry calculation locality | Computed client-side from `expiry_date` vs `Date.now()` — no server dependency, works offline ✅ |
 
 ---
 
@@ -652,17 +719,17 @@ Remote change (Angela's device writes)
 ### Architecture Completeness Checklist
 
 **✅ Requirements Analysis**
-- [x] 53 FRs + 22 NFRs analyzed — V1 scope (FR1–FR40) fully mapped
+- [x] 65 FRs + 23 NFRs analyzed — V1 scope (FR1–FR40) + V2 scope (FR44–FR57) fully mapped
 - [x] Scale and complexity assessed — Low-Medium, solo developer, small fixed user base
 - [x] 6 technical constraints identified and resolved (framework, offline, RLS, OTA, M3, Android min)
-- [x] 6 cross-cutting concerns mapped to specific architectural decisions
+- [x] 7 cross-cutting concerns mapped to specific architectural decisions (V2: expiry calculation locality)
 
 **✅ Architectural Decisions**
 - [x] Framework open decision resolved: Expo SDK 55 + TypeScript
 - [x] Offline sync: PowerSync v1.29.0 + `@op-engineering/op-sqlite`
 - [x] State boundaries: Zustand (UI) + PowerSync `useQuery` (data)
 - [x] Auth: Google Sign-In → Supabase Auth → `expo-secure-store`
-- [x] Repository pattern: 8 typed interfaces + 8 Supabase implementations
+- [x] Repository pattern: 9 typed interfaces + 9 Supabase implementations (V2: +ILeftoverRepository)
 - [x] Schema: `family_id` on every table + RLS from V1
 - [x] Environments: 3 EAS profiles (development / preview / production)
 - [x] OTA: EAS Update (JS bundle, no APK rebuild)
@@ -676,10 +743,10 @@ Remote change (Angela's device writes)
 
 **✅ Project Structure**
 - [x] Complete directory tree — every file named, located, and annotated with FR reference
-- [x] All 8 repository interfaces + implementations mapped
-- [x] All 6 custom packing components named and placed
-- [x] All FR categories mapped to specific directories
-- [x] All 3 V1 Supabase migrations named and scoped
+- [x] All 9 repository interfaces + implementations mapped (V2: +leftover)
+- [x] All 6 custom packing components + 3 V2 leftover components named and placed
+- [x] All FR categories mapped to specific directories (V2: FR44–FR57 mapped)
+- [x] All 4 Supabase migrations named and scoped (V2: +leftovers_module)
 - [x] Canonical data flow and integration boundaries documented
 
 ---

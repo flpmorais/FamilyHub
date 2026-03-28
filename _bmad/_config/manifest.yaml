@@ -1,47 +1,47 @@
 installation:
-  version: 6.2.0
-  installDate: 2026-03-22T18:27:35.169Z
-  lastUpdated: 2026-03-22T18:27:35.169Z
+  version: 6.2.2
+  installDate: 2026-03-27T17:38:58.164Z
+  lastUpdated: 2026-03-27T17:38:58.164Z
 modules:
   - name: core
-    version: 6.2.0
-    installDate: 2026-03-22T18:27:32.340Z
-    lastUpdated: 2026-03-22T18:27:32.340Z
+    version: 6.2.2
+    installDate: 2026-03-27T17:38:55.841Z
+    lastUpdated: 2026-03-27T17:38:55.841Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmm
-    version: 6.2.0
-    installDate: 2026-03-22T18:27:20.647Z
-    lastUpdated: 2026-03-22T18:27:32.340Z
+    version: 6.2.2
+    installDate: 2026-03-27T17:38:35.463Z
+    lastUpdated: 2026-03-27T17:38:55.841Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmb
     version: 1.1.0
-    installDate: 2026-03-22T18:27:22.597Z
-    lastUpdated: 2026-03-22T18:27:33.019Z
+    installDate: 2026-03-27T17:38:38.249Z
+    lastUpdated: 2026-03-27T17:38:56.406Z
     source: external
     npmPackage: bmad-builder
     repoUrl: https://github.com/bmad-code-org/bmad-builder
   - name: cis
     version: 0.1.9
-    installDate: 2026-03-22T18:27:24.127Z
-    lastUpdated: 2026-03-22T18:27:33.706Z
+    installDate: 2026-03-27T17:38:41.287Z
+    lastUpdated: 2026-03-27T17:38:56.963Z
     source: external
     npmPackage: bmad-creative-intelligence-suite
     repoUrl: https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite
-  - name: gds
-    version: 0.2.2
-    installDate: 2026-03-22T18:27:27.005Z
-    lastUpdated: 2026-03-22T18:27:34.414Z
+  - name: tea
+    version: 1.7.2
+    installDate: 2026-03-27T17:38:44.182Z
+    lastUpdated: 2026-03-27T17:38:57.547Z
     source: external
-    npmPackage: bmad-game-dev-studio
-    repoUrl: https://github.com/bmad-code-org/bmad-module-game-dev-studio.git
+    npmPackage: bmad-method-test-architecture-enterprise
+    repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
   - name: wds
-    version: 0.3.0
-    installDate: 2026-03-22T18:27:28.893Z
-    lastUpdated: 2026-03-22T18:27:35.169Z
+    version: 0.3.1
+    installDate: 2026-03-27T17:38:47.761Z
+    lastUpdated: 2026-03-27T17:38:58.164Z
     source: external
     npmPackage: bmad-method-wds-expansion
     repoUrl: https://github.com/bmad-code-org/bmad-method-wds-expansion

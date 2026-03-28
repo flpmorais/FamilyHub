@@ -1,22 +1,33 @@
-import { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { useRepository } from '../../hooks/use-repository';
-import { useAuthStore } from '../../stores/auth.store';
-import { VacationHeroCard } from '../../components/vacation-hero-card';
-import { sortVacations } from '../../utils/vacation.utils';
-import type { Vacation, VacationLifecycle } from '../../types/vacation.types';
+import { useCallback, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import { useRepository } from "../../hooks/use-repository";
+import { useAuthStore } from "../../stores/auth.store";
+import { VacationHeroCard } from "../../components/vacation-hero-card";
+import { LeftoversWidget } from "../../components/leftovers";
+import { sortVacations } from "../../utils/vacation.utils";
+import type { Vacation, VacationLifecycle } from "../../types/vacation.types";
+import type { Leftover } from "../../types/leftover.types";
 
 export default function DashboardScreen() {
-  const vacationRepository = useRepository('vacation');
+  const vacationRepository = useRepository("vacation");
+  const leftoverRepo = useRepository("leftover");
   const { userAccount } = useAuthStore();
   const [pinnedVacations, setPinnedVacations] = useState<Vacation[]>([]);
+  const [activeLeftovers, setActiveLeftovers] = useState<Leftover[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       void loadPinned();
+      void loadLeftovers();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []),
   );
 
   async function loadPinned() {
@@ -29,7 +40,20 @@ export default function DashboardScreen() {
     }
   }
 
-  async function handleLifecycleChange(vacationId: string, lc: VacationLifecycle) {
+  async function loadLeftovers() {
+    if (!userAccount?.familyId) return;
+    try {
+      const list = await leftoverRepo.getActive(userAccount.familyId);
+      setActiveLeftovers(list);
+    } catch {
+      // Silently fail on dashboard
+    }
+  }
+
+  async function handleLifecycleChange(
+    vacationId: string,
+    lc: VacationLifecycle,
+  ) {
     try {
       await vacationRepository.updateVacation(vacationId, { lifecycle: lc });
       await loadPinned();
@@ -55,23 +79,42 @@ export default function DashboardScreen() {
         </View>
       )}
 
+      <View style={styles.widgetSection}>
+        <LeftoversWidget
+          items={activeLeftovers}
+          onPress={() => router.push("/(app)/leftovers")}
+        />
+      </View>
+
       <View style={styles.navSection}>
-        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/vacations')}>
+        <TouchableOpacity
+          style={styles.link}
+          onPress={() => router.push("/(app)/vacations")}
+        >
           <Text style={styles.linkText}>Viagens</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.link}
-          onPress={() => router.push('/(app)/settings/profiles')}
+          onPress={() => router.push("/(app)/leftovers")}
+        >
+          <Text style={styles.linkText}>Restos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.link}
+          onPress={() => router.push("/(app)/settings/profiles")}
         >
           <Text style={styles.linkText}>Perfis</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.link}
-          onPress={() => router.push('/(app)/settings/categories')}
+          onPress={() => router.push("/(app)/settings/categories")}
         >
           <Text style={styles.linkText}>Categorias</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={() => router.push('/(app)/settings/tags')}>
+        <TouchableOpacity
+          style={styles.link}
+          onPress={() => router.push("/(app)/settings/tags")}
+        >
           <Text style={styles.linkText}>Etiquetas</Text>
         </TouchableOpacity>
       </View>
@@ -81,15 +124,21 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 24, paddingTop: 48 },
-  heading: { fontSize: 28, fontWeight: '700', color: '#1A1A1A', marginBottom: 24 },
+  heading: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 24,
+  },
   pinnedSection: { gap: 16, marginBottom: 32 },
+  widgetSection: { marginBottom: 24 },
   navSection: { gap: 12 },
   link: {
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  linkText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  linkText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
 });

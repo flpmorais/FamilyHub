@@ -9,6 +9,7 @@ import { SupabaseTemplateRepository } from './supabase/template.repository';
 import { SupabaseSyncRepository } from './supabase/sync.repository';
 import { SupabaseOtaRepository } from './supabase/ota.repository';
 import { SupabaseTagRepository } from './supabase/tag.repository';
+import { SupabaseLeftoverRepository } from './supabase/leftover.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -19,6 +20,7 @@ import type { ITemplateRepository } from './interfaces/template.repository.inter
 import type { ISyncRepository } from './interfaces/sync.repository.interface';
 import type { IOtaRepository } from './interfaces/ota.repository.interface';
 import type { ITagRepository } from './interfaces/tag.repository.interface';
+import type { ILeftoverRepository } from './interfaces/leftover.repository.interface';
 export interface RepositoryContextValue {
   auth: IAuthRepository;
   profile: IProfileRepository;
@@ -29,6 +31,7 @@ export interface RepositoryContextValue {
   tag: ITagRepository;
   sync: ISyncRepository;
   ota: IOtaRepository;
+  leftover: ILeftoverRepository;
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -45,6 +48,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       template: new SupabaseTemplateRepository(supabaseClient),
       sync: new SupabaseSyncRepository(supabaseClient),
       ota: new SupabaseOtaRepository(supabaseClient),
+      leftover: new SupabaseLeftoverRepository(),
     }),
     []
   );
