@@ -80,10 +80,7 @@ export default function CreateVacationScreen() {
 
         if (templateId) {
           // Load template and pre-fill
-          const allTemplates = await vacationTemplateRepository.getVacationTemplates(
-            userAccount.familyId
-          );
-          const tpl = allTemplates.find((t) => t.id === templateId);
+          const tpl = await vacationTemplateRepository.getVacationTemplateById(templateId);
           if (tpl) {
             setFormTitle(tpl.title);
             setFormCountryCode(tpl.countryCode);

@@ -28,8 +28,8 @@ export default function SelectTemplateScreen() {
     if (!userAccount?.familyId) return;
     (async () => {
       try {
-        const all = await vacationTemplateRepository.getVacationTemplates(userAccount.familyId);
-        setTemplates(all.filter((t) => t.active));
+        const activeTemplates = await vacationTemplateRepository.getVacationTemplates(userAccount.familyId, true);
+        setTemplates(activeTemplates);
       } catch {
         // silent
       } finally {

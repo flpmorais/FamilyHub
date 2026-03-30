@@ -192,30 +192,16 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     offset: number,
   ): Promise<Leftover[]> {
     try {
-      // Supabase doesn't support CASE-based ordering directly.
-      // Fetch active items (ordered by expiry_date ASC) and closed items
-      // (ordered by expiry_date DESC) separately, then merge.
-      const { data: activeRows, error: activeError } = await this.client
+      const { data, error } = await this.client
         .from('leftovers')
         .select('*')
         .eq('family_id', familyId)
-        .eq('status', 'active')
-        .order('expiry_date', { ascending: true });
+        .order('status', { ascending: true })
+        .order('expiry_date', { ascending: true })
+        .range(offset, offset + limit - 1);
 
-      if (activeError) throw activeError;
-
-      const { data: closedRows, error: closedError } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('family_id', familyId)
-        .eq('status', 'closed')
-        .order('expiry_date', { ascending: false });
-
-      if (closedError) throw closedError;
-
-      const combined = [...(activeRows ?? []), ...(closedRows ?? [])];
-      const paged = combined.slice(offset, offset + limit);
-      return paged.map(mapLeftover);
+      if (error) throw error;
+      return (data ?? []).map(mapLeftover);
     } catch (err) {
       logger.error("LeftoverRepository", "getAll failed", err);
       throw new Error(

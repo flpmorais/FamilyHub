@@ -205,13 +205,10 @@ export class SupabaseProfileRepository implements IProfileRepository {
         .gte('sort_order', newOrder)
         .lt('sort_order', oldOrder);
 
-      if (toUpdate) {
-        for (const row of toUpdate) {
-          await this.client
-            .from('profiles')
-            .update({ sort_order: row.sort_order + 1 })
-            .eq('id', row.id);
-        }
+      if (toUpdate && toUpdate.length > 0) {
+        await this.client.from('profiles').upsert(
+          toUpdate.map((row) => ({ id: row.id, sort_order: row.sort_order + 1 }))
+        );
       }
     } else {
       // Moving down: decrement sort_order for items in (oldOrder, newOrder]
@@ -222,13 +219,10 @@ export class SupabaseProfileRepository implements IProfileRepository {
         .gt('sort_order', oldOrder)
         .lte('sort_order', newOrder);
 
-      if (toUpdate) {
-        for (const row of toUpdate) {
-          await this.client
-            .from('profiles')
-            .update({ sort_order: row.sort_order - 1 })
-            .eq('id', row.id);
-        }
+      if (toUpdate && toUpdate.length > 0) {
+        await this.client.from('profiles').upsert(
+          toUpdate.map((row) => ({ id: row.id, sort_order: row.sort_order - 1 }))
+        );
       }
     }
 
@@ -274,13 +268,10 @@ export class SupabaseProfileRepository implements IProfileRepository {
         .eq('family_id', family_id)
         .gt('sort_order', sort_order);
 
-      if (toUpdate) {
-        for (const row of toUpdate) {
-          await this.client
-            .from('profiles')
-            .update({ sort_order: row.sort_order - 1 })
-            .eq('id', row.id);
-        }
+      if (toUpdate && toUpdate.length > 0) {
+        await this.client.from('profiles').upsert(
+          toUpdate.map((row) => ({ id: row.id, sort_order: row.sort_order - 1 }))
+        );
       }
     }
   }

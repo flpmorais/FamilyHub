@@ -39,24 +39,71 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     return (data ?? []).map((r) => r.tag_id as string);
   }
 
-  async getVacationTemplates(familyId: string): Promise<VacationTemplate[]> {
-    const { data: rows, error } = await this.client
+  async getVacationTemplates(familyId: string, activeOnly?: boolean): Promise<VacationTemplate[]> {
+    let query = this.client
       .from('vacation_templates')
       .select('*')
       .eq('family_id', familyId)
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (activeOnly) query = query.eq('active', true);
 
-    const templates: VacationTemplate[] = [];
-    for (const row of rows ?? []) {
-      const base = mapRow(row);
-      templates.push({
-        ...base,
-        participantProfileIds: await this.loadParticipantIds(base.id),
-        tagIds: await this.loadTagIds(base.id),
-      });
+    const { data: rows, error } = await query;
+    if (error) throw error;
+    if (!rows || rows.length === 0) return [];
+
+    const ids = rows.map((r) => r.id);
+
+    const [participantRows, tagRows] = await Promise.all([
+      this.client
+        .from('vacation_template_participants')
+        .select('vacation_template_id, profile_id')
+        .in('vacation_template_id', ids),
+      this.client
+        .from('vacation_template_tags')
+        .select('vacation_template_id, tag_id')
+        .in('vacation_template_id', ids),
+    ]);
+
+    const participantMap = new Map<string, string[]>();
+    for (const r of participantRows.data ?? []) {
+      const list = participantMap.get(r.vacation_template_id) ?? [];
+      list.push(r.profile_id);
+      participantMap.set(r.vacation_template_id, list);
     }
-    return templates;
+
+    const tagMap = new Map<string, string[]>();
+    for (const r of tagRows.data ?? []) {
+      const list = tagMap.get(r.vacation_template_id) ?? [];
+      list.push(r.tag_id);
+      tagMap.set(r.vacation_template_id, list);
+    }
+
+    return rows.map((row) => ({
+      ...mapRow(row),
+      participantProfileIds: participantMap.get(row.id) ?? [],
+      tagIds: tagMap.get(row.id) ?? [],
+    }));
+  }
+
+  async getVacationTemplateById(id: string): Promise<VacationTemplate | null> {
+    const { data: row, error } = await this.client
+      .from('vacation_templates')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!row) return null;
+
+    const [participantIds, tagIds] = await Promise.all([
+      this.loadParticipantIds(id),
+      this.loadTagIds(id),
+    ]);
+
+    return {
+      ...mapRow(row),
+      participantProfileIds: participantIds,
+      tagIds,
+    };
   }
 
   async createVacationTemplate(input: CreateVacationTemplateInput): Promise<VacationTemplate> {

@@ -124,11 +124,10 @@ export class SupabaseTagRepository implements ITagRepository {
           .gt('sort_order', row.sort_order);
         if (listErr) throw listErr;
 
-        for (const item of toUpdate ?? []) {
-          await this.client
-            .from('tags')
-            .update({ sort_order: item.sort_order - 1 })
-            .eq('id', item.id);
+        if (toUpdate && toUpdate.length > 0) {
+          await this.client.from('tags').upsert(
+            toUpdate.map((item) => ({ id: item.id, sort_order: item.sort_order - 1 }))
+          );
         }
       }
     } catch (err) {
@@ -181,11 +180,10 @@ export class SupabaseTagRepository implements ITagRepository {
         .gte('sort_order', newOrder)
         .lt('sort_order', oldOrder);
 
-      for (const item of toUpdate ?? []) {
-        await this.client
-          .from('tags')
-          .update({ sort_order: item.sort_order + 1, updated_at: ts })
-          .eq('id', item.id);
+      if (toUpdate && toUpdate.length > 0) {
+        await this.client.from('tags').upsert(
+          toUpdate.map((item) => ({ id: item.id, sort_order: item.sort_order + 1, updated_at: ts }))
+        );
       }
     } else {
       // Moving down: shift items in (oldOrder, newOrder] up by -1
@@ -196,11 +194,10 @@ export class SupabaseTagRepository implements ITagRepository {
         .gt('sort_order', oldOrder)
         .lte('sort_order', newOrder);
 
-      for (const item of toUpdate ?? []) {
-        await this.client
-          .from('tags')
-          .update({ sort_order: item.sort_order - 1, updated_at: ts })
-          .eq('id', item.id);
+      if (toUpdate && toUpdate.length > 0) {
+        await this.client.from('tags').upsert(
+          toUpdate.map((item) => ({ id: item.id, sort_order: item.sort_order - 1, updated_at: ts }))
+        );
       }
     }
 

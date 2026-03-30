@@ -4,7 +4,8 @@ import {
 } from '../../types/vacation.types';
 
 export interface IVacationTemplateRepository {
-  getVacationTemplates(familyId: string): Promise<VacationTemplate[]>;
+  getVacationTemplates(familyId: string, activeOnly?: boolean): Promise<VacationTemplate[]>;
+  getVacationTemplateById(id: string): Promise<VacationTemplate | null>;
   createVacationTemplate(data: CreateVacationTemplateInput): Promise<VacationTemplate>;
   updateVacationTemplate(
     id: string,
