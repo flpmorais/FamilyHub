@@ -1,10 +1,10 @@
+import { SupabaseClient } from '@supabase/supabase-js';
 import { IPackingItemRepository } from '../interfaces/packing-item.repository.interface';
 import { PackingItem, CreatePackingItemInput, PackingStatus } from '../../types/packing.types';
-import { powerSyncDb } from '../../utils/powersync.database';
 import { logger } from '../../utils/logger';
 import { uuid } from '../../utils/uuid';
 
-export function mapPackingRow(row: any): PackingItem {
+export function mapPackingRow(row: any, tagIds: string[] = []): PackingItem {
   return {
     id: row.id,
     vacationId: row.vacation_id,
@@ -16,6 +16,7 @@ export function mapPackingRow(row: any): PackingItem {
     quantity: Number(row.quantity) || 1,
     notes: row.notes ?? null,
     categoryId: row.category_id ?? null,
+    tagIds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -26,13 +27,37 @@ function now(): string {
 }
 
 export class SupabasePackingItemRepository implements IPackingItemRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
   async getPackingItems(vacationId: string): Promise<PackingItem[]> {
     try {
-      const rows = await powerSyncDb.getAll(
-        'SELECT * FROM packing_items WHERE vacation_id = ? ORDER BY created_at',
-        [vacationId]
-      );
-      return rows.map(mapPackingRow);
+      const { data: rows, error } = await this.client
+        .from('packing_items')
+        .select('*')
+        .eq('vacation_id', vacationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const itemIds = (rows ?? []).map((r: any) => r.id);
+
+      let tagMap = new Map<string, string[]>();
+      if (itemIds.length > 0) {
+        const { data: tagRows, error: tagError } = await this.client
+          .from('packing_item_tags')
+          .select('packing_item_id, tag_id')
+          .in('packing_item_id', itemIds);
+
+        if (tagError) throw tagError;
+
+        for (const tr of tagRows ?? []) {
+          const list = tagMap.get(tr.packing_item_id) ?? [];
+          list.push(tr.tag_id);
+          tagMap.set(tr.packing_item_id, list);
+        }
+      }
+
+      return (rows ?? []).map((r: any) => mapPackingRow(r, tagMap.get(r.id) ?? []));
     } catch (err) {
       logger.error('PackingItemRepository', 'getPackingItems failed', err);
       throw new Error(`Erro ao carregar itens: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -43,26 +68,27 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     const id = uuid();
     const ts = now();
     try {
-      await powerSyncDb.execute(
-        `INSERT INTO packing_items (id, vacation_id, family_id, title, status, profile_id, quantity, notes, category_id, is_all_family, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
+      const { data, error } = await this.client
+        .from('packing_items')
+        .insert({
           id,
-          input.vacationId,
-          input.familyId,
-          input.name,
-          'new',
-          input.assignedProfileId ?? null,
-          input.quantity ?? 1,
-          input.notes ?? null,
-          input.categoryId ?? null,
-          input.isAllFamily ? 1 : 0,
-          ts,
-          ts,
-        ]
-      );
-      const rows = await powerSyncDb.getAll('SELECT * FROM packing_items WHERE id = ?', [id]);
-      return mapPackingRow(rows[0]);
+          vacation_id: input.vacationId,
+          family_id: input.familyId,
+          title: input.name,
+          status: 'new',
+          profile_id: input.assignedProfileId ?? null,
+          quantity: input.quantity ?? 1,
+          notes: input.notes ?? null,
+          category_id: input.categoryId ?? null,
+          is_all_family: input.isAllFamily ?? false,
+          created_at: ts,
+          updated_at: ts,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return mapPackingRow(data);
     } catch (err) {
       logger.error('PackingItemRepository', 'createPackingItem failed', err);
       throw new Error(`Erro ao criar item: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -73,47 +99,29 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     id: string,
     data: Partial<Omit<PackingItem, 'id' | 'createdAt' | 'updatedAt'>>
   ): Promise<PackingItem> {
-    const sets: string[] = [];
-    const params: unknown[] = [];
+    const updates: Record<string, unknown> = {};
 
-    if (data.name !== undefined) {
-      sets.push('title = ?');
-      params.push(data.name);
-    }
-    if (data.status !== undefined) {
-      sets.push('status = ?');
-      params.push(data.status);
-    }
-    if (data.assignedProfileId !== undefined) {
-      sets.push('profile_id = ?');
-      params.push(data.assignedProfileId);
-    }
-    if (data.quantity !== undefined) {
-      sets.push('quantity = ?');
-      params.push(data.quantity);
-    }
-    if (data.notes !== undefined) {
-      sets.push('notes = ?');
-      params.push(data.notes);
-    }
-    if (data.categoryId !== undefined) {
-      sets.push('category_id = ?');
-      params.push(data.categoryId);
-    }
-    if (data.isAllFamily !== undefined) {
-      sets.push('is_all_family = ?');
-      params.push(data.isAllFamily ? 1 : 0);
-    }
+    if (data.name !== undefined) updates.title = data.name;
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.assignedProfileId !== undefined) updates.profile_id = data.assignedProfileId;
+    if (data.quantity !== undefined) updates.quantity = data.quantity;
+    if (data.notes !== undefined) updates.notes = data.notes;
+    if (data.categoryId !== undefined) updates.category_id = data.categoryId;
+    if (data.isAllFamily !== undefined) updates.is_all_family = data.isAllFamily;
 
-    sets.push('updated_at = ?');
-    params.push(now());
-    params.push(id);
+    updates.updated_at = now();
 
     try {
-      await powerSyncDb.execute(`UPDATE packing_items SET ${sets.join(', ')} WHERE id = ?`, params);
-      const rows = await powerSyncDb.getAll('SELECT * FROM packing_items WHERE id = ?', [id]);
-      if (rows.length === 0) throw new Error('Item não encontrado');
-      return mapPackingRow(rows[0]);
+      const { data: row, error } = await this.client
+        .from('packing_items')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!row) throw new Error('Item não encontrado');
+      return mapPackingRow(row);
     } catch (err) {
       logger.error('PackingItemRepository', 'updatePackingItem failed', err);
       throw new Error(`Erro ao actualizar item: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -122,7 +130,12 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
 
   async deletePackingItem(id: string): Promise<void> {
     try {
-      await powerSyncDb.execute('DELETE FROM packing_items WHERE id = ?', [id]);
+      const { error } = await this.client
+        .from('packing_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     } catch (err) {
       logger.error('PackingItemRepository', 'deletePackingItem failed', err);
       throw new Error(`Erro ao eliminar item: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -131,13 +144,14 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
 
   async bulkUpdateStatus(ids: string[], status: PackingStatus): Promise<void> {
     if (ids.length === 0) return;
-    const placeholders = ids.map(() => '?').join(',');
     const ts = now();
     try {
-      await powerSyncDb.execute(
-        `UPDATE packing_items SET status = ?, updated_at = ? WHERE id IN (${placeholders})`,
-        [status, ts, ...ids]
-      );
+      const { error } = await this.client
+        .from('packing_items')
+        .update({ status, updated_at: ts })
+        .in('id', ids);
+
+      if (error) throw error;
     } catch (err) {
       logger.error('PackingItemRepository', 'bulkUpdateStatus failed', err);
       throw new Error(`Erro ao actualizar estado: ${err instanceof Error ? err.message : 'Erro'}`);

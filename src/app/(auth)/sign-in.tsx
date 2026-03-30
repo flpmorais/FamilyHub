@@ -1,12 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRepository } from '../../hooks/use-repository';
 import { useAuthStore } from '../../stores/auth.store';
-import { supabaseClient } from '../../repositories/supabase/supabase.client';
 import { logger } from '../../utils/logger';
 
 export default function SignInScreen() {
   const authRepository = useRepository('auth');
-  const syncRepository = useRepository('sync');
   const { setUserAccount, setLoading, setError, isLoading, error } = useAuthStore();
 
   async function handleSignIn() {
@@ -15,10 +13,6 @@ export default function SignInScreen() {
     try {
       const userAccount = await authRepository.signInWithGoogle();
       setUserAccount(userAccount);
-      // Start PowerSync sync after authentication — token provider reads live Supabase session
-      await syncRepository.startSync(() =>
-        supabaseClient.auth.getSession().then((s) => s.data.session?.access_token ?? '')
-      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido ao iniciar sessão.';
       logger.error('SignIn', 'handleSignIn failed', err);

@@ -4,6 +4,7 @@ export type ProfileStatus = 'active' | 'invited' | 'enrolled' | 'inactive';
 export interface Family {
   id: string;
   name: string;
+  bannerUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

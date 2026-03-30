@@ -11,6 +11,7 @@ export interface PackingItem {
   isAllFamily: boolean;
   notes: string | null;
   familyId: string;
+  tagIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -31,7 +32,6 @@ export interface Category {
   name: string;
   icon: string;
   active: boolean;
-  isDefault: boolean;
   sortOrder: number;
   familyId: string;
   createdAt: string;
@@ -41,7 +41,6 @@ export interface Category {
 export interface CreateCategoryInput {
   name: string;
   icon: string;
-  isDefault?: boolean;
   familyId: string;
 }
 

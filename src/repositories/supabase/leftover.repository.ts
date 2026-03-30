@@ -1,3 +1,4 @@
+import { SupabaseClient } from '@supabase/supabase-js';
 import { ILeftoverRepository } from "../interfaces/leftover.repository.interface";
 import {
   Leftover,
@@ -6,7 +7,6 @@ import {
   LeftoverStatus,
 } from "../../types/leftover.types";
 import { DEFAULT_EXPIRY_DAYS } from "../../constants/leftover-defaults";
-import { powerSyncDb } from "../../utils/powersync.database";
 import { logger } from "../../utils/logger";
 import { uuid } from "../../utils/uuid";
 
@@ -38,6 +38,8 @@ function computeExpiryDate(dateAdded: string, expiryDays: number): string {
 }
 
 export class SupabaseLeftoverRepository implements ILeftoverRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
   async create(input: CreateLeftoverInput): Promise<Leftover> {
     const id = uuid();
     const ts = now();
@@ -45,26 +47,27 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     const expiryDate = computeExpiryDate(ts, expiryDays);
 
     try {
-      await powerSyncDb.execute(
-        `INSERT INTO leftovers (id, family_id, name, total_doses, doses_eaten, doses_thrown_out, expiry_days, date_added, expiry_date, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', ?, ?)`,
-        [
+      const { data, error } = await this.client
+        .from('leftovers')
+        .insert({
           id,
-          input.familyId,
-          input.name,
-          input.totalDoses,
-          expiryDays,
-          ts,
-          expiryDate,
-          ts,
-          ts,
-        ],
-      );
-      const rows = await powerSyncDb.getAll(
-        "SELECT * FROM leftovers WHERE id = ?",
-        [id],
-      );
-      return mapLeftover(rows[0]);
+          family_id: input.familyId,
+          name: input.name,
+          total_doses: input.totalDoses,
+          doses_eaten: 0,
+          doses_thrown_out: 0,
+          expiry_days: expiryDays,
+          date_added: ts,
+          expiry_date: expiryDate,
+          status: 'active',
+          created_at: ts,
+          updated_at: ts,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return mapLeftover(data);
     } catch (err) {
       logger.error("LeftoverRepository", "create failed", err);
       throw new Error(
@@ -74,58 +77,53 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   }
 
   async update(id: string, data: UpdateLeftoverInput): Promise<Leftover> {
-    const sets: string[] = [];
-    const params: unknown[] = [];
+    const updates: Record<string, unknown> = {};
 
-    if (data.name !== undefined) {
-      sets.push("name = ?");
-      params.push(data.name);
-    }
-    if (data.totalDoses !== undefined) {
-      sets.push("total_doses = ?");
-      params.push(data.totalDoses);
-    }
-    if (data.expiryDate !== undefined) {
-      sets.push("expiry_date = ?");
-      params.push(data.expiryDate);
-    }
-    if (data.dosesEaten !== undefined) {
-      sets.push("doses_eaten = ?");
-      params.push(data.dosesEaten);
-    }
-    if (data.dosesThrownOut !== undefined) {
-      sets.push("doses_thrown_out = ?");
-      params.push(data.dosesThrownOut);
-    }
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.totalDoses !== undefined) updates.total_doses = data.totalDoses;
+    if (data.expiryDate !== undefined) updates.expiry_date = data.expiryDate;
+    if (data.dosesEaten !== undefined) updates.doses_eaten = data.dosesEaten;
+    if (data.dosesThrownOut !== undefined) updates.doses_thrown_out = data.dosesThrownOut;
 
-    sets.push("updated_at = ?");
-    params.push(now());
-
-    params.push(id);
+    updates.updated_at = now();
 
     try {
-      await powerSyncDb.execute(
-        `UPDATE leftovers SET ${sets.join(", ")} WHERE id = ?`,
-        params,
-      );
+      // First apply the field updates
+      const { error: updateError } = await this.client
+        .from('leftovers')
+        .update(updates)
+        .eq('id', id);
 
-      // Recalculate status from committed values (separate UPDATE so it reads
-      // the new column values, not the pre-UPDATE originals)
-      const ts = now();
-      await powerSyncDb.execute(
-        `UPDATE leftovers SET
-          status = CASE WHEN doses_eaten + doses_thrown_out >= total_doses THEN 'closed' ELSE 'active' END,
-          updated_at = ?
-        WHERE id = ?`,
-        [ts, id],
-      );
+      if (updateError) throw updateError;
 
-      const rows = await powerSyncDb.getAll(
-        "SELECT * FROM leftovers WHERE id = ?",
-        [id],
-      );
-      if (rows.length === 0) throw new Error("Resto não encontrado");
-      return mapLeftover(rows[0]);
+      // Re-fetch to get committed values, then recalculate status
+      const { data: current, error: fetchError } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!current) throw new Error("Resto não encontrado");
+
+      const newStatus: LeftoverStatus =
+        current.doses_eaten + current.doses_thrown_out >= current.total_doses
+          ? 'closed'
+          : 'active';
+
+      if (current.status !== newStatus) {
+        const { error: statusError } = await this.client
+          .from('leftovers')
+          .update({ status: newStatus, updated_at: now() })
+          .eq('id', id);
+
+        if (statusError) throw statusError;
+
+        current.status = newStatus;
+        current.updated_at = now();
+      }
+
+      return mapLeftover(current);
     } catch (err) {
       logger.error("LeftoverRepository", "update failed", err);
       throw new Error(
@@ -136,7 +134,12 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
 
   async delete(id: string): Promise<void> {
     try {
-      await powerSyncDb.execute("DELETE FROM leftovers WHERE id = ?", [id]);
+      const { error } = await this.client
+        .from('leftovers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     } catch (err) {
       logger.error("LeftoverRepository", "delete failed", err);
       throw new Error(
@@ -147,12 +150,15 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
 
   async getById(id: string): Promise<Leftover> {
     try {
-      const rows = await powerSyncDb.getAll(
-        "SELECT * FROM leftovers WHERE id = ?",
-        [id],
-      );
-      if (rows.length === 0) throw new Error("Resto não encontrado");
-      return mapLeftover(rows[0]);
+      const { data, error } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error("Resto não encontrado");
+      return mapLeftover(data);
     } catch (err) {
       logger.error("LeftoverRepository", "getById failed", err);
       throw new Error(
@@ -163,11 +169,15 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
 
   async getActive(familyId: string): Promise<Leftover[]> {
     try {
-      const rows = await powerSyncDb.getAll(
-        `SELECT * FROM leftovers WHERE family_id = ? AND status = 'active' ORDER BY expiry_date ASC`,
-        [familyId],
-      );
-      return rows.map(mapLeftover);
+      const { data, error } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('family_id', familyId)
+        .eq('status', 'active')
+        .order('expiry_date', { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []).map(mapLeftover);
     } catch (err) {
       logger.error("LeftoverRepository", "getActive failed", err);
       throw new Error(
@@ -182,16 +192,30 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     offset: number,
   ): Promise<Leftover[]> {
     try {
-      const rows = await powerSyncDb.getAll(
-        `SELECT * FROM leftovers WHERE family_id = ?
-         ORDER BY
-           CASE WHEN status = 'active' THEN 0 ELSE 1 END,
-           CASE WHEN status = 'active' THEN expiry_date END ASC,
-           CASE WHEN status = 'closed' THEN expiry_date END DESC
-         LIMIT ? OFFSET ?`,
-        [familyId, limit, offset],
-      );
-      return rows.map(mapLeftover);
+      // Supabase doesn't support CASE-based ordering directly.
+      // Fetch active items (ordered by expiry_date ASC) and closed items
+      // (ordered by expiry_date DESC) separately, then merge.
+      const { data: activeRows, error: activeError } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('family_id', familyId)
+        .eq('status', 'active')
+        .order('expiry_date', { ascending: true });
+
+      if (activeError) throw activeError;
+
+      const { data: closedRows, error: closedError } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('family_id', familyId)
+        .eq('status', 'closed')
+        .order('expiry_date', { ascending: false });
+
+      if (closedError) throw closedError;
+
+      const combined = [...(activeRows ?? []), ...(closedRows ?? [])];
+      const paged = combined.slice(offset, offset + limit);
+      return paged.map(mapLeftover);
     } catch (err) {
       logger.error("LeftoverRepository", "getAll failed", err);
       throw new Error(
@@ -201,22 +225,42 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   }
 
   async incrementEaten(id: string): Promise<Leftover> {
-    const ts = now();
     try {
-      await powerSyncDb.execute(
-        `UPDATE leftovers SET
-          doses_eaten = doses_eaten + 1,
-          status = CASE WHEN doses_eaten + 1 + doses_thrown_out >= total_doses THEN 'closed' ELSE status END,
-          updated_at = ?
-        WHERE id = ? AND status = 'active' AND doses_eaten + doses_thrown_out < total_doses`,
-        [ts, id],
-      );
-      const rows = await powerSyncDb.getAll(
-        "SELECT * FROM leftovers WHERE id = ?",
-        [id],
-      );
-      if (rows.length === 0) throw new Error("Resto não encontrado");
-      return mapLeftover(rows[0]);
+      // Fetch current row to check preconditions and compute new values
+      const { data: current, error: fetchError } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!current) throw new Error("Resto não encontrado");
+
+      // Only increment if active and doses remaining
+      if (current.status !== 'active' || current.doses_eaten + current.doses_thrown_out >= current.total_doses) {
+        return mapLeftover(current);
+      }
+
+      const newDosesEaten = current.doses_eaten + 1;
+      const newStatus: LeftoverStatus =
+        newDosesEaten + current.doses_thrown_out >= current.total_doses
+          ? 'closed'
+          : 'active';
+
+      const ts = now();
+      const { data: updated, error: updateError } = await this.client
+        .from('leftovers')
+        .update({
+          doses_eaten: newDosesEaten,
+          status: newStatus,
+          updated_at: ts,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return mapLeftover(updated);
     } catch (err) {
       logger.error("LeftoverRepository", "incrementEaten failed", err);
       throw new Error(
@@ -226,22 +270,35 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   }
 
   async throwOutRemaining(id: string): Promise<Leftover> {
-    const ts = now();
     try {
-      await powerSyncDb.execute(
-        `UPDATE leftovers SET
-          doses_thrown_out = total_doses - doses_eaten,
-          status = 'closed',
-          updated_at = ?
-        WHERE id = ? AND status = 'active'`,
-        [ts, id],
-      );
-      const rows = await powerSyncDb.getAll(
-        "SELECT * FROM leftovers WHERE id = ?",
-        [id],
-      );
-      if (rows.length === 0) throw new Error("Resto não encontrado");
-      return mapLeftover(rows[0]);
+      // Fetch current row to compute doses_thrown_out
+      const { data: current, error: fetchError } = await this.client
+        .from('leftovers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!current) throw new Error("Resto não encontrado");
+
+      if (current.status !== 'active') {
+        return mapLeftover(current);
+      }
+
+      const ts = now();
+      const { data: updated, error: updateError } = await this.client
+        .from('leftovers')
+        .update({
+          doses_thrown_out: current.total_doses - current.doses_eaten,
+          status: 'closed',
+          updated_at: ts,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return mapLeftover(updated);
     } catch (err) {
       logger.error("LeftoverRepository", "throwOutRemaining failed", err);
       throw new Error(

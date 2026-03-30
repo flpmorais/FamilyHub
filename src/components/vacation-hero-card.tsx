@@ -49,20 +49,21 @@ export function VacationHeroCard({
         {/* Top row */}
         <View style={[styles.topRow, showBackButton && styles.topRowSafe]}>
           {showBackButton && (
-            <TouchableOpacity style={styles.circleBtn} onPress={() => router.back()}>
-              <Text style={styles.circleBtnText}>←</Text>
+            <TouchableOpacity style={styles.pillBtn} onPress={() => router.back()} activeOpacity={0.7}>
+              <Text style={styles.pillBtnText}>← Voltar</Text>
             </TouchableOpacity>
           )}
           <View style={styles.topRight}>
             {showBackButton && <OfflineIndicator />}
             <TouchableOpacity
-              style={styles.circleBtn}
+              style={styles.pillBtn}
+              activeOpacity={0.7}
               onPress={(e) => {
                 e.stopPropagation();
-                router.push(`/(app)/vacations/${vacation.id}/edit`);
+                router.push(`/(app)/(vacations)/${vacation.id}/edit`);
               }}
             >
-              <Text style={styles.circleBtnText}>✎</Text>
+              <Text style={styles.pillBtnText}>Editar ✎</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -190,6 +191,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circleBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  pillBtn: { backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
+  pillBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   bottom: {
     position: 'absolute',
     bottom: 0,

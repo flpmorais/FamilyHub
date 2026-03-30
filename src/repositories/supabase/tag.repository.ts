@@ -1,6 +1,6 @@
+import { SupabaseClient } from '@supabase/supabase-js';
 import { ITagRepository } from '../interfaces/tag.repository.interface';
 import { Tag } from '../../types/packing.types';
-import { powerSyncDb } from '../../utils/powersync.database';
 import { logger } from '../../utils/logger';
 import { uuid } from '../../utils/uuid';
 
@@ -23,13 +23,18 @@ function now(): string {
 }
 
 export class SupabaseTagRepository implements ITagRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
   async getTags(familyId: string): Promise<Tag[]> {
     try {
-      const rows = await powerSyncDb.getAll(
-        'SELECT * FROM tags WHERE family_id = ? ORDER BY sort_order, name',
-        [familyId]
-      );
-      return rows.map(mapTag);
+      const { data, error } = await this.client
+        .from('tags')
+        .select('*')
+        .eq('family_id', familyId)
+        .order('sort_order')
+        .order('name');
+      if (error) throw error;
+      return (data ?? []).map(mapTag);
     } catch (err) {
       logger.error('TagRepository', 'getTags failed', err);
       throw new Error(`Erro ao carregar etiquetas: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -40,17 +45,33 @@ export class SupabaseTagRepository implements ITagRepository {
     const id = uuid();
     const ts = now();
     try {
-      const maxRows = await powerSyncDb.getAll(
-        'SELECT MAX(sort_order) as max_order FROM tags WHERE family_id = ?',
-        [familyId]
-      );
-      const nextOrder = (Number((maxRows[0] as any)?.max_order) || 0) + 1;
-      await powerSyncDb.execute(
-        'INSERT INTO tags (id, family_id, name, icon, color, active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)',
-        [id, familyId, name, icon, color, nextOrder, ts, ts]
-      );
-      const rows = await powerSyncDb.getAll('SELECT * FROM tags WHERE id = ?', [id]);
-      return mapTag(rows[0]);
+      // Get max sort_order for this family
+      const { data: maxRows, error: maxErr } = await this.client
+        .from('tags')
+        .select('sort_order')
+        .eq('family_id', familyId)
+        .order('sort_order', { ascending: false })
+        .limit(1);
+      if (maxErr) throw maxErr;
+      const nextOrder = (Number(maxRows?.[0]?.sort_order) || 0) + 1;
+
+      const { data, error } = await this.client
+        .from('tags')
+        .insert({
+          id,
+          family_id: familyId,
+          name,
+          icon,
+          color,
+          active: true,
+          sort_order: nextOrder,
+          created_at: ts,
+          updated_at: ts,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return mapTag(data);
     } catch (err) {
       logger.error('TagRepository', 'createTag failed', err);
       throw new Error(`Erro ao criar etiqueta: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -60,17 +81,18 @@ export class SupabaseTagRepository implements ITagRepository {
   async updateTag(id: string, name: string, icon: string, color?: string): Promise<Tag> {
     const ts = now();
     try {
-      if (color !== undefined) {
-        await powerSyncDb.execute(
-          'UPDATE tags SET name = ?, icon = ?, color = ?, updated_at = ? WHERE id = ?',
-          [name, icon, color, ts, id]
-        );
-      } else {
-        await powerSyncDb.execute('UPDATE tags SET name = ?, icon = ?, updated_at = ? WHERE id = ?', [name, icon, ts, id]);
-      }
-      const rows = await powerSyncDb.getAll('SELECT * FROM tags WHERE id = ?', [id]);
-      if (rows.length === 0) throw new Error('Etiqueta não encontrada');
-      return mapTag(rows[0]);
+      const updates: Record<string, unknown> = { name, icon, updated_at: ts };
+      if (color !== undefined) updates.color = color;
+
+      const { data, error } = await this.client
+        .from('tags')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error('Etiqueta não encontrada');
+      return mapTag(data);
     } catch (err) {
       logger.error('TagRepository', 'updateTag failed', err);
       throw new Error(`Erro ao actualizar etiqueta: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -79,14 +101,35 @@ export class SupabaseTagRepository implements ITagRepository {
 
   async deleteTag(id: string): Promise<void> {
     try {
-      const rows = await powerSyncDb.getAll('SELECT sort_order, family_id FROM tags WHERE id = ?', [id]);
-      await powerSyncDb.execute('DELETE FROM tags WHERE id = ?', [id]);
-      if (rows.length > 0) {
-        const { sort_order, family_id } = rows[0] as any;
-        await powerSyncDb.execute(
-          'UPDATE tags SET sort_order = sort_order - 1 WHERE family_id = ? AND sort_order > ?',
-          [family_id, sort_order]
-        );
+      // Get the tag's sort_order and family_id before deleting
+      const { data: row, error: fetchErr } = await this.client
+        .from('tags')
+        .select('sort_order, family_id')
+        .eq('id', id)
+        .single();
+      if (fetchErr) throw fetchErr;
+
+      const { error: delErr } = await this.client
+        .from('tags')
+        .delete()
+        .eq('id', id);
+      if (delErr) throw delErr;
+
+      if (row) {
+        // Shift sort_order down for tags that were after the deleted one
+        const { data: toUpdate, error: listErr } = await this.client
+          .from('tags')
+          .select('id, sort_order')
+          .eq('family_id', row.family_id)
+          .gt('sort_order', row.sort_order);
+        if (listErr) throw listErr;
+
+        for (const item of toUpdate ?? []) {
+          await this.client
+            .from('tags')
+            .update({ sort_order: item.sort_order - 1 })
+            .eq('id', item.id);
+        }
       }
     } catch (err) {
       logger.error('TagRepository', 'deleteTag failed', err);
@@ -95,39 +138,75 @@ export class SupabaseTagRepository implements ITagRepository {
   }
 
   async countItemsUsingTag(tagId: string): Promise<number> {
-    const rows = await powerSyncDb.getAll(
-      'SELECT COUNT(*) as cnt FROM packing_item_tags WHERE tag_id = ?',
-      [tagId]
-    );
-    return Number((rows[0] as any)?.cnt ?? 0);
+    const { count, error } = await this.client
+      .from('packing_item_tags')
+      .select('packing_item_id', { count: 'exact', head: true })
+      .eq('tag_id', tagId);
+
+    if (error) logger.error('TagRepository', 'countItemsUsingTag failed', error);
+    return count ?? 0;
   }
 
   async setActive(id: string, active: boolean): Promise<Tag> {
     const ts = now();
-    await powerSyncDb.execute('UPDATE tags SET active = ?, updated_at = ? WHERE id = ?', [
-      active ? 1 : 0, ts, id,
-    ]);
-    const rows = await powerSyncDb.getAll('SELECT * FROM tags WHERE id = ?', [id]);
-    return mapTag(rows[0]);
+    const { data, error } = await this.client
+      .from('tags')
+      .update({ active, updated_at: ts })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapTag(data);
   }
 
   async reorderTag(id: string, newOrder: number): Promise<void> {
-    const rows = await powerSyncDb.getAll('SELECT sort_order, family_id FROM tags WHERE id = ?', [id]);
-    if (rows.length === 0) return;
-    const { sort_order: oldOrder, family_id } = rows[0] as any;
+    const { data: row, error: fetchErr } = await this.client
+      .from('tags')
+      .select('sort_order, family_id')
+      .eq('id', id)
+      .single();
+    if (fetchErr || !row) return;
+
+    const oldOrder = row.sort_order;
     if (oldOrder === newOrder) return;
+
     const ts = now();
+
     if (newOrder < oldOrder) {
-      await powerSyncDb.execute(
-        'UPDATE tags SET sort_order = sort_order + 1, updated_at = ? WHERE family_id = ? AND sort_order >= ? AND sort_order < ?',
-        [ts, family_id, newOrder, oldOrder]
-      );
+      // Moving up: shift items in [newOrder, oldOrder) down by +1
+      const { data: toUpdate } = await this.client
+        .from('tags')
+        .select('id, sort_order')
+        .eq('family_id', row.family_id)
+        .gte('sort_order', newOrder)
+        .lt('sort_order', oldOrder);
+
+      for (const item of toUpdate ?? []) {
+        await this.client
+          .from('tags')
+          .update({ sort_order: item.sort_order + 1, updated_at: ts })
+          .eq('id', item.id);
+      }
     } else {
-      await powerSyncDb.execute(
-        'UPDATE tags SET sort_order = sort_order - 1, updated_at = ? WHERE family_id = ? AND sort_order > ? AND sort_order <= ?',
-        [ts, family_id, oldOrder, newOrder]
-      );
+      // Moving down: shift items in (oldOrder, newOrder] up by -1
+      const { data: toUpdate } = await this.client
+        .from('tags')
+        .select('id, sort_order')
+        .eq('family_id', row.family_id)
+        .gt('sort_order', oldOrder)
+        .lte('sort_order', newOrder);
+
+      for (const item of toUpdate ?? []) {
+        await this.client
+          .from('tags')
+          .update({ sort_order: item.sort_order - 1, updated_at: ts })
+          .eq('id', item.id);
+      }
     }
-    await powerSyncDb.execute('UPDATE tags SET sort_order = ?, updated_at = ? WHERE id = ?', [newOrder, ts, id]);
+
+    await this.client
+      .from('tags')
+      .update({ sort_order: newOrder, updated_at: ts })
+      .eq('id', id);
   }
 }

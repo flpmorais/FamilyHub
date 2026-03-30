@@ -11,7 +11,6 @@ import {
   CreateBookingTaskInput,
 } from '../../types/vacation.types';
 import { logger } from '../../utils/logger';
-import { powerSyncDb } from '../../utils/powersync.database';
 import { uuid } from '../../utils/uuid';
 
 function subtractDays(isoDate: string, days: number): string {
@@ -141,23 +140,16 @@ export class SupabaseVacationRepository implements IVacationRepository {
       }
     }
 
-    // Insert vacation categories (via PowerSync to avoid FK issues with locally-created categories)
-    if (input.categoryIds && input.categoryIds.length > 0) {
-      for (const categoryId of input.categoryIds) {
-        await powerSyncDb.execute(
-          'INSERT INTO vacation_categories (id, vacation_id, category_id) VALUES (?, ?, ?)',
-          [uuid(), vacation.id, categoryId]
-        );
-      }
-    }
-
-    // Insert vacation tags (via PowerSync)
+    // Insert vacation tags
     if (input.tagIds && input.tagIds.length > 0) {
-      for (const tagId of input.tagIds) {
-        await powerSyncDb.execute(
-          'INSERT INTO vacation_tags (id, vacation_id, tag_id) VALUES (?, ?, ?)',
-          [uuid(), vacation.id, tagId]
-        );
+      const tagRows = input.tagIds.map((tagId) => ({
+        id: uuid(),
+        vacation_id: vacation.id,
+        tag_id: tagId,
+      }));
+      const { error: tagError } = await this.client.from('vacation_tags').insert(tagRows);
+      if (tagError) {
+        logger.error('VacationRepository', 'createVacation: tags failed', tagError);
       }
     }
 
@@ -170,7 +162,6 @@ export class SupabaseVacationRepository implements IVacationRepository {
     id: string,
     data: Partial<Omit<Vacation, 'id' | 'createdAt' | 'updatedAt'>>,
     participantProfileIds?: string[],
-    categoryIds?: string[],
     tagIds?: string[]
   ): Promise<Vacation> {
     const updates: Record<string, unknown> = {};
@@ -230,51 +221,26 @@ export class SupabaseVacationRepository implements IVacationRepository {
       }
     }
 
-    // Sync categories if provided (via PowerSync)
-    if (categoryIds !== undefined) {
-      await powerSyncDb.execute('DELETE FROM vacation_categories WHERE vacation_id = ?', [id]);
-      for (const categoryId of categoryIds) {
-        await powerSyncDb.execute(
-          'INSERT INTO vacation_categories (id, vacation_id, category_id) VALUES (?, ?, ?)',
-          [uuid(), id, categoryId]
-        );
-      }
-    }
-
-    // Sync tags if provided (via PowerSync)
+    // Sync tags if provided
     if (tagIds !== undefined) {
-      await powerSyncDb.execute('DELETE FROM vacation_tags WHERE vacation_id = ?', [id]);
-      for (const tagId of tagIds) {
-        await powerSyncDb.execute(
-          'INSERT INTO vacation_tags (id, vacation_id, tag_id) VALUES (?, ?, ?)',
-          [uuid(), id, tagId]
-        );
+      await this.client.from('vacation_tags').delete().eq('vacation_id', id);
+      if (tagIds.length > 0) {
+        const tagRows = tagIds.map((tagId) => ({ id: uuid(), vacation_id: id, tag_id: tagId }));
+        await this.client.from('vacation_tags').insert(tagRows);
       }
     }
 
     return mapVacation(rows[0]);
   }
 
-  async getVacationCategories(vacationId: string): Promise<string[]> {
-    try {
-      const rows = await powerSyncDb.getAll(
-        'SELECT category_id FROM vacation_categories WHERE vacation_id = ?',
-        [vacationId]
-      );
-      return rows.map((r: any) => r.category_id as string);
-    } catch (err) {
-      logger.error('VacationRepository', 'getVacationCategories failed', err);
-      throw new Error(`Erro ao carregar categorias da viagem: ${err instanceof Error ? err.message : 'Erro'}`);
-    }
-  }
-
   async getVacationTags(vacationId: string): Promise<string[]> {
     try {
-      const rows = await powerSyncDb.getAll(
-        'SELECT tag_id FROM vacation_tags WHERE vacation_id = ?',
-        [vacationId]
-      );
-      return rows.map((r: any) => r.tag_id as string);
+      const { data, error } = await this.client
+        .from('vacation_tags')
+        .select('tag_id')
+        .eq('vacation_id', vacationId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.tag_id as string);
     } catch (err) {
       logger.error('VacationRepository', 'getVacationTags failed', err);
       throw new Error(`Erro ao carregar etiquetas da viagem: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -282,6 +248,7 @@ export class SupabaseVacationRepository implements IVacationRepository {
   }
 
   async deleteVacation(id: string): Promise<void> {
+    // Supabase CASCADE handles cleanup of related tables
     const { error } = await this.client.from('vacations').delete().eq('id', id);
     if (error) {
       logger.error('VacationRepository', 'deleteVacation failed', error);
@@ -308,9 +275,21 @@ export class SupabaseVacationRepository implements IVacationRepository {
   }
 
   async uploadCoverImage(vacationId: string, familyId: string, localUri: string): Promise<string> {
+    // Check if old image is used elsewhere before deleting
+    const { data: oldRows } = await this.client.from('vacations').select('cover_image_url').eq('id', vacationId);
+    const oldUrl = oldRows && oldRows.length > 0 ? oldRows[0].cover_image_url : null;
+
     const storagePath = `${familyId}/${vacationId}.jpg`;
 
-    await this.client.storage.from('vacation-covers').remove([storagePath]);
+    // Only remove old file if it's not reused by another vacation or template
+    if (oldUrl) {
+      const inUse = await this.isImageInUse(oldUrl, vacationId);
+      if (!inUse) {
+        await this.client.storage.from('vacation-covers').remove([storagePath]);
+      }
+    } else {
+      await this.client.storage.from('vacation-covers').remove([storagePath]);
+    }
 
     const base64 = await FileSystem.readAsStringAsync(localUri, {
       encoding: FileSystem.EncodingType.Base64,
@@ -338,11 +317,14 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async getBookingTasks(vacationId: string): Promise<BookingTask[]> {
     try {
-      const rows = await powerSyncDb.getAll(
-        `SELECT ${TASK_COLS} FROM booking_tasks WHERE vacation_id = ? ORDER BY is_complete ASC, due_date ASC`,
-        [vacationId]
-      );
-      return rows.map((r: any) => mapTask({ ...r, is_complete: !!r.is_complete }));
+      const { data, error } = await this.client
+        .from('booking_tasks')
+        .select('*')
+        .eq('vacation_id', vacationId)
+        .order('is_complete', { ascending: true })
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((r: any) => mapTask(r));
     } catch (err) {
       logger.error('VacationRepository', 'getBookingTasks failed', err);
       throw new Error(`Erro ao carregar tarefas: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -351,26 +333,23 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async createBookingTask(input: CreateBookingTaskInput): Promise<BookingTask> {
     try {
-      const id = uuid();
-      const now = new Date().toISOString();
-      await powerSyncDb.execute(
-        `INSERT INTO booking_tasks (id, vacation_id, family_id, title, task_type, deadline_days, due_date, is_complete, profile_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
-        [id, input.vacationId, input.familyId, input.title, input.taskType, input.deadlineDays ?? null, input.dueDate ?? null, input.profileId ?? null, now, now]
-      );
-      return {
-        id,
-        vacationId: input.vacationId,
-        familyId: input.familyId,
-        title: input.title,
-        taskType: input.taskType as BookingTaskType,
-        deadlineDays: input.deadlineDays ?? null,
-        dueDate: input.dueDate ?? null,
-        isComplete: false,
-        profileId: input.profileId ?? null,
-        createdAt: now,
-        updatedAt: now,
-      };
+      const { data, error } = await this.client
+        .from('booking_tasks')
+        .insert({
+          id: uuid(),
+          vacation_id: input.vacationId,
+          family_id: input.familyId,
+          title: input.title,
+          task_type: input.taskType,
+          deadline_days: input.deadlineDays ?? null,
+          due_date: input.dueDate ?? null,
+          is_complete: false,
+          profile_id: input.profileId ?? null,
+        })
+        .select()
+        .single();
+      if (error || !data) throw error ?? new Error('No data returned');
+      return mapTask(data);
     } catch (err) {
       logger.error('VacationRepository', 'createBookingTask failed', err);
       throw new Error(`Erro ao criar tarefa: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -382,27 +361,19 @@ export class SupabaseVacationRepository implements IVacationRepository {
     data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete'>>
   ): Promise<BookingTask> {
     try {
-      const setClauses: string[] = [];
-      const values: unknown[] = [];
-      if (data.title !== undefined) { setClauses.push('title = ?'); values.push(data.title); }
-      if (data.dueDate !== undefined) { setClauses.push('due_date = ?'); values.push(data.dueDate); }
-      if (data.isComplete !== undefined) { setClauses.push('is_complete = ?'); values.push(data.isComplete ? 1 : 0); }
-      const now = new Date().toISOString();
-      setClauses.push('updated_at = ?');
-      values.push(now);
-      values.push(id);
+      const updates: Record<string, unknown> = {};
+      if (data.title !== undefined) updates.title = data.title;
+      if (data.dueDate !== undefined) updates.due_date = data.dueDate;
+      if (data.isComplete !== undefined) updates.is_complete = data.isComplete;
 
-      await powerSyncDb.execute(
-        `UPDATE booking_tasks SET ${setClauses.join(', ')} WHERE id = ?`,
-        values
-      );
-
-      const rows = await powerSyncDb.getAll(
-        `SELECT ${TASK_COLS} FROM booking_tasks WHERE id = ?`,
-        [id]
-      );
-      if (rows.length === 0) throw new Error('Tarefa não encontrada');
-      return mapTask({ ...(rows[0] as any), is_complete: !!(rows[0] as any).is_complete });
+      const { data: rows, error } = await this.client
+        .from('booking_tasks')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error || !rows) throw error ?? new Error('Tarefa não encontrada');
+      return mapTask(rows);
     } catch (err) {
       logger.error('VacationRepository', 'updateBookingTask failed', err);
       throw new Error(`Erro ao actualizar tarefa: ${err instanceof Error ? err.message : 'Erro'}`);
@@ -411,10 +382,25 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async deleteBookingTask(id: string): Promise<void> {
     try {
-      await powerSyncDb.execute('DELETE FROM booking_tasks WHERE id = ?', [id]);
+      const { error } = await this.client.from('booking_tasks').delete().eq('id', id);
+      if (error) throw error;
     } catch (err) {
       logger.error('VacationRepository', 'deleteBookingTask failed', err);
       throw new Error(`Erro ao eliminar tarefa: ${err instanceof Error ? err.message : 'Erro'}`);
     }
+  }
+
+  /** Check if an image URL is used by any vacation (excluding excludeId) or vacation template */
+  private async isImageInUse(imageUrl: string, excludeId?: string): Promise<boolean> {
+    let query = this.client.from('vacations').select('id', { count: 'exact', head: true }).eq('cover_image_url', imageUrl);
+    if (excludeId) query = query.neq('id', excludeId);
+    const { count: vacCount } = await query;
+    if ((vacCount ?? 0) > 0) return true;
+
+    const { count: tplCount } = await this.client
+      .from('vacation_templates')
+      .select('id', { count: 'exact', head: true })
+      .eq('cover_image_url', imageUrl);
+    return (tplCount ?? 0) > 0;
   }
 }

@@ -69,6 +69,9 @@ export class SupabaseAuthRepository implements IAuthRepository {
   }
 
   async signOut(): Promise<void> {
+    GoogleSignin.configure({
+      webClientId: Constants.expoConfig?.extra?.googleWebClientId as string,
+    });
     await GoogleSignin.signOut();
     const { error } = await this.client.auth.signOut();
     if (error) {

@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 8,
@@ -64,10 +64,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
+    lineHeight: 16,
     color: '#888888',
   },
   count: {
     fontSize: 12,
+    lineHeight: 16,
     color: '#888888',
     fontWeight: '500',
   },

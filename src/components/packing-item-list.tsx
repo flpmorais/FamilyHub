@@ -81,6 +81,7 @@ export function PackingItemList({
     activeCategoryFilters,
     activeTagFilters,
     toggleStatusFilter,
+    exclusiveStatusFilter,
     toggleProfileFilter,
     toggleCategoryFilter,
     toggleTagFilter,
@@ -116,8 +117,7 @@ export function PackingItemList({
         (!item.categoryId || !activeCategoryFilters.includes(item.categoryId))
       )
         return false;
-      // Tag filter: item needs at least one matching tag (via packing_item_tags — TODO: currently items don't carry tagIds at runtime)
-      // For now, tag filter is a no-op on items without tag data loaded
+      if (hasTagFilter && !(item.tagIds ?? []).some((tid) => activeTagFilters.includes(tid))) return false;
       return true;
     });
   }, [items, activeStatusFilters, activeProfileFilters, activeCategoryFilters, activeTagFilters]);
@@ -301,26 +301,10 @@ export function PackingItemList({
               status={s}
               count={statusCounts[s] ?? 0}
               isActive={activeStatusFilters.includes(s)}
-              onPress={() => toggleStatusFilter(s)}
+              onPress={() => exclusiveStatusFilter(s)}
             />
           ))}
         </ScrollView>
-      )}
-
-      {/* "+ Filtros" chip */}
-      {items.length > 0 && (
-        <TouchableOpacity
-          style={st.addFilterBtn}
-          onPress={() => setFilterPanelVisible(true)}
-          accessibilityLabel="Abrir filtros"
-          accessibilityRole="button"
-        >
-          <Text style={st.addFilterBtnText}>
-            {hasActiveFilters
-              ? `+ Filtros (${activeStatusFilters.length + activeProfileFilters.length + activeCategoryFilters.length})`
-              : '+ Filtros'}
-          </Text>
-        </TouchableOpacity>
       )}
 
       {showCompletionState ? (
@@ -356,16 +340,27 @@ export function PackingItemList({
         </ScrollView>
       )}
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={st.fab}
-        onPress={openAdd}
-        activeOpacity={0.8}
-        accessibilityLabel="Adicionar item"
-        accessibilityRole="button"
-      >
-        <Text style={st.fabText}>+</Text>
-      </TouchableOpacity>
+      {/* FAB row */}
+      <View style={st.fabRow}>
+        <TouchableOpacity
+          style={[st.fab, st.filterFab]}
+          onPress={() => setFilterPanelVisible(!filterPanelVisible)}
+          activeOpacity={0.8}
+          accessibilityLabel="Filtros"
+          accessibilityRole="button"
+        >
+          <Icon source="filter-variant" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={st.fab}
+          onPress={openAdd}
+          activeOpacity={0.8}
+          accessibilityLabel="Adicionar item"
+          accessibilityRole="button"
+        >
+          <Text style={st.fabText}>+</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Snackbar undo */}
       <Snackbar
@@ -637,17 +632,26 @@ const st = StyleSheet.create({
   container: { flex: 1 },
   pillScroll: { flexGrow: 0 },
   pillRow: { paddingHorizontal: 16, paddingVertical: 8 },
-  addFilterBtn: { paddingHorizontal: 16, paddingBottom: 8, alignItems: 'flex-end' },
-  addFilterBtnText: { fontSize: 12, color: '#B5451B', fontWeight: '500' },
+  fabRow: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  filterFab: {
+    backgroundColor: '#6D6D6D',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+  },
   scroll: { padding: 16, paddingBottom: 80 },
   empty: { color: '#888888', textAlign: 'center', marginVertical: 32 },
   emptyFilter: { alignItems: 'center', marginVertical: 32 },
   emptyFilterText: { color: '#888888', textAlign: 'center', marginBottom: 8 },
   clearLink: { color: '#B5451B', fontWeight: '500' },
   fab: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
     width: 56,
     height: 56,
     borderRadius: 16,

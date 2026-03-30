@@ -12,7 +12,6 @@ export interface ITemplateRepository {
     familyId: string,
     vacationId: string,
     participantProfileIds: string[],
-    vacationCategoryIds: string[],
     vacationTagIds: string[]
   ): Promise<number>;
 }

@@ -15,6 +15,7 @@ interface PackingState {
   toggleProfileFilter: (profileId: string) => void;
   toggleCategoryFilter: (categoryId: string) => void;
   toggleTagFilter: (tagId: string) => void;
+  exclusiveStatusFilter: (status: PackingStatus) => void;
   clearAllFilters: () => void;
   setSelectedItemId: (id: string | null) => void;
 }
@@ -102,6 +103,22 @@ export const usePackingStore = create<PackingState>((set, get) => ({
         : [...state.activeTagFilters, tagId];
       saveFilters(state.activeVacationId, state.activeStatusFilters, state.activeProfileFilters, state.activeCategoryFilters, next);
       return { activeTagFilters: next };
+    }),
+
+  exclusiveStatusFilter: (status) =>
+    set((state) => {
+      const isOnlyActive =
+        state.activeStatusFilters.length === 1 &&
+        state.activeStatusFilters[0] === status &&
+        state.activeProfileFilters.length === 0 &&
+        state.activeCategoryFilters.length === 0 &&
+        state.activeTagFilters.length === 0;
+      if (isOnlyActive) {
+        saveFilters(state.activeVacationId, [], [], [], []);
+        return { activeStatusFilters: [], activeProfileFilters: [], activeCategoryFilters: [], activeTagFilters: [] };
+      }
+      saveFilters(state.activeVacationId, [status], [], [], []);
+      return { activeStatusFilters: [status], activeProfileFilters: [], activeCategoryFilters: [], activeTagFilters: [] };
     }),
 
   clearAllFilters: () => {

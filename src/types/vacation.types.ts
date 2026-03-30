@@ -36,7 +36,6 @@ export interface CreateVacationInput {
   returnDate: string;
   familyId: string;
   participantProfileIds: string[];
-  categoryIds: string[];
   tagIds?: string[];
 }
 
@@ -89,4 +88,25 @@ export interface CreateTaskTemplateInput {
   isAllFamily?: boolean;
   tagIds?: string[];
   profileIds?: string[];
+}
+
+export interface VacationTemplate {
+  id: string;
+  familyId: string;
+  title: string;
+  countryCode: string;
+  coverImageUrl: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  participantProfileIds: string[];
+  tagIds: string[];
+}
+
+export interface CreateVacationTemplateInput {
+  title: string;
+  countryCode: string;
+  familyId: string;
+  participantProfileIds: string[];
+  tagIds?: string[];
 }

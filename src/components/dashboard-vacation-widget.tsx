@@ -80,12 +80,12 @@ export function DashboardVacationWidget({
               <>
                 <Icon source="alert-circle" size={16} color="#D32F2F" />
                 <Text style={[s.text, { color: '#D32F2F' }]}>
-                  {incompleteCount} {incompleteCount === 1 ? 'tarefa em falta' : 'tarefas em falta'}, {expiredCount} em atraso
+                  {incompleteCount} {incompleteCount === 1 ? 'tarefa em falta' : 'tarefas em falta'}, das quais {expiredCount} em atraso
                 </Text>
               </>
             ) : (
               <Text style={s.text}>
-                {incompleteCount} {incompleteCount === 1 ? 'tarefa por fazer' : 'tarefas por fazer'}
+                {incompleteCount} {incompleteCount === 1 ? 'tarefa em falta' : 'tarefas em falta'}
               </Text>
             )}
           </View>

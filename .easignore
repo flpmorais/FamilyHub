@@ -1,0 +1,33 @@
+# Dependencies (EAS runs npm install)
+node_modules/
+
+# Generated native folders
+android/
+ios/
+
+# BMad / AI tool configs
+_bmad/
+_bmad-output/
+.bmad/
+.claude/
+.cursor/
+.gemini/
+.local/
+
+# Temp files
+tmp/
+
+# Supabase migrations (not needed for JS bundle)
+/supabase/
+
+# Expo cache
+.expo/
+dist/
+
+# Env files (env vars are set in eas.json per profile)
+.env*
+
+# Misc
+.git/
+.npm/
+*.md
