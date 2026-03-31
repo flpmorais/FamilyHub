@@ -1,6 +1,6 @@
 # generated: 2026-03-25
-# last_updated: 2026-03-27 (V2 Epic 6 added)
-# project: FamilyHub
+# last_updated: 2026-03-31
+# project: FamilyHub-v2.0
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
@@ -35,8 +35,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-25
-last_updated: 2026-03-27
-project: FamilyHub
+last_updated: 2026-03-31
+project: FamilyHub-v2.0
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -97,3 +97,12 @@ development_status:
   6-3-leftovers-list-screen: done
   6-4-dashboard-leftovers-widget: done
   epic-6-retrospective: optional
+
+  # ─── Epic 7: Shopping — Living List, Alexa Skill & AI Categorization (V2) ─
+  epic-7: in-progress
+  7-1-shopping-data-layer-categories-and-repository: review
+  7-2-shopping-list-screen-living-list-and-category-grouping: review
+  7-3-ai-categorization-service: review
+  7-4-alexa-skill-and-edge-function-backend: review
+  7-5-dashboard-shopping-widget: review
+  epic-7-retrospective: optional

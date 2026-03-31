@@ -1,0 +1,29 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "summary": "FamilyHub shopping list management",
+          "examplePhrases": [
+            "Alexa, ask Diva to add milk",
+            "Alexa, ask Diva if I have bread",
+            "Alexa, tell Diva to remove butter"
+          ],
+          "name": "Diva",
+          "description": "Personal skill for managing the FamilyHub shopping list. Add, remove, and check items by voice. Items are translated to Portuguese and categorized by AI."
+        }
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "Personal skill — developer account only.",
+      "category": "SHOPPING_AND_MARKETING"
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "REPLACE_WITH_EDGE_FUNCTION_URL"
+        }
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}

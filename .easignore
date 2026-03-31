@@ -17,8 +17,11 @@ _bmad-output/
 # Temp files
 tmp/
 
-# Supabase migrations (not needed for JS bundle)
+# Supabase (migrations + Edge Functions — not needed for JS bundle)
 /supabase/
+
+# Alexa Skill config (not needed for JS bundle)
+/alexa/
 
 # Expo cache
 .expo/

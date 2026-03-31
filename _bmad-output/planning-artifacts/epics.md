@@ -1,7 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
-v2EditedAt: '2026-03-27'
-v2EditSummary: 'Added V2 Leftovers epic (Epic 6) with 4 stories covering FR44-FR57 and NFR23'
+v2EditedAt: '2026-03-31'
+v2EditSummary: 'Added V2 Shopping epic (Epic 7) with 5 stories covering FR58-FR85 and NFR22-NFR28. Alexa Skill, AI categorization, living list, deduplication, offline sync.'
 inputDocuments: ['_bmad-output/planning-artifacts/prd.md', '_bmad-output/planning-artifacts/ux-design-specification.md', '_bmad-output/planning-artifacts/architecture.md']
 ---
 
@@ -335,6 +335,14 @@ Admins can log leftover food in the fridge with dose quantities and expiry dates
 **FRs covered:** FR44, FR45, FR46, FR47, FR48, FR49, FR50, FR51, FR52, FR53, FR54, FR55, FR56, FR57
 **NFRs covered:** NFR23
 **Architecture requirements:** AR-V2-1 through AR-V2-6
+
+---
+
+### Epic 7: Shopping — Living List, Alexa Skill & AI Categorization (V2)
+Admins can maintain a shared shopping list that lives indefinitely — items are ticked (shopped) or unticked (needed), never archived. Items are added hands-free via Alexa Skill from the kitchen, auto-categorized by an AI classification service, and grouped by category in the app. Real-time sync at the supermarket. Dashboard widget shows open item count. Admins can reclassify items and manage categories. New infrastructure: Supabase Edge Function (Alexa backend), LLM API integration.
+
+**FRs covered:** FR58, FR59, FR60, FR61, FR62, FR63, FR64, FR65, FR66, FR67, FR68, FR69, FR70, FR71, FR72, FR73, FR74, FR75, FR76, FR77, FR78, FR79, FR80, FR81, FR82, FR83, FR84, FR85
+**NFRs covered:** NFR5, NFR22, NFR23, NFR24, NFR25, NFR28
 
 ---
 
@@ -1287,3 +1295,232 @@ So that I can decide at a glance whether to cook something new or use what's alr
 **When** the dashboard loads
 **Then** the Leftovers widget renders correctly from local SQLite data
 **And** expiry flagging evaluates against device-local time
+
+## Epic 7: Shopping — Living List, Alexa Skill & AI Categorization (V2)
+
+Admins can maintain a shared shopping list that lives indefinitely — items are ticked (shopped) or unticked (needed), never archived. Items are added hands-free via Alexa Skill from the kitchen, auto-categorized by an AI classification service, and grouped by category in the app. Real-time sync at the supermarket. Dashboard widget shows open item count. New infrastructure: Supabase Edge Function (Alexa backend), LLM API integration.
+
+### Story 7.1: Shopping Data Layer, Categories & Repository
+
+As a developer,
+I want the shopping list database tables, default categories, PowerSync schema, repository interfaces, and implementations in place,
+So that all subsequent shopping stories can persist and sync data using the same patterns as V1/V2.
+
+**Acceptance Criteria:**
+
+**Given** the Supabase CLI is configured
+**When** the shopping migration is applied via `supabase db push`
+**Then** the `shopping_categories` table exists with columns: `id` (uuid PK), `family_id` (uuid FK), `name` (text NOT NULL), `sort_order` (integer), `created_at`, `updated_at`
+**And** the `shopping_items` table exists with columns: `id` (uuid PK), `family_id` (uuid FK), `name` (text NOT NULL), `category_id` (uuid FK → `shopping_categories.id`), `quantity_note` (text, nullable), `is_ticked` (boolean NOT NULL DEFAULT false), `created_at`, `updated_at`
+**And** RLS is enabled: admins in the same `family_id` can read/write all shopping items and categories
+**And** index `idx_shopping_items_family_id_is_ticked` exists
+**And** a unique index on `shopping_items(family_id, lower(name))` prevents exact duplicates at the database level
+
+**Given** the migration includes seed data for default categories
+**When** a new family is created (or migration runs against an existing family)
+**Then** 16 default shopping categories are created: Dairy, Meat, Fish, Fruit, Vegetables, Bakery, Frozen, Pantry, Beverages, Snacks, Spices & Condiments, Eggs, Cleaning, Hygiene, Baby, Other (FR72)
+
+**Given** the PowerSync schema is updated
+**When** `src/utils/powersync.schema.ts` is read
+**Then** `shopping_categories` and `shopping_items` tables are declared with columns matching the migration
+**And** this update is in the same commit as the migration
+
+**Given** the repository interfaces are defined
+**When** `src/repositories/interfaces/shopping.repository.interface.ts` is read
+**Then** `IShoppingRepository` declares methods: `addItem`, `tickItem`, `untickItem`, `editItem`, `deleteItem`, `getItems` (grouped by category, unticked first), `findByName` (case-insensitive)
+**And** `IShoppingCategoryRepository` declares methods: `getAll`, `create`, `edit`, `delete`, `reclassifyItem`
+**And** all methods use `camelCase` domain types (`ShoppingItem`, `ShoppingCategory`)
+
+**Given** the Supabase implementations exist
+**When** the repository files are read
+**Then** they implement the interfaces with `snake_case` ↔ `camelCase` conversion at the repository boundary
+**And** `RepositoryContext` provides the new repository singletons (11th and 12th repositories)
+
+**Given** types and constants are defined
+**When** `src/types/shopping.types.ts` is read
+**Then** `ShoppingItem`, `ShoppingCategory`, and `ShoppingWidgetData` types exist
+**And** `src/stores/shopping.store.ts` exports `shoppingStore` with scroll position and category filter state
+
+---
+
+### Story 7.2: Shopping List Screen — Living List & Category Grouping
+
+As an Admin,
+I want to see my shopping list grouped by category with ticked items greyed out below unticked ones, and add/tick/untick/edit/delete items,
+So that I can manage my shopping at the supermarket with a clear, organized view.
+
+**Acceptance Criteria:**
+
+**Given** the admin navigates to the shopping list
+**When** the screen renders
+**Then** items are displayed grouped by category headers
+**And** within each category group, unticked items appear above ticked items (FR63)
+**And** ticked items are visually greyed out but remain visible — they are not hidden (FR64)
+
+**Given** the admin taps the FAB to add an item
+**When** they enter "Milk" and optionally a quantity note "3 packs"
+**Then** a new shopping item is created with `is_ticked = false` (FR59)
+**And** the item appears in the list immediately (optimistic update)
+**And** if "Milk" already exists and is ticked, the system prompts to untick the existing item instead of creating a duplicate (FR81)
+**And** if "Milk" already exists and is unticked, the system flags the duplicate and prevents creation (FR82)
+**And** name matching is case-insensitive
+
+**Given** the admin taps an unticked item
+**When** the tick action executes
+**Then** `is_ticked` is set to true (FR60)
+**And** the item moves to the ticked (greyed) section within its category group immediately
+
+**Given** the admin taps a ticked item
+**When** the untick action executes
+**Then** `is_ticked` is set to false (FR60)
+**And** the item moves back to the unticked section within its category group
+
+**Given** the admin long-presses or swipes an item
+**When** the edit action is selected
+**Then** the admin can edit the item's name, category (reclassify), and quantity note (FR61)
+**And** if the category is changed, the system persists this as the item's permanent category (FR70)
+
+**Given** the admin swipes to delete
+**When** the delete action executes
+**Then** the item is removed from the list (FR62)
+
+**Given** another admin ticks/unticks/adds/deletes on their device
+**When** the change syncs
+**Then** this admin's list updates in real-time within 3 seconds (FR65, NFR5)
+
+---
+
+### Story 7.3: AI Categorization Service
+
+As a developer,
+I want new shopping items to be auto-categorized by an AI classification service when they're first added,
+So that items land in the correct category without manual effort.
+
+**Acceptance Criteria:**
+
+**Given** the repository interface is defined
+**When** `src/repositories/interfaces/classification.repository.interface.ts` is read
+**Then** `IClassificationRepository` declares a method: `classifyItem(itemName: string, categories: string[]): Promise<string>` returning a category name
+**And** the interface follows the repository pattern (NFR21 — all external services behind swappable interface)
+
+**Given** the LLM implementation exists
+**When** `src/repositories/llm/classification.repository.ts` is read
+**Then** it calls the LLM API with the item name and current category list
+**And** returns the LLM's category selection as a string
+**And** `RepositoryContext` provides the singleton
+
+**Given** a new item "coriander" is added that has never existed in the shopping list
+**When** the add flow executes
+**Then** the system calls `IClassificationRepository.classifyItem("coriander", [category list])` (FR68)
+**And** the returned category (e.g., "Vegetables") is assigned to the item automatically
+**And** the item is saved with the assigned category
+
+**Given** an item "milk" is added that already exists in the shopping list (ticked)
+**When** the add flow executes
+**Then** the system unticks the existing "milk" item without calling the classification service (FR69)
+**And** the existing category is preserved
+
+**Given** the admin previously reclassified "toilet paper" from "Hygiene" to "Cleaning"
+**When** "toilet paper" is added again (unticked from ticked)
+**Then** the system uses "Cleaning" (the admin's reclassification) — it does not call the classification service (FR70)
+
+**Given** the LLM API is unreachable or times out (>2 seconds, NFR23)
+**When** a new item is added
+**Then** the item is assigned to the "Other" category (FR73)
+**And** the item is created successfully — classification failure never blocks item creation
+
+**Given** the LLM API costs
+**When** measured over a month of family-scale usage (~100 items)
+**Then** total cost remains under €1/month (NFR25)
+
+---
+
+### Story 7.4: Alexa Skill & Edge Function Backend
+
+As an Admin,
+I want to add, remove, and query shopping items hands-free via Alexa while cooking,
+So that I never have to stop what I'm doing to update the shopping list.
+
+**Acceptance Criteria:**
+
+**Given** a Supabase Edge Function exists at a dedicated endpoint
+**When** the Alexa Skill sends a request
+**Then** the endpoint authenticates the request using a household-level API key (FR79, NFR24)
+**And** unauthenticated requests are rejected with a 401 response
+
+**Given** the user says "Alexa, tell FamilyHub to add olive oil"
+**When** the Alexa Skill processes the intent
+**Then** the Edge Function checks if "olive oil" exists in the shopping list (case-insensitive)
+**And** if it exists and is ticked: unticks it, responds "Olive oil is back on your list" (FR69)
+**And** if it exists and is unticked: responds "Olive oil is already on your list" without creating a duplicate (FR80)
+**And** if it doesn't exist: creates the item, triggers AI categorization, responds "Added olive oil to your list" (FR74)
+
+**Given** the user says "Alexa, tell FamilyHub to remove olive oil"
+**When** the Alexa Skill processes the intent
+**Then** the Edge Function ticks the item (marks as shopped), responds "Removed olive oil from your list" (FR75)
+**And** if the item doesn't exist, responds "Olive oil is not on your list"
+
+**Given** the user says "Alexa, do I have milk on the FamilyHub list?"
+**When** the Alexa Skill processes the intent
+**Then** the Edge Function queries for "milk" (case-insensitive)
+**And** responds "Yes, milk is on your list" or "No, milk is not on your list" (FR76)
+
+**Given** the user says "Alexa, what was the last item I added to FamilyHub?"
+**When** the Alexa Skill processes the intent
+**Then** the Edge Function queries for the most recently created unticked item
+**And** responds with the item name (FR77)
+
+**Given** the user says "Alexa, tell FamilyHub to set the quantity of milk to 3 packs"
+**When** the Alexa Skill processes the intent
+**Then** the Edge Function updates the `quantity_note` field on the "milk" item to "3 packs" (FR78)
+**And** responds "Set milk quantity to 3 packs"
+
+**Given** the Edge Function receives any request
+**When** it processes the request
+**Then** it responds within 3 seconds to avoid Alexa timeout errors (NFR22)
+
+**Given** the Alexa Skill is a custom skill
+**When** deployed
+**Then** it is deployed as a personal/household skill (no public certification required)
+**And** the skill invocation name is "FamilyHub" (or user-configured)
+
+---
+
+### Story 7.5: Dashboard Shopping Widget & Offline Sync
+
+As an Admin,
+I want a shopping widget on the dashboard showing how many items I need to buy, and I want the list to work offline,
+So that I always know what to shop for and can use the list even without connectivity.
+
+**Acceptance Criteria:**
+
+**Given** there are unticked shopping items in the database
+**When** the admin views the home dashboard
+**Then** the Shopping widget displays the count of unticked (open) items (FR66)
+**And** the widget text reads e.g., "12 itens" (Portuguese)
+
+**Given** there are no unticked shopping items
+**When** the dashboard loads
+**Then** the Shopping widget shows a zero state (e.g., "Lista vazia")
+
+**Given** the admin taps the Shopping widget
+**When** the navigation executes
+**Then** the app navigates to the full shopping list screen (FR67)
+
+**Given** the device is offline
+**When** the admin opens the shopping list
+**Then** all items load from local SQLite cache (FR83)
+**And** tick/untick operations work and are queued for sync (FR84)
+
+**Given** two admins tick/untick the same item while both are online
+**When** the changes sync
+**Then** last-write-wins resolves the conflict silently — no conflict dialog (FR85)
+
+**Given** the admin ticks 5 items at the supermarket
+**When** they return home and the device reconnects
+**Then** all 5 tick changes sync to the backend
+**And** the dashboard widget count updates to reflect the new unticked count
+
+**Given** shopping category reclassifications are made by an admin
+**When** any future addition of that item occurs (via app or Alexa)
+**Then** the system uses the admin's reclassified category permanently — it does not re-categorize (NFR28)

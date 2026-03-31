@@ -7,6 +7,9 @@ export type { ICategoryRepository } from './interfaces/category.repository.inter
 export type { ITemplateRepository } from './interfaces/template.repository.interface';
 export type { IOtaRepository } from './interfaces/ota.repository.interface';
 export type { ILeftoverRepository } from './interfaces/leftover.repository.interface';
+export type { IShoppingRepository } from './interfaces/shopping.repository.interface';
+export type { IShoppingCategoryRepository } from './interfaces/shopping-category.repository.interface';
+export type { IClassificationRepository } from './interfaces/classification.repository.interface';
 // Context provider and hook
 export { RepositoryProvider, RepositoryContext } from './repository.context';
 export type { RepositoryContextValue } from './repository.context';

@@ -1,0 +1,107 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "diva",
+      "intents": [
+        {
+          "name": "AddItem",
+          "slots": [
+            {
+              "name": "item",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add {item}",
+            "add {item} to the list",
+            "put {item} on the list",
+            "I need {item}",
+            "buy {item}",
+            "we need {item}",
+            "get {item}",
+            "get some {item}"
+          ]
+        },
+        {
+          "name": "RemoveItem",
+          "slots": [
+            {
+              "name": "item",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "remove {item}",
+            "remove {item} from the list",
+            "take {item} off the list",
+            "cross off {item}",
+            "I already bought {item}",
+            "got {item}",
+            "delete {item}"
+          ]
+        },
+        {
+          "name": "CheckItem",
+          "slots": [
+            {
+              "name": "item",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "do I have {item}",
+            "do I have {item} on the list",
+            "is {item} on the list",
+            "check for {item}",
+            "check {item}",
+            "do we need {item}",
+            "is {item} on my list"
+          ]
+        },
+        {
+          "name": "LastItem",
+          "slots": [],
+          "samples": [
+            "what was the last item",
+            "last item",
+            "what did I add last",
+            "what was the last thing I added",
+            "last item added"
+          ]
+        },
+        {
+          "name": "SetQuantity",
+          "slots": [
+            {
+              "name": "input",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "set quantity of {input}",
+            "the quantity of {input}",
+            "change quantity of {input}",
+            "update quantity of {input}",
+            "quantity of {input}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ]
+    }
+  }
+}

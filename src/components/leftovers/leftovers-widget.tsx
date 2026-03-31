@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Icon } from "react-native-paper";
 import type { Leftover } from "../../types/leftover.types";
 import { daysUntilExpiry } from "../../utils/date.utils";
 
@@ -26,7 +27,10 @@ export function LeftoversWidget({ items, onPress }: LeftoversWidgetProps) {
 
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
-      <Text style={s.title}>Restos</Text>
+      <View style={s.titleRow}>
+        <Icon source="fridge-outline" size={18} color="#B5451B" />
+        <Text style={s.title}>Restos</Text>
+      </View>
       {activeMeals === 0 ? (
         <Text style={s.emptyText}>Frigorífico vazio</Text>
       ) : (
@@ -61,11 +65,16 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0E0D8",
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
   title: {
     fontSize: 14,
     fontWeight: "700",
     color: "#B5451B",
-    marginBottom: 4,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },

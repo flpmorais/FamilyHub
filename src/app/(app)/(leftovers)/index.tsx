@@ -20,10 +20,8 @@ import {
 import { PAGINATION_PAGE_SIZE } from "../../../constants/leftover-defaults";
 import { logger } from "../../../utils/logger";
 import { PageHeader } from "../../../components/page-header";
+import { supabaseClient } from "../../../repositories/supabase/supabase.client";
 import type { Leftover } from "../../../types/leftover.types";
-import type { ImageSourcePropType } from "react-native";
-
-const LEFTOVERS_BANNER: ImageSourcePropType = require('../../../../assets/leftovers-banner.jpg');
 
 export default function LeftoversScreen() {
   const leftoverRepo = useRepository("leftover");
@@ -31,6 +29,7 @@ export default function LeftoversScreen() {
   const { paginationCursor, setPaginationCursor } = useLeftoversStore();
 
   const [leftovers, setLeftovers] = useState<Leftover[]>([]);
+  const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -58,7 +57,11 @@ export default function LeftoversScreen() {
 
   useEffect(() => {
     void reloadFromStart();
-  }, [reloadFromStart]);
+    if (familyId) {
+      supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
+        .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
+    }
+  }, [reloadFromStart, familyId]);
 
   async function loadMore() {
     if (!hasMore || loadingMoreRef.current || !familyId) return;
@@ -182,7 +185,7 @@ export default function LeftoversScreen() {
 
   return (
     <View style={s.container}>
-      <PageHeader title="Restos" fallbackImage={LEFTOVERS_BANNER} />
+      <PageHeader title="Restos" imageUri={familyBannerUrl} familyBannerUri={familyBannerUrl} />
 
       <View style={{ height: 16 }} />
 

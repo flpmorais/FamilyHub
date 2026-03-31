@@ -6,6 +6,7 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { DashboardVacationWidget } from '../../../components/dashboard-vacation-widget';
 import { LeftoversWidget } from '../../../components/leftovers';
+import { ShoppingWidget } from '../../../components/shopping';
 import { PageHeader } from '../../../components/page-header';
 import { sortVacations } from '../../../utils/vacation.utils';
 import type { Vacation, VacationLifecycle, BookingTask } from '../../../types/vacation.types';
@@ -23,9 +24,11 @@ export default function DashboardScreen() {
   const vacationRepository = useRepository('vacation');
   const packingItemRepository = useRepository('packingItem');
   const leftoverRepo = useRepository('leftover');
+  const shoppingRepo = useRepository('shopping');
   const { userAccount } = useAuthStore();
   const [entries, setEntries] = useState<DashboardEntry[]>([]);
   const [activeLeftovers, setActiveLeftovers] = useState<Leftover[]>([]);
+  const [shoppingCount, setShoppingCount] = useState(0);
   const [family, setFamily] = useState<Family | null>(null);
 
   useFocusEffect(
@@ -33,6 +36,7 @@ export default function DashboardScreen() {
       void loadFamily();
       void loadPinned();
       void loadLeftovers();
+      void loadShoppingCount();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -75,6 +79,16 @@ export default function DashboardScreen() {
     try {
       const list = await leftoverRepo.getActive(userAccount.familyId);
       setActiveLeftovers(list);
+    } catch {
+      // Silently fail on dashboard
+    }
+  }
+
+  async function loadShoppingCount() {
+    if (!userAccount?.familyId) return;
+    try {
+      const items = await shoppingRepo.getItems(userAccount.familyId);
+      setShoppingCount(items.filter((i) => !i.isTicked).length);
     } catch {
       // Silently fail on dashboard
     }
@@ -127,6 +141,13 @@ export default function DashboardScreen() {
           <LeftoversWidget
             items={activeLeftovers}
             onPress={() => router.push('/(app)/(leftovers)')}
+          />
+        </View>
+
+        <View style={styles.widgetSection}>
+          <ShoppingWidget
+            itemCount={shoppingCount}
+            onPress={() => router.push('/(app)/(shopping)')}
           />
         </View>
       </View>

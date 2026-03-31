@@ -45,12 +45,25 @@ export default function AppLayout() {
         name="(leftovers)"
         options={{
           title: 'Restos',
-          tabBarIcon: ({ color, size }) => <Icon source="food" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Icon source="fridge-outline" size={size} color={color} />,
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
             navigation.navigate('(leftovers)', { screen: 'index' });
+          },
+        })}
+      />
+      <Tabs.Screen
+        name="(shopping)"
+        options={{
+          title: 'Compras',
+          tabBarIcon: ({ color, size }) => <Icon source="cart-outline" size={size} color={color} />,
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('(shopping)', { screen: 'index' });
           },
         })}
       />
