@@ -27,6 +27,7 @@ import { formatDatePt } from '../../../utils/vacation.utils';
 import { PageHeader } from '../../../components/page-header';
 import type { Vacation } from '../../../types/vacation.types';
 import type { Profile } from '../../../types/profile.types';
+import type { VacationTemplate } from '../../../types/vacation.types';
 import type { Tag } from '../../../types/packing.types';
 
 function toISODate(d: Date): string {
@@ -61,6 +62,7 @@ export default function CreateVacationScreen() {
   const [formPinned, setFormPinned] = useState(true);
   const [pendingCoverUri, setPendingCoverUri] = useState<string | null>(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
+  const [loadedTemplate, setLoadedTemplate] = useState<VacationTemplate | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Country picker
@@ -82,6 +84,7 @@ export default function CreateVacationScreen() {
           // Load template and pre-fill
           const tpl = await vacationTemplateRepository.getVacationTemplateById(templateId);
           if (tpl) {
+            setLoadedTemplate(tpl);
             setFormTitle(tpl.title);
             setFormCountryCode(tpl.countryCode);
             if (tpl.coverImageUrl) setExistingCoverUrl(tpl.coverImageUrl);
@@ -226,6 +229,17 @@ export default function CreateVacationScreen() {
         );
       } catch (taskErr) {
         logger.error('CreateVacationScreen', 'Task template application FAILED', taskErr);
+      }
+
+      // Apply template bags — clone bag associations
+      if (loadedTemplate?.bags?.length) {
+        for (const bag of loadedTemplate.bags) {
+          await vacationRepository.addVacationBag(created.id, bag.bagTemplateId, bag.isTopLevel);
+        }
+        logger.info(
+          'CreateVacationScreen',
+          `Cloned ${loadedTemplate.bags.length} bags from template`
+        );
       }
 
       // Handle cover image

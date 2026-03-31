@@ -90,6 +90,17 @@ export interface CreateTaskTemplateInput {
   profileIds?: string[];
 }
 
+export interface VacationTemplateBag {
+  bagTemplateId: string;
+  isTopLevel: boolean;
+}
+
+export interface VacationBag {
+  id: string;
+  bagTemplateId: string;
+  isTopLevel: boolean;
+}
+
 export interface VacationTemplate {
   id: string;
   familyId: string;
@@ -101,6 +112,7 @@ export interface VacationTemplate {
   updatedAt: string;
   participantProfileIds: string[];
   tagIds: string[];
+  bags: VacationTemplateBag[];
 }
 
 export interface CreateVacationTemplateInput {
@@ -109,4 +121,5 @@ export interface CreateVacationTemplateInput {
   familyId: string;
   participantProfileIds: string[];
   tagIds?: string[];
+  bags?: VacationTemplateBag[];
 }

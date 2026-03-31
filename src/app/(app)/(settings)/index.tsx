@@ -18,6 +18,7 @@ const VACATION_ITEMS = [
   { label: 'Tarefas', icon: 'clipboard-check-outline', route: '/(app)/(settings)/tasks' },
   { label: 'Etiquetas', icon: 'tag', route: '/(app)/(settings)/tags' },
   { label: 'Categorias', icon: 'shape', route: '/(app)/(settings)/categories' },
+  { label: 'Modelos de Malas', icon: 'bag-suitcase', route: '/(app)/(settings)/bag-templates' },
 ] as const;
 
 export default function SettingsHubScreen() {

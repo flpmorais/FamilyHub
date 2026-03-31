@@ -1,11 +1,11 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { IVacationTemplateRepository } from '../interfaces/vacation-template.repository.interface';
-import { VacationTemplate, CreateVacationTemplateInput } from '../../types/vacation.types';
+import { VacationTemplate, VacationTemplateBag, CreateVacationTemplateInput } from '../../types/vacation.types';
 import { logger } from '../../utils/logger';
 import { uuid } from '../../utils/uuid';
 
-function mapRow(row: any): Omit<VacationTemplate, 'participantProfileIds' | 'tagIds'> {
+function mapRow(row: any): Omit<VacationTemplate, 'participantProfileIds' | 'tagIds' | 'bags'> {
   return {
     id: row.id,
     familyId: row.family_id,
@@ -39,6 +39,18 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     return (data ?? []).map((r) => r.tag_id as string);
   }
 
+  private async loadBags(templateId: string): Promise<VacationTemplateBag[]> {
+    const { data, error } = await this.client
+      .from('vacation_template_bags')
+      .select('bag_template_id, is_top_level')
+      .eq('vacation_template_id', templateId);
+    if (error) throw error;
+    return (data ?? []).map((r) => ({
+      bagTemplateId: r.bag_template_id as string,
+      isTopLevel: !!r.is_top_level,
+    }));
+  }
+
   async getVacationTemplates(familyId: string, activeOnly?: boolean): Promise<VacationTemplate[]> {
     let query = this.client
       .from('vacation_templates')
@@ -53,7 +65,7 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
 
     const ids = rows.map((r) => r.id);
 
-    const [participantRows, tagRows] = await Promise.all([
+    const [participantRows, tagRows, bagRows] = await Promise.all([
       this.client
         .from('vacation_template_participants')
         .select('vacation_template_id, profile_id')
@@ -61,6 +73,10 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
       this.client
         .from('vacation_template_tags')
         .select('vacation_template_id, tag_id')
+        .in('vacation_template_id', ids),
+      this.client
+        .from('vacation_template_bags')
+        .select('vacation_template_id, bag_template_id, is_top_level')
         .in('vacation_template_id', ids),
     ]);
 
@@ -78,10 +94,18 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
       tagMap.set(r.vacation_template_id, list);
     }
 
+    const bagMap = new Map<string, VacationTemplateBag[]>();
+    for (const r of bagRows.data ?? []) {
+      const list = bagMap.get(r.vacation_template_id) ?? [];
+      list.push({ bagTemplateId: r.bag_template_id, isTopLevel: !!r.is_top_level });
+      bagMap.set(r.vacation_template_id, list);
+    }
+
     return rows.map((row) => ({
       ...mapRow(row),
       participantProfileIds: participantMap.get(row.id) ?? [],
       tagIds: tagMap.get(row.id) ?? [],
+      bags: bagMap.get(row.id) ?? [],
     }));
   }
 
@@ -94,15 +118,17 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     if (error) throw error;
     if (!row) return null;
 
-    const [participantIds, tagIds] = await Promise.all([
+    const [participantIds, tagIds, bags] = await Promise.all([
       this.loadParticipantIds(id),
       this.loadTagIds(id),
+      this.loadBags(id),
     ]);
 
     return {
       ...mapRow(row),
       participantProfileIds: participantIds,
       tagIds,
+      bags,
     };
   }
 
@@ -142,19 +168,32 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
       await this.client.from('vacation_template_tags').insert(rows);
     }
 
+    // Insert bags
+    if (input.bags && input.bags.length > 0) {
+      const bagRows = input.bags.map((b) => ({
+        id: uuid(),
+        vacation_template_id: id,
+        bag_template_id: b.bagTemplateId,
+        is_top_level: b.isTopLevel,
+      }));
+      await this.client.from('vacation_template_bags').insert(bagRows);
+    }
+
     const base = mapRow(data);
     return {
       ...base,
       participantProfileIds: input.participantProfileIds,
       tagIds: input.tagIds ?? [],
+      bags: input.bags ?? [],
     };
   }
 
   async updateVacationTemplate(
     id: string,
-    data: Partial<Omit<VacationTemplate, 'id' | 'createdAt' | 'updatedAt' | 'participantProfileIds' | 'tagIds'>>,
+    data: Partial<Omit<VacationTemplate, 'id' | 'createdAt' | 'updatedAt' | 'participantProfileIds' | 'tagIds' | 'bags'>>,
     participantProfileIds?: string[],
-    tagIds?: string[]
+    tagIds?: string[],
+    bags?: VacationTemplateBag[]
   ): Promise<VacationTemplate> {
     const updates: Record<string, unknown> = {};
     if (data.title !== undefined) updates.title = data.title;
@@ -191,6 +230,20 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
       }
     }
 
+    // Replace bags
+    if (bags !== undefined) {
+      await this.client.from('vacation_template_bags').delete().eq('vacation_template_id', id);
+      if (bags.length > 0) {
+        const bagRows = bags.map((b) => ({
+          id: uuid(),
+          vacation_template_id: id,
+          bag_template_id: b.bagTemplateId,
+          is_top_level: b.isTopLevel,
+        }));
+        await this.client.from('vacation_template_bags').insert(bagRows);
+      }
+    }
+
     const { data: updated, error: selError } = await this.client
       .from('vacation_templates')
       .select('*')
@@ -199,10 +252,16 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     if (selError || !updated) throw selError ?? new Error('Template not found');
 
     const base = mapRow(updated);
+    const [pIds, tIds, loadedBags] = await Promise.all([
+      this.loadParticipantIds(id),
+      this.loadTagIds(id),
+      this.loadBags(id),
+    ]);
     return {
       ...base,
-      participantProfileIds: await this.loadParticipantIds(id),
-      tagIds: await this.loadTagIds(id),
+      participantProfileIds: pIds,
+      tagIds: tIds,
+      bags: loadedBags,
     };
   }
 

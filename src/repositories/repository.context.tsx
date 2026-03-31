@@ -12,6 +12,7 @@ import { SupabaseTaskTemplateRepository } from './supabase/task-template.reposit
 import { SupabaseLeftoverRepository } from './supabase/leftover.repository';
 import { SupabaseVacationTemplateRepository } from './supabase/vacation-template.repository';
 import { SupabaseIconRepository } from './supabase/icon.repository';
+import { SupabaseBagTemplateRepository } from './supabase/bag-template.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -25,6 +26,7 @@ import type { ITaskTemplateRepository } from './interfaces/task-template.reposit
 import type { ILeftoverRepository } from './interfaces/leftover.repository.interface';
 import type { IVacationTemplateRepository } from './interfaces/vacation-template.repository.interface';
 import type { IIconRepository } from './interfaces/icon.repository.interface';
+import type { IBagTemplateRepository } from './interfaces/bag-template.repository.interface';
 
 export interface RepositoryContextValue {
   auth: IAuthRepository;
@@ -39,6 +41,7 @@ export interface RepositoryContextValue {
   leftover: ILeftoverRepository;
   vacationTemplate: IVacationTemplateRepository;
   icon: IIconRepository;
+  bagTemplate: IBagTemplateRepository;
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -58,6 +61,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       leftover: new SupabaseLeftoverRepository(supabaseClient),
       vacationTemplate: new SupabaseVacationTemplateRepository(supabaseClient),
       icon: new SupabaseIconRepository(supabaseClient),
+      bagTemplate: new SupabaseBagTemplateRepository(supabaseClient),
     }),
     []
   );

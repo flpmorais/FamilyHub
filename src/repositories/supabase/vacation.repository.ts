@@ -9,6 +9,7 @@ import {
   VacationParticipant,
   BookingTask,
   CreateBookingTaskInput,
+  VacationBag,
 } from '../../types/vacation.types';
 import { logger } from '../../utils/logger';
 import { uuid } from '../../utils/uuid';
@@ -402,5 +403,55 @@ export class SupabaseVacationRepository implements IVacationRepository {
       .select('id', { count: 'exact', head: true })
       .eq('cover_image_url', imageUrl);
     return (tplCount ?? 0) > 0;
+  }
+
+  // ── Vacation bags ───────────────────────────────────────────────────
+
+  async getVacationBags(vacationId: string): Promise<VacationBag[]> {
+    const { data, error } = await this.client
+      .from('vacation_bags')
+      .select('*')
+      .eq('vacation_id', vacationId);
+    if (error) throw error;
+    return (data ?? []).map((r) => ({
+      id: r.id,
+      bagTemplateId: r.bag_template_id,
+      isTopLevel: !!r.is_top_level,
+    }));
+  }
+
+  async addVacationBag(vacationId: string, bagTemplateId: string, isTopLevel: boolean): Promise<VacationBag> {
+    const { data, error } = await this.client
+      .from('vacation_bags')
+      .insert({
+        id: uuid(),
+        vacation_id: vacationId,
+        bag_template_id: bagTemplateId,
+        is_top_level: isTopLevel,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return {
+      id: data.id,
+      bagTemplateId: data.bag_template_id,
+      isTopLevel: !!data.is_top_level,
+    };
+  }
+
+  async removeVacationBag(vacationBagId: string): Promise<void> {
+    const { error } = await this.client
+      .from('vacation_bags')
+      .delete()
+      .eq('id', vacationBagId);
+    if (error) throw error;
+  }
+
+  async updateVacationBagTopLevel(vacationBagId: string, isTopLevel: boolean): Promise<void> {
+    const { error } = await this.client
+      .from('vacation_bags')
+      .update({ is_top_level: isTopLevel })
+      .eq('id', vacationBagId);
+    if (error) throw error;
   }
 }

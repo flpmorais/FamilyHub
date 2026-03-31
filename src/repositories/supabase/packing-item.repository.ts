@@ -15,6 +15,7 @@ export function mapPackingRow(row: any, tagIds: string[] = []): PackingItem {
     isAllFamily: row.is_all_family === 1 || row.is_all_family === true,
     quantity: Number(row.quantity) || 1,
     notes: row.notes ?? null,
+    vacationBagId: row.vacation_bag_id ?? null,
     categoryId: row.category_id ?? null,
     iconId: row.icon_id,
     tagIds,
@@ -103,6 +104,7 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
           category_id: input.categoryId ?? null,
           icon_id: iconId,
           is_all_family: input.isAllFamily ?? false,
+          vacation_bag_id: input.vacationBagId ?? null,
           created_at: ts,
           updated_at: ts,
         })
@@ -131,6 +133,7 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
     if (data.iconId !== undefined) updates.icon_id = data.iconId;
     if (data.isAllFamily !== undefined) updates.is_all_family = data.isAllFamily;
+    if (data.vacationBagId !== undefined) updates.vacation_bag_id = data.vacationBagId;
 
     updates.updated_at = now();
 
