@@ -24,8 +24,9 @@ import {
 } from './packing';
 import { IconPicker } from './icon-picker';
 import { useIconStore } from '../stores/icon.store';
-import type { PackingItem, PackingStatus, Category, Tag } from '../types/packing.types';
+import type { PackingItem, PackingStatus, Category, Tag, BagTemplate } from '../types/packing.types';
 import type { Profile } from '../types/profile.types';
+import type { VacationBag } from '../types/vacation.types';
 
 const STATUS_LABELS: Record<PackingStatus, string> = {
   new: 'Novo',
@@ -42,6 +43,8 @@ interface PackingItemListProps {
   profiles: Profile[];
   categories: Category[];
   tags: Tag[];
+  vacationBags: VacationBag[];
+  bagTemplates: BagTemplate[];
   vacationTitle: string;
   onCreateItem: (
     name: string,
@@ -49,7 +52,8 @@ interface PackingItemListProps {
     quantity: number,
     categoryId: string | null,
     iconId: string,
-    isAllFamily: boolean
+    isAllFamily: boolean,
+    vacationBagId: string | null
   ) => Promise<void>;
   onUpdateItem: (
     id: string,
@@ -62,10 +66,11 @@ interface PackingItemListProps {
       categoryId: string | null;
       iconId: string;
       isAllFamily: boolean;
+      vacationBagId: string | null;
     }
   ) => Promise<void>;
   onDeleteItem: (id: string) => Promise<void>;
-  onStatusChange: (id: string, status: PackingStatus) => Promise<void>;
+  onStatusChange: (id: string, status: PackingStatus, vacationBagId?: string) => Promise<void>;
 }
 
 export function PackingItemList({
@@ -73,6 +78,8 @@ export function PackingItemList({
   profiles,
   categories,
   tags,
+  vacationBags,
+  bagTemplates,
   vacationTitle,
   onCreateItem,
   onUpdateItem,
@@ -95,6 +102,8 @@ export function PackingItemList({
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
 
   const { icons, resolveIconName } = useIconStore();
+
+  const bagsMap = useMemo(() => new Map(bagTemplates.map((b) => [b.id, b])), [bagTemplates]);
 
   // Status counts (all items, unfiltered)
   const statusCounts = useMemo(() => {
@@ -154,6 +163,7 @@ export function PackingItemList({
   const [formIconId, setFormIconId] = useState('');
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [formTagIds, setFormTagIds] = useState<string[]>([]);
+  const [formVacationBagId, setFormVacationBagId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUsedProfileId, setLastUsedProfileId] = useState<string | null>(null);
@@ -172,6 +182,8 @@ export function PackingItemList({
 
   // Status picker modal state
   const [statusPickerItem, setStatusPickerItem] = useState<PackingItem | null>(null);
+  const [packingBagStep, setPackingBagStep] = useState(false);
+  const [pendingPackedItemId, setPendingPackedItemId] = useState<string | null>(null);
 
   function openAdd() {
     setEditingItem(null);
@@ -185,6 +197,7 @@ export function PackingItemList({
     setFormIconId(defaultCat?.iconId ?? '');
     setFormAllFamily(false);
     setFormTagIds([]);
+    setFormVacationBagId(null);
     setError(null);
     setSheetVisible(true);
   }
@@ -199,6 +212,7 @@ export function PackingItemList({
     setFormCategoryId(item.categoryId);
     setFormIconId(item.iconId);
     setFormAllFamily(item.isAllFamily);
+    setFormVacationBagId(item.vacationBagId);
     setFormTagIds([]); // TODO: load from packing_item_tags when needed
     setError(null);
     setSheetVisible(true);
@@ -233,12 +247,13 @@ export function PackingItemList({
           categoryId: formCategoryId,
           iconId: formIconId,
           isAllFamily: formAllFamily,
+          vacationBagId: formVacationBagId,
         });
         setSheetVisible(false);
         setSuccessMsg('Item actualizado');
         setSuccessVisible(true);
       } else {
-        await onCreateItem(name, formAllFamily ? null : formProfileId, qty, formCategoryId, formIconId, formAllFamily);
+        await onCreateItem(name, formAllFamily ? null : formProfileId, qty, formCategoryId, formIconId, formAllFamily, formVacationBagId);
         setLastUsedProfileId(formProfileId);
         setSuccessMsg('Item adicionado');
         setSuccessVisible(true);
@@ -270,6 +285,12 @@ export function PackingItemList({
   }
 
   async function handleStatusChange(item: PackingItem, newStatus: PackingStatus) {
+    if (newStatus === 'packed' && vacationBags.length > 0) {
+      // Show bag selection step instead of immediately changing status
+      setPendingPackedItemId(item.id);
+      setPackingBagStep(true);
+      return;
+    }
     const previousStatus = item.status;
     setUndoInfo({ itemId: item.id, previousStatus });
     setSnackMessage(`Estado alterado para ${STATUS_LABELS[newStatus]}`);
@@ -278,6 +299,24 @@ export function PackingItemList({
       await onStatusChange(item.id, newStatus);
     } catch (err) {
       logger.error('PackingItemList', 'handleStatusChange failed', err);
+    }
+  }
+
+  async function handlePackedBagSelect(vacationBagId: string) {
+    if (!pendingPackedItemId) return;
+    const item = items.find((i) => i.id === pendingPackedItemId);
+    if (!item) return;
+    const previousStatus = item.status;
+    setStatusPickerItem(null);
+    setPackingBagStep(false);
+    setPendingPackedItemId(null);
+    setUndoInfo({ itemId: item.id, previousStatus });
+    setSnackMessage('Item embalado');
+    setSnackVisible(true);
+    try {
+      await onStatusChange(item.id, 'packed', vacationBagId);
+    } catch (err) {
+      logger.error('PackingItemList', 'handlePackedBagSelect failed', err);
     }
   }
 
@@ -423,54 +462,88 @@ export function PackingItemList({
           visible
           animationType="fade"
           transparent
-          onRequestClose={() => setStatusPickerItem(null)}
+          onRequestClose={() => { setStatusPickerItem(null); setPackingBagStep(false); setPendingPackedItemId(null); }}
         >
           <TouchableOpacity
             style={st.pickerOverlay}
             activeOpacity={1}
-            onPress={() => setStatusPickerItem(null)}
+            onPress={() => { setStatusPickerItem(null); setPackingBagStep(false); setPendingPackedItemId(null); }}
           >
             <View style={st.pickerCard}>
-              <Text style={st.pickerHeading}>Alterar estado</Text>
-              <Text style={st.pickerItemName}>{statusPickerItem.name}</Text>
-              <View style={st.pickerOptions}>
-                {ALL_STATUSES.map((s) => {
-                  const isCurrent = s === statusPickerItem.status;
-                  return (
-                    <TouchableOpacity
-                      key={s}
-                      style={[
-                        st.pickerOption,
-                        {
-                          borderColor: colours[s].bg,
-                          backgroundColor: isCurrent ? colours[s].bg : colours[s].bg + '10',
-                        },
-                      ]}
-                      onPress={() => {
-                        if (!isCurrent) {
-                          handleStatusChange(statusPickerItem, s);
-                        }
-                        setStatusPickerItem(null);
-                      }}
-                    >
-                      <View
-                        style={[
-                          st.pickerDot,
-                          { backgroundColor: isCurrent ? '#FFFFFF' : colours[s].bg },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          st.pickerOptionText,
-                          { color: isCurrent ? '#FFFFFF' : colours[s].bg },
-                        ]}
-                      >
-                        {STATUS_LABELS[s]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              {packingBagStep ? (
+                <>
+                  <Text style={st.pickerHeading}>Em que mala?</Text>
+                  <Text style={st.pickerItemName}>{statusPickerItem.name}</Text>
+                  <View style={st.pickerOptions}>
+                    {vacationBags.map((vb) => {
+                      const bt = bagsMap.get(vb.bagTemplateId);
+                      if (!bt) return null;
+                      const isSuggested = statusPickerItem.vacationBagId === vb.id;
+                      return (
+                        <TouchableOpacity
+                          key={vb.id}
+                          style={[
+                            st.pickerOption,
+                            { borderColor: bt.color, backgroundColor: isSuggested ? bt.color + '20' : '#FFFFFF' },
+                          ]}
+                          onPress={() => handlePackedBagSelect(vb.id)}
+                        >
+                          <View style={[st.pickerDot, { backgroundColor: bt.color }]} />
+                          <Text style={[st.pickerOptionText, { color: bt.color }]}>{bt.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={st.pickerHeading}>Alterar estado</Text>
+                  <Text style={st.pickerItemName}>{statusPickerItem.name}</Text>
+                  <View style={st.pickerOptions}>
+                    {ALL_STATUSES.map((s) => {
+                      const isCurrent = s === statusPickerItem.status;
+                      return (
+                        <TouchableOpacity
+                          key={s}
+                          style={[
+                            st.pickerOption,
+                            {
+                              borderColor: colours[s].bg,
+                              backgroundColor: isCurrent ? colours[s].bg : colours[s].bg + '10',
+                            },
+                          ]}
+                          onPress={() => {
+                            if (s === 'packed' && vacationBags.length > 0) {
+                              setPendingPackedItemId(statusPickerItem.id);
+                              setPackingBagStep(true);
+                              return;
+                            }
+                            if (!isCurrent) {
+                              handleStatusChange(statusPickerItem, s);
+                            }
+                            setStatusPickerItem(null);
+                          }}
+                        >
+                          <View
+                            style={[
+                              st.pickerDot,
+                              { backgroundColor: isCurrent ? '#FFFFFF' : colours[s].bg },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              st.pickerOptionText,
+                              { color: isCurrent ? '#FFFFFF' : colours[s].bg },
+                            ]}
+                          >
+                            {STATUS_LABELS[s]}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
             </View>
           </TouchableOpacity>
         </Modal>
@@ -512,6 +585,7 @@ export function PackingItemList({
       >
         <View style={st.modalOverlay}>
           <View style={st.sheet}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={st.sheetTitle}>{editingItem ? 'Editar item' : 'Adicionar item'}</Text>
             <Text style={st.label}>Nome *</Text>
             <TextInput
@@ -599,6 +673,35 @@ export function PackingItemList({
               <Icon source={resolveIconName(formIconId)} size={24} color="#B5451B" />
               <Text style={st.iconPickerBtnText}>Selecionar ícone</Text>
             </TouchableOpacity>
+            {vacationBags.length > 0 && (
+              <>
+                <Text style={st.label}>Mala</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
+                  <TouchableOpacity
+                    style={[st.chip, formVacationBagId === null && st.chipActive]}
+                    onPress={() => setFormVacationBagId(null)}
+                    disabled={isSaving}
+                  >
+                    <Text style={[st.chipText, formVacationBagId === null && st.chipTextActive]}>Nenhuma</Text>
+                  </TouchableOpacity>
+                  {vacationBags.map((vb) => {
+                    const bt = bagsMap.get(vb.bagTemplateId);
+                    if (!bt) return null;
+                    return (
+                      <TouchableOpacity
+                        key={vb.id}
+                        style={[st.chip, formVacationBagId === vb.id && { backgroundColor: bt.color, borderColor: bt.color }]}
+                        onPress={() => setFormVacationBagId(vb.id)}
+                        disabled={isSaving}
+                      >
+                        <View style={[st.bagChipDot, { backgroundColor: formVacationBagId === vb.id ? '#FFFFFF' : bt.color }]} />
+                        <Text style={[st.chipText, formVacationBagId === vb.id && { color: '#FFFFFF' }]}>{bt.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            )}
             {tags.length > 0 && (
               <>
                 <Text style={st.label}>Etiquetas</Text>
@@ -670,6 +773,7 @@ export function PackingItemList({
                 </TouchableOpacity>
               )}
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -851,4 +955,5 @@ const st = StyleSheet.create({
   },
   pickerDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
   pickerOptionText: { fontSize: 15, fontWeight: '600' },
+  bagChipDot: { width: 10, height: 10, borderRadius: 5 },
 });

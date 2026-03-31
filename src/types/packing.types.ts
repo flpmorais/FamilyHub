@@ -17,6 +17,7 @@ export interface PackingItem {
   assignedProfileId: string | null;
   isAllFamily: boolean;
   notes: string | null;
+  vacationBagId: string | null;
   familyId: string;
   tagIds: string[];
   createdAt: string;
@@ -32,6 +33,7 @@ export interface CreatePackingItemInput {
   assignedProfileId?: string;
   isAllFamily?: boolean;
   notes?: string;
+  vacationBagId?: string;
   familyId: string;
 }
 
@@ -87,4 +89,25 @@ export interface CreateTemplateItemInput {
   quantity?: number;
   isAllFamily?: boolean;
   tagIds?: string[];
+}
+
+export interface BagTemplate {
+  id: string;
+  familyId: string;
+  name: string;
+  color: string;
+  sizeLiters: number;
+  isTopLevel: boolean;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBagTemplateInput {
+  name: string;
+  color: string;
+  sizeLiters: number;
+  isTopLevel: boolean;
+  familyId: string;
 }

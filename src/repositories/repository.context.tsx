@@ -15,6 +15,7 @@ import { SupabaseIconRepository } from './supabase/icon.repository';
 import { SupabaseShoppingRepository } from './supabase/shopping.repository';
 import { SupabaseShoppingCategoryRepository } from './supabase/shopping-category.repository';
 import { SupabaseClassificationRepository } from './supabase/classification.repository';
+import { SupabaseBagTemplateRepository } from './supabase/bag-template.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -31,6 +32,7 @@ import type { IIconRepository } from './interfaces/icon.repository.interface';
 import type { IShoppingRepository } from './interfaces/shopping.repository.interface';
 import type { IShoppingCategoryRepository } from './interfaces/shopping-category.repository.interface';
 import type { IClassificationRepository } from './interfaces/classification.repository.interface';
+import type { IBagTemplateRepository } from './interfaces/bag-template.repository.interface';
 
 export interface RepositoryContextValue {
   auth: IAuthRepository;
@@ -48,6 +50,7 @@ export interface RepositoryContextValue {
   shopping: IShoppingRepository;
   shoppingCategory: IShoppingCategoryRepository;
   classification: IClassificationRepository;
+  bagTemplate: IBagTemplateRepository;
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -70,6 +73,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       shopping: new SupabaseShoppingRepository(supabaseClient),
       shoppingCategory: new SupabaseShoppingCategoryRepository(supabaseClient),
       classification: new SupabaseClassificationRepository(supabaseClient),
+      bagTemplate: new SupabaseBagTemplateRepository(supabaseClient),
     }),
     []
   );

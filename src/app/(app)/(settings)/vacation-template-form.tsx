@@ -23,8 +23,8 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
 import { compressAvatar } from '../../../utils/image.utils';
 import { COUNTRIES, countryFlag, countryIso2, findCountry } from '../../../utils/countries';
-import type { VacationTemplate } from '../../../types/vacation.types';
-import type { Tag } from '../../../types/packing.types';
+import type { VacationTemplate, VacationTemplateBag } from '../../../types/vacation.types';
+import type { Tag, BagTemplate } from '../../../types/packing.types';
 import type { Profile } from '../../../types/profile.types';
 
 export default function VacationTemplateFormScreen() {
@@ -35,10 +35,12 @@ export default function VacationTemplateFormScreen() {
   const vacationTemplateRepo = useRepository('vacationTemplate');
   const profileRepository = useRepository('profile');
   const tagRepository = useRepository('tag');
+  const bagTemplateRepo = useRepository('bagTemplate');
   const { userAccount } = useAuthStore();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [allBags, setAllBags] = useState<BagTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -51,8 +53,12 @@ export default function VacationTemplateFormScreen() {
   const [formParticipants, setFormParticipants] = useState<Set<string>>(new Set());
   const [formTags, setFormTags] = useState<Set<string>>(new Set());
   const [formActive, setFormActive] = useState(true);
+  const [formBags, setFormBags] = useState<VacationTemplateBag[]>([]);
   const [pendingCoverUri, setPendingCoverUri] = useState<string | null>(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
+
+  // Bag picker
+  const [bagPickerVisible, setBagPickerVisible] = useState(false);
 
   // Country picker
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
@@ -65,12 +71,14 @@ export default function VacationTemplateFormScreen() {
     if (!userAccount?.familyId) return;
     setIsLoading(true);
     try {
-      const [profList, tagList] = await Promise.all([
+      const [profList, tagList, bagList] = await Promise.all([
         profileRepository.getProfilesByFamily(userAccount.familyId),
         tagRepository.getTags(userAccount.familyId),
+        bagTemplateRepo.getBagTemplates(userAccount.familyId),
       ]);
       setProfiles(profList);
       setTags(tagList.filter((t) => t.active));
+      setAllBags(bagList);
 
       if (isEdit && id) {
         const templates = await vacationTemplateRepo.getVacationTemplates(userAccount.familyId);
@@ -82,6 +90,7 @@ export default function VacationTemplateFormScreen() {
           setFormParticipants(new Set(tpl.participantProfileIds));
           setFormTags(new Set(tpl.tagIds));
           setFormActive(tpl.active);
+          setFormBags(tpl.bags);
           setExistingCoverUrl(tpl.coverImageUrl);
         }
       } else {
@@ -118,6 +127,27 @@ export default function VacationTemplateFormScreen() {
       return next;
     });
   }
+
+  function addBag(bag: BagTemplate) {
+    setFormBags((prev) => [...prev, { bagTemplateId: bag.id, isTopLevel: bag.isTopLevel }]);
+    setBagPickerVisible(false);
+  }
+
+  function removeBag(bagTemplateId: string) {
+    setFormBags((prev) => prev.filter((b) => b.bagTemplateId !== bagTemplateId));
+  }
+
+  function toggleBagTopLevel(bagTemplateId: string) {
+    setFormBags((prev) =>
+      prev.map((b) =>
+        b.bagTemplateId === bagTemplateId ? { ...b, isTopLevel: !b.isTopLevel } : b
+      )
+    );
+  }
+
+  const addedBagIds = new Set(formBags.map((b) => b.bagTemplateId));
+  const availableBags = allBags.filter((b) => b.active && !addedBagIds.has(b.id));
+  const bagsMap = new Map(allBags.map((b) => [b.id, b]));
 
   async function handlePickCover() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -175,7 +205,8 @@ export default function VacationTemplateFormScreen() {
             ...(coverImageUrl !== existingCoverUrl ? { coverImageUrl } : {}),
           },
           participantIds,
-          tagIds
+          tagIds,
+          formBags
         );
 
         setSuccessMessage('Modelo atualizado');
@@ -187,6 +218,7 @@ export default function VacationTemplateFormScreen() {
           familyId: userAccount!.familyId,
           participantProfileIds: participantIds,
           tagIds,
+          bags: formBags,
         });
 
         let coverImageUrl: string | undefined;
@@ -358,6 +390,49 @@ export default function VacationTemplateFormScreen() {
           </>
         )}
 
+        <Text style={st.label}>Malas</Text>
+        {formBags.length === 0 ? (
+          <Text style={st.emptyBagsText}>Nenhuma mala adicionada.</Text>
+        ) : (
+          <View style={st.bagList}>
+            {formBags.map((fb) => {
+              const bag = bagsMap.get(fb.bagTemplateId);
+              if (!bag) return null;
+              return (
+                <View key={fb.bagTemplateId} style={st.bagRow}>
+                  <View style={[st.bagColorDot, { backgroundColor: bag.color }]} />
+                  <View style={st.bagInfo}>
+                    <Text style={st.bagName}>{bag.name}</Text>
+                    <Text style={st.bagMeta}>{bag.sizeLiters}L</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[st.bagTopLevelChip, fb.isTopLevel && st.bagTopLevelChipActive]}
+                    onPress={() => toggleBagTopLevel(fb.bagTemplateId)}
+                    disabled={isSaving}
+                  >
+                    <Text style={[st.bagTopLevelText, fb.isTopLevel && st.bagTopLevelTextActive]}>
+                      {fb.isTopLevel ? 'Principal' : 'Interna'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeBag(fb.bagTemplateId)} disabled={isSaving}>
+                    <Icon source="close-circle" size={20} color="#D32F2F" />
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        )}
+        {availableBags.length > 0 && (
+          <TouchableOpacity
+            style={st.addBagBtn}
+            onPress={() => setBagPickerVisible(true)}
+            disabled={isSaving}
+          >
+            <Icon source="plus" size={16} color="#B5451B" />
+            <Text style={st.addBagBtnText}>Adicionar mala</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={st.activeRow}>
           <Text style={st.activeLabel}>Modelo ativo</Text>
           <Switch
@@ -446,6 +521,40 @@ export default function VacationTemplateFormScreen() {
               </TouchableOpacity>
             )}
           />
+        </View>
+      </Modal>
+
+      {/* Bag picker */}
+      <Modal
+        visible={bagPickerVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setBagPickerVisible(false)}
+      >
+        <View style={st.bagPickerOverlay}>
+          <TouchableOpacity
+            style={st.bagPickerOverlayTouch}
+            activeOpacity={1}
+            onPress={() => setBagPickerVisible(false)}
+          />
+          <View style={st.bagPickerSheet}>
+            <Text style={st.bagPickerTitle}>Adicionar mala</Text>
+            {availableBags.length === 0 ? (
+              <Text style={st.emptyBagsText}>Todas as malas já foram adicionadas.</Text>
+            ) : (
+              <FlatList
+                data={availableBags}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item: bag }) => (
+                  <TouchableOpacity style={st.bagPickerRow} onPress={() => addBag(bag)}>
+                    <View style={[st.bagColorDot, { backgroundColor: bag.color }]} />
+                    <Text style={st.bagPickerName}>{bag.name}</Text>
+                    <Text style={st.bagPickerMeta}>{bag.sizeLiters}L</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
         </View>
       </Modal>
     </View>
@@ -595,4 +704,61 @@ const st = StyleSheet.create({
   countryRowFlag: { fontSize: 22, marginRight: 12 },
   countryRowName: { fontSize: 15, color: '#1A1A1A', flex: 1 },
   countryRowCode: { fontSize: 13, color: '#AAAAAA' },
+  // Bags
+  emptyBagsText: { fontSize: 13, color: '#888888', fontStyle: 'italic', marginBottom: 12 },
+  bagList: { marginBottom: 12, gap: 8 },
+  bagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+    gap: 10,
+  },
+  bagColorDot: { width: 16, height: 16, borderRadius: 8 },
+  bagInfo: { flex: 1 },
+  bagName: { fontSize: 14, color: '#1A1A1A', fontWeight: '500' },
+  bagMeta: { fontSize: 12, color: '#888888' },
+  bagTopLevelChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+  },
+  bagTopLevelChipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
+  bagTopLevelText: { fontSize: 11, color: '#555555', fontWeight: '500' },
+  bagTopLevelTextActive: { color: '#FFFFFF' },
+  addBagBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  addBagBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
+  // Bag picker modal
+  bagPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  bagPickerOverlayTouch: { flex: 1 },
+  bagPickerSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: '50%',
+  },
+  bagPickerTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A1A', marginBottom: 16 },
+  bagPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    gap: 10,
+  },
+  bagPickerName: { fontSize: 15, color: '#1A1A1A', flex: 1 },
+  bagPickerMeta: { fontSize: 13, color: '#888888' },
 });

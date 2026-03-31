@@ -2,6 +2,7 @@ import {
   Vacation,
   CreateVacationInput,
   VacationParticipant,
+  VacationBag,
   BookingTask,
   CreateBookingTaskInput,
 } from '../../types/vacation.types';
@@ -26,4 +27,8 @@ export interface IVacationRepository {
     data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete'>>
   ): Promise<BookingTask>;
   deleteBookingTask(id: string): Promise<void>;
+  getVacationBags(vacationId: string): Promise<VacationBag[]>;
+  addVacationBag(vacationId: string, bagTemplateId: string, isTopLevel: boolean): Promise<VacationBag>;
+  removeVacationBag(vacationBagId: string): Promise<void>;
+  updateVacationBagTopLevel(vacationBagId: string, isTopLevel: boolean): Promise<void>;
 }
