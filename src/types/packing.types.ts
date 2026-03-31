@@ -1,5 +1,11 @@
 export type PackingStatus = 'new' | 'buy' | 'ready' | 'issue' | 'last_minute' | 'packed';
 
+export interface IconEntry {
+  id: string;
+  name: string;
+  tags: string;
+}
+
 export interface PackingItem {
   id: string;
   vacationId: string;
@@ -7,6 +13,7 @@ export interface PackingItem {
   status: PackingStatus;
   quantity: number;
   categoryId: string | null;
+  iconId: string;
   assignedProfileId: string | null;
   isAllFamily: boolean;
   notes: string | null;
@@ -21,6 +28,7 @@ export interface CreatePackingItemInput {
   name: string;
   quantity?: number;
   categoryId?: string;
+  iconId?: string;
   assignedProfileId?: string;
   isAllFamily?: boolean;
   notes?: string;
@@ -30,7 +38,8 @@ export interface CreatePackingItemInput {
 export interface Category {
   id: string;
   name: string;
-  icon: string;
+  iconId: string;
+  iconName: string;
   active: boolean;
   sortOrder: number;
   familyId: string;
@@ -40,7 +49,7 @@ export interface Category {
 
 export interface CreateCategoryInput {
   name: string;
-  icon: string;
+  iconId: string;
   familyId: string;
 }
 
@@ -62,6 +71,7 @@ export interface TemplateItem {
   title: string;
   profileIds: string[];
   categoryId: string;
+  iconId: string;
   quantity: number;
   isAllFamily: boolean;
   createdAt: string;
@@ -73,6 +83,7 @@ export interface CreateTemplateItemInput {
   title: string;
   profileIds?: string[];
   categoryId: string;
+  iconId: string;
   quantity?: number;
   isAllFamily?: boolean;
   tagIds?: string[];

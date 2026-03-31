@@ -69,7 +69,12 @@ export function DashboardVacationWidget({
       />
       <View style={s.body}>
         {/* 1. Task summary */}
-        {totalTasks > 0 && (
+        {totalTasks === 0 ? (
+          <View style={s.row}>
+            <Icon source="check-circle" size={16} color="#388E3C" />
+            <Text style={[s.text, { color: '#388E3C' }]}>Sem tarefas pendentes</Text>
+          </View>
+        ) : (
           <View style={s.row}>
             {incompleteCount === 0 ? (
               <>
@@ -84,9 +89,12 @@ export function DashboardVacationWidget({
                 </Text>
               </>
             ) : (
-              <Text style={s.text}>
-                {incompleteCount} {incompleteCount === 1 ? 'tarefa em falta' : 'tarefas em falta'}
-              </Text>
+              <>
+                <Icon source="clock-outline" size={16} color="#888888" />
+                <Text style={[s.text, { color: '#888888' }]}>
+                  {incompleteCount} {incompleteCount === 1 ? 'tarefa em falta' : 'tarefas em falta'}
+                </Text>
+              </>
             )}
           </View>
         )}

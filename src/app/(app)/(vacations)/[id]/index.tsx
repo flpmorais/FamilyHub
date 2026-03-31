@@ -9,6 +9,7 @@ import { VacationHeroCard } from '../../../../components/vacation-hero-card';
 import { BookingTaskList } from '../../../../components/booking-task-list';
 import { PackingItemList } from '../../../../components/packing-item-list';
 import type { Vacation, VacationLifecycle, BookingTask } from '../../../../types/vacation.types';
+import { useIconStore } from '../../../../stores/icon.store';
 import type { PackingStatus, Category, Tag } from '../../../../types/packing.types';
 import type { Profile } from '../../../../types/profile.types';
 
@@ -21,7 +22,9 @@ export default function VacationDetailScreen() {
   const profileRepo = useRepository('profile');
   const categoryRepo = useRepository('category');
   const tagRepo = useRepository('tag');
+  const iconRepo = useRepository('icon');
   const { userAccount } = useAuthStore();
+  const { loadIcons } = useIconStore();
 
   const [vacation, setVacation] = useState<Vacation | null>(null);
   const [tasks, setTasks] = useState<BookingTask[]>([]);
@@ -59,6 +62,7 @@ export default function VacationDetailScreen() {
         tagRepo.getTags(userAccount.familyId),
         packingRepo.getPackingItems(vacationId),
       ]);
+      await loadIcons(iconRepo);
       setVacation(allVacs.find((v) => v.id === vacationId) ?? null);
       setTasks(taskList);
       setProfiles(profList);
@@ -91,11 +95,25 @@ export default function VacationDetailScreen() {
     }
   }, [isLoading, tabInitialized, tasks, vacation]);
 
+  // ── Targeted reloads ───────────────────────────────────────────────────────
+
+  async function reloadPackingItems() {
+    if (!vacationId) return;
+    const list = await packingRepo.getPackingItems(vacationId);
+    setItems(list);
+  }
+
+  async function reloadTasks() {
+    if (!vacationId) return;
+    const taskList = await vacationRepo.getBookingTasks(vacationId);
+    setTasks(taskList);
+  }
+
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
   async function handleToggleTask(task: BookingTask) {
     await vacationRepo.updateBookingTask(task.id, { isComplete: !task.isComplete });
-    await loadData();
+    await reloadTasks();
   }
 
   async function handleCreateTask(title: string, dueDate: string) {
@@ -106,7 +124,7 @@ export default function VacationDetailScreen() {
       taskType: 'custom',
       dueDate,
     });
-    await loadData();
+    await reloadTasks();
   }
 
   async function handleCreateItem(
@@ -114,6 +132,7 @@ export default function VacationDetailScreen() {
     profileId: string | null,
     quantity: number,
     categoryId: string | null,
+    iconId: string,
     isAllFamily: boolean
   ) {
     await packingRepo.createPackingItem({
@@ -123,8 +142,10 @@ export default function VacationDetailScreen() {
       assignedProfileId: profileId ?? undefined,
       quantity,
       categoryId: categoryId ?? undefined,
+      iconId,
       isAllFamily,
     });
+    await reloadPackingItems();
   }
 
   async function handleUpdateItem(
@@ -136,18 +157,22 @@ export default function VacationDetailScreen() {
       status: PackingStatus;
       notes: string | null;
       categoryId: string | null;
+      iconId: string;
       isAllFamily: boolean;
     }
   ) {
     await packingRepo.updatePackingItem(id, data);
+    await reloadPackingItems();
   }
 
   async function handleDeleteItem(id: string) {
     await packingRepo.deletePackingItem(id);
+    await reloadPackingItems();
   }
 
   async function handleStatusChange(id: string, status: PackingStatus) {
     await packingRepo.updatePackingItem(id, { status });
+    await reloadPackingItems();
   }
 
   async function handleLifecycleChange(lc: VacationLifecycle) {

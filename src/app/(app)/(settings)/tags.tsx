@@ -21,6 +21,8 @@ import { useFamily } from '../../../hooks/use-family';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
+import { IconPicker } from '../../../components/icon-picker';
+import { useIconStore } from '../../../stores/icon.store';
 import type { Tag } from '../../../types/packing.types';
 
 const TAG_COLORS = [
@@ -45,129 +47,12 @@ const TAG_COLORS = [
   '#888888',
 ];
 
-const ICON_OPTIONS = [
-  // Luggage & bags
-  'bag-suitcase',
-  'bag-personal',
-  'bag-carry-on',
-  'briefcase',
-  'shopping',
-  // Clothing & accessories
-  'tshirt-crew',
-  'shoe-sneaker',
-  'shoe-formal',
-  'hat-fedora',
-  'sunglasses',
-  'watch',
-  'hanger',
-  // Beach & outdoors
-  'umbrella-beach',
-  'swim',
-  'water',
-  'surfing',
-  'sail-boat',
-  'palm-tree',
-  'weather-sunny',
-  'snowflake',
-  'image-filter-hdr',
-  'tent',
-  'campfire',
-  'hiking',
-  'fish',
-  'binoculars',
-  'compass',
-  // Hygiene & health
-  'lotion',
-  'toothbrush',
-  'spray',
-  'medical-bag',
-  'pill',
-  'hospital-box',
-  'bandage',
-  'thermometer',
-  // Kids & family
-  'baby-bottle',
-  'baby-carriage',
-  'teddy-bear',
-  'human-child',
-  'toy-brick',
-  // Electronics & tech
-  'camera',
-  'laptop',
-  'cellphone',
-  'tablet',
-  'headphones',
-  'power-plug',
-  'battery-charging',
-  'usb',
-  'flashlight',
-  'lightbulb',
-  // Entertainment
-  'gamepad-variant',
-  'book-open-variant',
-  'music',
-  'cards-playing',
-  'puzzle',
-  // Food & drink
-  'food-apple',
-  'bottle-wine',
-  'cup',
-  'coffee',
-  'silverware-fork-knife',
-  'food',
-  // Travel & transport
-  'passport',
-  'airplane',
-  'car',
-  'train',
-  'bus',
-  'ferry',
-  'map-marker',
-  'earth',
-  'flag',
-  'star-circle-outline',
-  // Documents & money
-  'file-document',
-  'credit-card',
-  'cash',
-  'currency-usd',
-  'currency-eur',
-  'key',
-  'lock',
-  'shield-check',
-  'calendar',
-  // Sports & fitness
-  'basketball',
-  'soccer',
-  'tennis',
-  'dumbbell',
-  'yoga',
-  'run',
-  'bike',
-  // Tools & misc
-  'tools',
-  'wrench',
-  'content-cut',
-  'gift',
-  'star',
-  'heart',
-  'palette',
-  'home',
-  'bed',
-  'shower',
-  'washing-machine',
-  'iron',
-  // Tags
-  'tag',
-  'tag-outline',
-  'label',
-  'label-outline',
-];
-
 export default function TagsScreen() {
   const family = useFamily();
   const tagRepo = useRepository('tag');
+  const iconRepo = useRepository('icon');
   const { userAccount } = useAuthStore();
+  const { icons, loadIcons } = useIconStore();
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -175,7 +60,7 @@ export default function TagsScreen() {
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [formName, setFormName] = useState('');
-  const [formIcon, setFormIcon] = useState('tag');
+  const [formIconId, setFormIconId] = useState('');
   const [formColor, setFormColor] = useState(TAG_COLORS[0]);
   const [formActive, setFormActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -192,12 +77,23 @@ export default function TagsScreen() {
     if (!userAccount?.familyId) return;
     try {
       const list = await tagRepo.getTags(userAccount.familyId);
+      await loadIcons(iconRepo);
       setTags(list);
     } catch (err) {
       logger.error('TagsScreen', 'load failed', err);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  const iconsByName = new Map(icons.map((i) => [i.name, i]));
+
+  function resolveIconName(iconId: string): string {
+    return useIconStore.getState().resolveIconName(iconId);
+  }
+
+  function iconIdFromName(name: string): string {
+    return iconsByName.get(name)?.id ?? '';
   }
 
   useEffect(() => {
@@ -215,7 +111,7 @@ export default function TagsScreen() {
   function openAdd() {
     setEditingTag(null);
     setFormName('');
-    setFormIcon('tag');
+    setFormIconId(iconIdFromName('tag'));
     setFormColor(TAG_COLORS[0]);
     setFormActive(true);
     setNameError('');
@@ -225,7 +121,7 @@ export default function TagsScreen() {
   function openEdit(tag: Tag) {
     setEditingTag(tag);
     setFormName(tag.name);
-    setFormIcon(tag.icon);
+    setFormIconId(iconIdFromName(tag.icon));
     setFormColor(tag.color);
     setFormActive(tag.active);
     setNameError('');
@@ -241,13 +137,14 @@ export default function TagsScreen() {
     setNameError('');
     setIsSaving(true);
     try {
+      const iconNameValue = resolveIconName(formIconId);
       if (editingTag) {
-        await tagRepo.updateTag(editingTag.id, name, formIcon, formColor);
+        await tagRepo.updateTag(editingTag.id, name, iconNameValue, formColor);
         if (editingTag.active !== formActive) await tagRepo.setActive(editingTag.id, formActive);
         setSuccessMsg('Etiqueta actualizada');
         setSheetVisible(false);
       } else {
-        await tagRepo.createTag(userAccount!.familyId, name, formIcon, formColor);
+        await tagRepo.createTag(userAccount!.familyId, name, iconNameValue, formColor);
         setSuccessMsg('Etiqueta criada');
         if (!keepOpen) setSheetVisible(false);
       }
@@ -441,7 +338,7 @@ export default function TagsScreen() {
                 onPress={() => setIconPickerVisible(true)}
                 disabled={isSaving}
               >
-                <Icon source={formIcon} size={24} color={formColor} />
+                <Icon source={resolveIconName(formIconId)} size={24} color={formColor} />
                 <Text style={s.iconPickerBtnText}>Selecionar icone</Text>
               </TouchableOpacity>
               <Text style={s.label}>Cor</Text>
@@ -515,35 +412,13 @@ export default function TagsScreen() {
           </View>
         </Modal>
 
-        {/* Icon picker */}
-        <Modal
+        <IconPicker
           visible={iconPickerVisible}
-          animationType="slide"
-          onRequestClose={() => setIconPickerVisible(false)}
-        >
-          <View style={s.iconPickerContainer}>
-            <View style={s.iconPickerHeader}>
-              <Text style={s.iconPickerTitle}>Selecionar icone</Text>
-              <TouchableOpacity onPress={() => setIconPickerVisible(false)}>
-                <Text style={s.iconPickerClose}>Fechar</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={s.iconGrid}>
-              {ICON_OPTIONS.map((icon) => (
-                <TouchableOpacity
-                  key={icon}
-                  style={[s.iconCell, formIcon === icon && s.iconCellSelected]}
-                  onPress={() => {
-                    setFormIcon(icon);
-                    setIconPickerVisible(false);
-                  }}
-                >
-                  <Icon source={icon} size={28} color={formIcon === icon ? '#B5451B' : '#555555'} />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </Modal>
+          icons={icons}
+          selectedIconId={formIconId}
+          onSelect={setFormIconId}
+          onClose={() => setIconPickerVisible(false)}
+        />
 
         <Modal
           visible={filterPanelVisible}
@@ -729,27 +604,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   continuarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  // Icon picker
-  iconPickerContainer: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 48 },
-  iconPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  iconPickerTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
-  iconPickerClose: { fontSize: 16, color: '#B5451B', fontWeight: '600' },
-  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 8 },
-  iconCell: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCellSelected: { backgroundColor: '#FFF0EB', borderWidth: 2, borderColor: '#B5451B' },
   // Filter panel
   filterOverlay: { flex: 1, flexDirection: 'row' },
   filterOverlayTouch: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },

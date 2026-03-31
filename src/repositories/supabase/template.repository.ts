@@ -11,6 +11,7 @@ function mapTemplateItem(row: any, tagIds: string[] = [], profileIds: string[] =
     title: row.title,
     profileIds,
     categoryId: row.category_id,
+    iconId: row.icon_id,
     quantity: Number(row.quantity) || 1,
     isAllFamily: row.is_all_family === true,
     createdAt: row.created_at,
@@ -141,6 +142,7 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
         family_id: familyId,
         title: item.title,
         category_id: item.categoryId,
+        icon_id: item.iconId,
         quantity: item.quantity ?? 1,
         is_all_family: item.isAllFamily ?? false,
         created_at: ts,
@@ -173,11 +175,12 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
 
   async updateTemplateItem(
     id: string,
-    data: Partial<Pick<TemplateItem, 'title' | 'categoryId' | 'quantity' | 'isAllFamily'>> & { profileIds?: string[]; tagIds?: string[] }
+    data: Partial<Pick<TemplateItem, 'title' | 'categoryId' | 'iconId' | 'quantity' | 'isAllFamily'>> & { profileIds?: string[]; tagIds?: string[] }
   ): Promise<TemplateItem> {
     const updates: Record<string, unknown> = { updated_at: now() };
     if (data.title !== undefined) updates.title = data.title;
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
+    if (data.iconId !== undefined) updates.icon_id = data.iconId;
     if (data.quantity !== undefined) updates.quantity = data.quantity;
     if (data.isAllFamily !== undefined) updates.is_all_family = data.isAllFamily;
 
@@ -265,6 +268,7 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
           quantity: item.quantity,
           notes: null,
           category_id: item.categoryId,
+          icon_id: item.iconId,
           is_all_family: isAllFamily,
           created_at: ts,
           updated_at: ts,

@@ -8,7 +8,8 @@ function mapCategory(row: any): Category {
   return {
     id: row.id,
     name: row.name,
-    icon: row.icon,
+    iconId: row.icon_id,
+    iconName: row.icon?.name ?? 'category',
     active: row.active === 1 || row.active === true,
     sortOrder: Number(row.sort_order) || 0,
     familyId: row.family_id,
@@ -28,7 +29,7 @@ export class SupabaseCategoryRepository implements ICategoryRepository {
     try {
       const { data, error } = await this.client
         .from('categories')
-        .select('*')
+        .select('*, icon:icons!icon_id(name)')
         .eq('family_id', familyId)
         .order('sort_order')
         .order('name');
@@ -62,13 +63,13 @@ export class SupabaseCategoryRepository implements ICategoryRepository {
           id,
           family_id: input.familyId,
           name: input.name,
-          icon: input.icon,
+          icon_id: input.iconId,
           active: true,
           sort_order: nextOrder,
           created_at: ts,
           updated_at: ts,
         })
-        .select()
+        .select('*, icon:icons!icon_id(name)')
         .single();
       if (error) throw error;
       return mapCategory(data);
@@ -80,18 +81,18 @@ export class SupabaseCategoryRepository implements ICategoryRepository {
 
   async updateCategory(
     id: string,
-    data: Partial<Pick<Category, 'name' | 'icon'>>
+    data: Partial<Pick<Category, 'name' | 'iconId'>>
   ): Promise<Category> {
     const updates: Record<string, unknown> = { updated_at: now() };
     if (data.name !== undefined) updates.name = data.name;
-    if (data.icon !== undefined) updates.icon = data.icon;
+    if (data.iconId !== undefined) updates.icon_id = data.iconId;
 
     try {
       const { data: row, error } = await this.client
         .from('categories')
         .update(updates)
         .eq('id', id)
-        .select()
+        .select('*, icon:icons!icon_id(name)')
         .single();
       if (error) throw error;
       if (!row) throw new Error('Categoria não encontrada');
@@ -213,7 +214,7 @@ export class SupabaseCategoryRepository implements ICategoryRepository {
       .from('categories')
       .update({ active, updated_at: ts })
       .eq('id', id)
-      .select()
+      .select('*, icon:icons!icon_id(name)')
       .single();
     if (error) throw error;
     return mapCategory(data);

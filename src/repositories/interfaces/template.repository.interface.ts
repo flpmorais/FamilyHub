@@ -5,7 +5,7 @@ export interface ITemplateRepository {
   createTemplateItem(familyId: string, item: CreateTemplateItemInput): Promise<TemplateItem>;
   updateTemplateItem(
     id: string,
-    data: Partial<Pick<TemplateItem, 'title' | 'categoryId' | 'quantity' | 'isAllFamily'>> & { profileIds?: string[]; tagIds?: string[] }
+    data: Partial<Pick<TemplateItem, 'title' | 'categoryId' | 'iconId' | 'quantity' | 'isAllFamily'>> & { profileIds?: string[]; tagIds?: string[] }
   ): Promise<TemplateItem>;
   deleteTemplateItem(id: string): Promise<void>;
   applyTemplates(

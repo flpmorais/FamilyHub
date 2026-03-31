@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   StyleSheet,
   ActivityIndicator,
   Modal,
@@ -18,6 +19,8 @@ import { useFamily } from '../../../hooks/use-family';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
+import { IconPicker } from '../../../components/icon-picker';
+import { useIconStore } from '../../../stores/icon.store';
 import type { TemplateItem, CreateTemplateItemInput, Category, Tag } from '../../../types/packing.types';
 import type { Profile } from '../../../types/profile.types';
 
@@ -27,7 +30,9 @@ export default function TemplatesScreen() {
   const categoryRepo = useRepository('category');
   const tagRepo = useRepository('tag');
   const profileRepo = useRepository('profile');
+  const iconRepo = useRepository('icon');
   const { userAccount } = useAuthStore();
+  const { icons, iconsMap, loadIcons, resolveIconName: iconName } = useIconStore();
 
   const [items, setItems] = useState<TemplateItem[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -44,6 +49,8 @@ export default function TemplatesScreen() {
   const [formQuantity, setFormQuantity] = useState('1');
   const [formTagIds, setFormTagIds] = useState<string[]>([]);
   const [formAllFamily, setFormAllFamily] = useState(false);
+  const [formIconId, setFormIconId] = useState('');
+  const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [titleError, setTitleError] = useState('');
   const [categoryError, setCategoryError] = useState('');
@@ -59,6 +66,12 @@ export default function TemplatesScreen() {
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
 
+  async function reloadTemplateItems() {
+    if (!userAccount?.familyId) return;
+    const list = await templateRepo.getTemplateItems(userAccount.familyId);
+    setItems(list);
+  }
+
   async function loadAll() {
     if (!userAccount?.familyId) return;
     try {
@@ -68,6 +81,7 @@ export default function TemplatesScreen() {
         tagRepo.getTags(userAccount.familyId),
         profileRepo.getProfilesByFamily(userAccount.familyId),
       ]);
+      await loadIcons(iconRepo);
       setItems(itemList);
       setCategories(catList.filter((c: Category) => c.active));
       setTags(tagList.filter((t: Tag) => t.active));
@@ -100,7 +114,9 @@ export default function TemplatesScreen() {
     setEditingItem(null);
     setFormTitle('');
     setFormProfileIds([]);
-    setFormCategoryId(categories.length > 0 ? categories[0].id : '');
+    const defaultCatId = categories.length > 0 ? categories[0].id : '';
+    setFormCategoryId(defaultCatId);
+    setFormIconId(defaultCatId ? categories[0].iconId : '');
     setFormQuantity('1');
     setFormTagIds([]);
     setFormAllFamily(false);
@@ -114,12 +130,24 @@ export default function TemplatesScreen() {
     setFormTitle(item.title);
     setFormProfileIds([...item.profileIds]);
     setFormCategoryId(item.categoryId);
+    setFormIconId(item.iconId);
     setFormQuantity(String(item.quantity));
     setFormTagIds([...item.tagIds]);
     setFormAllFamily(item.isAllFamily);
     setTitleError('');
     setCategoryError('');
     setSheetVisible(true);
+  }
+
+  function handleCategoryChange(newCategoryId: string) {
+    const oldCat = categories.find((c) => c.id === formCategoryId);
+    setFormCategoryId(newCategoryId);
+    setCategoryError('');
+    // Auto-update icon if it matches the old category's icon
+    const newCat = categories.find((c) => c.id === newCategoryId);
+    if (newCat && (!formIconId || (oldCat && formIconId === oldCat.iconId))) {
+      setFormIconId(newCat.iconId);
+    }
   }
 
   async function handleSave(keepOpen: boolean) {
@@ -136,6 +164,7 @@ export default function TemplatesScreen() {
           title,
           profileIds: formAllFamily ? [] : formProfileIds,
           categoryId: formCategoryId,
+          iconId: formIconId,
           quantity: qty,
           isAllFamily: formAllFamily,
           tagIds: formTagIds,
@@ -147,6 +176,7 @@ export default function TemplatesScreen() {
           title,
           profileIds: formAllFamily ? [] : formProfileIds,
           categoryId: formCategoryId,
+          iconId: formIconId,
           quantity: qty,
           isAllFamily: formAllFamily,
           tagIds: formTagIds,
@@ -157,7 +187,7 @@ export default function TemplatesScreen() {
         }
       }
       setSuccessVisible(true);
-      await loadAll();
+      await reloadTemplateItems();
     } catch (err) {
       logger.error('TemplatesScreen', 'save failed', err);
     } finally {
@@ -180,7 +210,7 @@ export default function TemplatesScreen() {
               setSuccessMsg('Modelo eliminado');
               setSuccessVisible(true);
               setSheetVisible(false);
-              await loadAll();
+              await reloadTemplateItems();
             } catch (err) {
               logger.error('TemplatesScreen', 'delete failed', err);
             }
@@ -207,10 +237,50 @@ export default function TemplatesScreen() {
     );
   }
 
-  function categoryInfo(id: string): { name: string; icon: string } {
+  function categoryInfo(id: string): { name: string; iconName: string } {
     const c = categories.find((cat) => cat.id === id);
-    return { name: c?.name ?? '?', icon: c?.icon ?? 'help' };
+    return { name: c?.name ?? '?', iconName: c?.iconName ?? 'help' };
   }
+
+  const tagsMap = new Map(tags.map((t) => [t.id, t]));
+
+  const renderTemplateItem = useCallback(
+    ({ item }: { item: TemplateItem }) => {
+      const cat = categoryInfo(item.categoryId);
+      return (
+        <TouchableOpacity style={s.row} onPress={() => openEdit(item)}>
+          <View style={s.rowIconWrap}>
+            <Icon source={iconName(item.iconId)} size={20} color="#B5451B" />
+          </View>
+          <View style={s.rowContent}>
+            <Text style={s.rowTitle}>{item.title}</Text>
+            <Text style={s.rowMeta}>
+              {cat.name}
+              {' · '}
+              {item.isAllFamily ? 'Toda a família' : profileNames(item.profileIds)}
+              {item.quantity > 1 ? ` · ×${item.quantity}` : ''}
+            </Text>
+          </View>
+          {item.tagIds.length > 0 && (
+            <View style={s.tagPills}>
+              {item.tagIds.map((tagId) => {
+                const tag = tagsMap.get(tagId);
+                if (!tag) return null;
+                return (
+                  <View key={tagId} style={[s.tagPill, { borderColor: tag.color }]}>
+                    <Icon source={tag.icon} size={10} color={tag.color} />
+                    <Text style={[s.tagPillText, { color: tag.color }]}>{tag.name}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [categories, tags, profiles, icons]
+  );
 
   if (isLoading) {
     return <View style={s.centered}><ActivityIndicator /></View>;
@@ -219,48 +289,19 @@ export default function TemplatesScreen() {
   return (
     <View style={s.container}>
       <PageHeader title="Modelos de Items" showBack familyBannerUri={family?.bannerUrl} />
-      <ScrollView contentContainerStyle={s.content}>
-        {filteredItems.length === 0 && items.length === 0 && (
-          <Text style={s.empty}>Crie o seu primeiro modelo de bagagem.</Text>
-        )}
-        {filteredItems.length === 0 && items.length > 0 && (
-          <Text style={s.empty}>Nenhum modelo encontrado com os filtros actuais.</Text>
-        )}
-
-        {filteredItems.map((item) => {
-          const cat = categoryInfo(item.categoryId);
-          return (
-            <TouchableOpacity key={item.id} style={s.row} onPress={() => openEdit(item)}>
-              <View style={s.rowIconWrap}>
-                <Icon source={cat.icon} size={20} color="#B5451B" />
-              </View>
-              <View style={s.rowContent}>
-                <Text style={s.rowTitle}>{item.title}</Text>
-                <Text style={s.rowMeta}>
-                  {cat.name}
-                  {' · '}
-                  {item.isAllFamily ? 'Toda a família' : profileNames(item.profileIds)}
-                  {item.quantity > 1 ? ` · ×${item.quantity}` : ''}
-                </Text>
-              </View>
-              {item.tagIds.length > 0 && (
-                <View style={s.tagPills}>
-                  {item.tagIds.map((tagId) => {
-                    const tag = tags.find((t) => t.id === tagId);
-                    if (!tag) return null;
-                    return (
-                      <View key={tagId} style={[s.tagPill, { borderColor: tag.color }]}>
-                        <Icon source={tag.icon} size={10} color={tag.color} />
-                        <Text style={[s.tagPillText, { color: tag.color }]}>{tag.name}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTemplateItem}
+        contentContainerStyle={s.content}
+        ListEmptyComponent={
+          items.length === 0 ? (
+            <Text style={s.empty}>Crie o seu primeiro modelo de bagagem.</Text>
+          ) : (
+            <Text style={s.empty}>Nenhum modelo encontrado com os filtros actuais.</Text>
+          )
+        }
+      />
 
       <View style={s.fabRow}>
           <TouchableOpacity style={[s.fab, s.filterFab]} onPress={() => setFilterPanelVisible(!filterPanelVisible)} activeOpacity={0.8}>
@@ -312,15 +353,25 @@ export default function TemplatesScreen() {
                     <TouchableOpacity
                       key={c.id}
                       style={[s.chip, formCategoryId === c.id && s.chipActive]}
-                      onPress={() => { setFormCategoryId(c.id); setCategoryError(''); }}
+                      onPress={() => handleCategoryChange(c.id)}
                       disabled={isSaving}
                     >
-                      <Icon source={c.icon} size={14} color={formCategoryId === c.id ? '#FFFFFF' : '#555555'} />
+                      <Icon source={c.iconName} size={14} color={formCategoryId === c.id ? '#FFFFFF' : '#555555'} />
                       <Text style={[s.chipText, formCategoryId === c.id && s.chipTextActive]}>{c.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
                 {categoryError ? <Text style={s.fieldError}>{categoryError}</Text> : null}
+
+                <Text style={s.label}>Ícone</Text>
+                <TouchableOpacity
+                  style={s.iconPickerBtn}
+                  onPress={() => setIconPickerVisible(true)}
+                  disabled={isSaving}
+                >
+                  <Icon source={iconName(formIconId)} size={24} color="#B5451B" />
+                  <Text style={s.iconPickerBtnText}>Selecionar ícone</Text>
+                </TouchableOpacity>
 
                 <View style={s.toggleRow}>
                   <Text style={s.toggleLabel}>Toda a família</Text>
@@ -428,6 +479,14 @@ export default function TemplatesScreen() {
           </View>
         </Modal>
 
+        <IconPicker
+          visible={iconPickerVisible}
+          icons={icons}
+          selectedIconId={formIconId}
+          onSelect={setFormIconId}
+          onClose={() => setIconPickerVisible(false)}
+        />
+
         {/* Filter panel */}
         <Modal
           visible={filterPanelVisible}
@@ -494,7 +553,7 @@ export default function TemplatesScreen() {
                     style={[s.chip, filterCategory === c.id && s.chipActive]}
                     onPress={() => setFilterCategory(filterCategory === c.id ? null : c.id)}
                   >
-                    <Icon source={c.icon} size={14} color={filterCategory === c.id ? '#FFFFFF' : '#555555'} />
+                    <Icon source={c.iconName} size={14} color={filterCategory === c.id ? '#FFFFFF' : '#555555'} />
                     <Text style={[s.chipText, filterCategory === c.id && s.chipTextActive]}>{c.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -602,6 +661,18 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   toggleLabel: { fontSize: 15, color: '#1A1A1A' },
+  iconPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 8,
+    gap: 12,
+  },
+  iconPickerBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
   chipScroll: { marginBottom: 8 },
   chip: {
     flexDirection: 'row',

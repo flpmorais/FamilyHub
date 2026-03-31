@@ -86,13 +86,9 @@ export default function VacationsScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userAccount?.familyId]);
 
-  useEffect(() => {
-    void loadData(true);
-  }, [loadData]);
-
   useFocusEffect(
     useCallback(() => {
-      void loadData();
+      void loadData(true);
     }, [loadData])
   );
 

@@ -16,6 +16,7 @@ export function mapPackingRow(row: any, tagIds: string[] = []): PackingItem {
     quantity: Number(row.quantity) || 1,
     notes: row.notes ?? null,
     categoryId: row.category_id ?? null,
+    iconId: row.icon_id,
     tagIds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -68,6 +69,26 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     const id = uuid();
     const ts = now();
     try {
+      let iconId = input.iconId;
+      if (!iconId) {
+        // Fallback: use category icon if available, otherwise 'package-variant'
+        if (input.categoryId) {
+          const { data: catRow } = await this.client
+            .from('categories')
+            .select('icon_id')
+            .eq('id', input.categoryId)
+            .single();
+          iconId = catRow?.icon_id;
+        }
+        if (!iconId) {
+          const { data: fallback } = await this.client
+            .from('icons')
+            .select('id')
+            .eq('name', 'package-variant')
+            .single();
+          iconId = fallback?.id;
+        }
+      }
       const { data, error } = await this.client
         .from('packing_items')
         .insert({
@@ -80,6 +101,7 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
           quantity: input.quantity ?? 1,
           notes: input.notes ?? null,
           category_id: input.categoryId ?? null,
+          icon_id: iconId,
           is_all_family: input.isAllFamily ?? false,
           created_at: ts,
           updated_at: ts,
@@ -107,6 +129,7 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     if (data.quantity !== undefined) updates.quantity = data.quantity;
     if (data.notes !== undefined) updates.notes = data.notes;
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
+    if (data.iconId !== undefined) updates.icon_id = data.iconId;
     if (data.isAllFamily !== undefined) updates.is_all_family = data.isAllFamily;
 
     updates.updated_at = now();

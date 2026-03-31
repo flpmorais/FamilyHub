@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   StyleSheet,
   ActivityIndicator,
   Modal,
@@ -21,6 +22,8 @@ import {
   PackingItemCard,
   PackingCompletionState,
 } from './packing';
+import { IconPicker } from './icon-picker';
+import { useIconStore } from '../stores/icon.store';
 import type { PackingItem, PackingStatus, Category, Tag } from '../types/packing.types';
 import type { Profile } from '../types/profile.types';
 
@@ -45,6 +48,7 @@ interface PackingItemListProps {
     profileId: string | null,
     quantity: number,
     categoryId: string | null,
+    iconId: string,
     isAllFamily: boolean
   ) => Promise<void>;
   onUpdateItem: (
@@ -56,6 +60,7 @@ interface PackingItemListProps {
       status: PackingStatus;
       notes: string | null;
       categoryId: string | null;
+      iconId: string;
       isAllFamily: boolean;
     }
   ) => Promise<void>;
@@ -88,6 +93,8 @@ export function PackingItemList({
     clearAllFilters,
   } = usePackingStore();
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
+
+  const { icons, resolveIconName } = useIconStore();
 
   // Status counts (all items, unfiltered)
   const statusCounts = useMemo(() => {
@@ -144,6 +151,8 @@ export function PackingItemList({
   const [formNotes, setFormNotes] = useState('');
   const [formCategoryId, setFormCategoryId] = useState<string | null>(null);
   const [formAllFamily, setFormAllFamily] = useState(false);
+  const [formIconId, setFormIconId] = useState('');
+  const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [formTagIds, setFormTagIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +180,9 @@ export function PackingItemList({
     setFormQty('1');
     setFormStatus('new');
     setFormNotes('');
-    setFormCategoryId(categories.length > 0 ? categories[0].id : null);
+    const defaultCat = categories.length > 0 ? categories[0] : null;
+    setFormCategoryId(defaultCat?.id ?? null);
+    setFormIconId(defaultCat?.iconId ?? '');
     setFormAllFamily(false);
     setFormTagIds([]);
     setError(null);
@@ -186,10 +197,20 @@ export function PackingItemList({
     setFormStatus(item.status);
     setFormNotes(item.notes ?? '');
     setFormCategoryId(item.categoryId);
+    setFormIconId(item.iconId);
     setFormAllFamily(item.isAllFamily);
     setFormTagIds([]); // TODO: load from packing_item_tags when needed
     setError(null);
     setSheetVisible(true);
+  }
+
+  function handleCategoryChange(newCategoryId: string) {
+    const oldCat = categories.find((c) => c.id === formCategoryId);
+    setFormCategoryId(newCategoryId);
+    const newCat = categories.find((c) => c.id === newCategoryId);
+    if (newCat && (!formIconId || (oldCat && formIconId === oldCat.iconId))) {
+      setFormIconId(newCat.iconId);
+    }
   }
 
   async function doSave(keepOpen: boolean) {
@@ -210,13 +231,14 @@ export function PackingItemList({
           status: formStatus,
           notes: formNotes || null,
           categoryId: formCategoryId,
+          iconId: formIconId,
           isAllFamily: formAllFamily,
         });
         setSheetVisible(false);
         setSuccessMsg('Item actualizado');
         setSuccessVisible(true);
       } else {
-        await onCreateItem(name, formAllFamily ? null : formProfileId, qty, formCategoryId, formAllFamily);
+        await onCreateItem(name, formAllFamily ? null : formProfileId, qty, formCategoryId, formIconId, formAllFamily);
         setLastUsedProfileId(formProfileId);
         setSuccessMsg('Item adicionado');
         setSuccessVisible(true);
@@ -280,10 +302,26 @@ export function PackingItemList({
     return categories.find((c) => c.id === id)?.name ?? '';
   }
 
-  function categoryIcon(id: string | null): string {
-    if (!id) return '';
-    return categories.find((c) => c.id === id)?.icon ?? '';
+  function itemIcon(item: PackingItem): string {
+    return resolveIconName(item.iconId);
   }
+
+  const keyExtractor = useCallback((item: PackingItem) => item.id, []);
+
+  const renderPackingItem = useCallback(
+    ({ item }: { item: PackingItem }) => (
+      <PackingItemCard
+        item={item}
+        profileName={profileName(item.assignedProfileId)}
+        categoryName={categoryName(item.categoryId)}
+        categoryIcon={itemIcon(item)}
+        onPress={() => openEdit(item)}
+        onStatusPress={() => setStatusPickerItem(item)}
+      />
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profiles, categories, icons]
+  );
 
   return (
     <View style={st.container}>
@@ -314,30 +352,24 @@ export function PackingItemList({
           onShowAll={() => setShowAllOverride(true)}
         />
       ) : (
-        <ScrollView contentContainerStyle={st.scroll}>
-          {items.length === 0 && (
-            <Text style={st.empty}>Lista vazia — adiciona o primeiro item</Text>
-          )}
-          {items.length > 0 && filteredItems.length === 0 && (
-            <View style={st.emptyFilter}>
-              <Text style={st.emptyFilterText}>Nenhum item corresponde aos filtros activos</Text>
-              <TouchableOpacity onPress={clearAllFilters}>
-                <Text style={st.clearLink}>Limpar filtros</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {filteredItems.map((item) => (
-            <PackingItemCard
-              key={item.id}
-              item={item}
-              profileName={profileName(item.assignedProfileId)}
-              categoryName={categoryName(item.categoryId)}
-              categoryIcon={categoryIcon(item.categoryId)}
-              onPress={() => openEdit(item)}
-              onStatusPress={() => setStatusPickerItem(item)}
-            />
-          ))}
-        </ScrollView>
+        <FlatList
+          data={filteredItems}
+          keyExtractor={keyExtractor}
+          renderItem={renderPackingItem}
+          contentContainerStyle={st.scroll}
+          ListEmptyComponent={
+            items.length === 0 ? (
+              <Text style={st.empty}>Lista vazia — adiciona o primeiro item</Text>
+            ) : (
+              <View style={st.emptyFilter}>
+                <Text style={st.emptyFilterText}>Nenhum item corresponde aos filtros activos</Text>
+                <TouchableOpacity onPress={clearAllFilters}>
+                  <Text style={st.clearLink}>Limpar filtros</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          }
+        />
       )}
 
       {/* FAB row */}
@@ -463,6 +495,14 @@ export function PackingItemList({
         filteredCount={filteredCount}
       />
 
+      <IconPicker
+        visible={iconPickerVisible}
+        icons={icons}
+        selectedIconId={formIconId}
+        onSelect={setFormIconId}
+        onClose={() => setIconPickerVisible(false)}
+      />
+
       {/* Add/edit modal */}
       <Modal
         visible={sheetVisible}
@@ -540,7 +580,7 @@ export function PackingItemList({
                     <TouchableOpacity
                       key={cat.id}
                       style={[st.chip, formCategoryId === cat.id && st.chipActive]}
-                      onPress={() => setFormCategoryId(cat.id)}
+                      onPress={() => handleCategoryChange(cat.id)}
                       disabled={isSaving}
                     >
                       <Text style={[st.chipText, formCategoryId === cat.id && st.chipTextActive]}>
@@ -550,6 +590,15 @@ export function PackingItemList({
                   ))}
               </ScrollView>
             )}
+            <Text style={st.label}>Ícone</Text>
+            <TouchableOpacity
+              style={st.iconPickerBtn}
+              onPress={() => setIconPickerVisible(true)}
+              disabled={isSaving}
+            >
+              <Icon source={resolveIconName(formIconId)} size={24} color="#B5451B" />
+              <Text style={st.iconPickerBtnText}>Selecionar ícone</Text>
+            </TouchableOpacity>
             {tags.length > 0 && (
               <>
                 <Text style={st.label}>Etiquetas</Text>
@@ -750,6 +799,18 @@ const st = StyleSheet.create({
   },
   continuarText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   noCategoriesHint: { fontSize: 13, color: '#AAAAAA', fontStyle: 'italic', marginBottom: 16 },
+  iconPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  iconPickerBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
   // Status picker modal
   pickerOverlay: {
     flex: 1,

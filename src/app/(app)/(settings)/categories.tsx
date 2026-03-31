@@ -21,126 +21,16 @@ import { useFamily } from '../../../hooks/use-family';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
+import { IconPicker } from '../../../components/icon-picker';
+import { useIconStore } from '../../../stores/icon.store';
 import type { Category } from '../../../types/packing.types';
-
-const ICON_OPTIONS = [
-  // Luggage & bags
-  'bag-suitcase',
-  'bag-personal',
-  'bag-carry-on',
-  'briefcase',
-  'shopping',
-  // Clothing & accessories
-  'tshirt-crew',
-  'shoe-sneaker',
-  'shoe-formal',
-  'hat-fedora',
-  'sunglasses',
-  'watch',
-  'hanger',
-  // Beach & outdoors
-  'umbrella-beach',
-  'swim',
-  'water',
-  'surfing',
-  'sail-boat',
-  'palm-tree',
-  'weather-sunny',
-  'snowflake',
-  'image-filter-hdr',
-  'tent',
-  'campfire',
-  'hiking',
-  'fish',
-  'binoculars',
-  'compass',
-  // Hygiene & health
-  'lotion',
-  'toothbrush',
-  'spray',
-  'medical-bag',
-  'pill',
-  'hospital-box',
-  'bandage',
-  'thermometer',
-  // Kids & family
-  'baby-bottle',
-  'baby-carriage',
-  'teddy-bear',
-  'human-child',
-  'toy-brick',
-  // Electronics & tech
-  'camera',
-  'laptop',
-  'cellphone',
-  'tablet',
-  'headphones',
-  'power-plug',
-  'battery-charging',
-  'usb',
-  'flashlight',
-  'lightbulb',
-  // Entertainment
-  'gamepad-variant',
-  'book-open-variant',
-  'music',
-  'cards-playing',
-  'puzzle',
-  // Food & drink
-  'food-apple',
-  'bottle-wine',
-  'cup',
-  'coffee',
-  'silverware-fork-knife',
-  'food',
-  // Travel & transport
-  'passport',
-  'airplane',
-  'car',
-  'train',
-  'bus',
-  'ferry',
-  'map-marker',
-  'earth',
-  'flag',
-  'star-circle-outline',
-  // Documents & money
-  'file-document',
-  'credit-card',
-  'cash',
-  'currency-usd',
-  'currency-eur',
-  'key',
-  'lock',
-  'shield-check',
-  'calendar',
-  // Sports & fitness
-  'basketball',
-  'soccer',
-  'tennis',
-  'dumbbell',
-  'yoga',
-  'run',
-  'bike',
-  // Tools & misc
-  'tools',
-  'wrench',
-  'content-cut',
-  'gift',
-  'star',
-  'heart',
-  'palette',
-  'home',
-  'bed',
-  'shower',
-  'washing-machine',
-  'iron',
-];
 
 export default function CategoriesScreen() {
   const family = useFamily();
   const categoryRepo = useRepository('category');
+  const iconRepo = useRepository('icon');
   const { userAccount } = useAuthStore();
+  const { icons, iconsMap, loadIcons } = useIconStore();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -148,7 +38,7 @@ export default function CategoriesScreen() {
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formName, setFormName] = useState('');
-  const [formIcon, setFormIcon] = useState(ICON_OPTIONS[0]);
+  const [formIconId, setFormIconId] = useState('');
   const [formActive, setFormActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState('');
@@ -166,6 +56,7 @@ export default function CategoriesScreen() {
     if (!userAccount?.familyId) return;
     try {
       const list = await categoryRepo.getCategories(userAccount.familyId);
+      await loadIcons(iconRepo);
       setCategories(list);
     } catch (err) {
       logger.error('CategoriesScreen', 'load failed', err);
@@ -179,6 +70,10 @@ export default function CategoriesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function resolveIconName(iconId: string): string {
+    return iconsMap.get(iconId)?.name ?? 'shape';
+  }
+
   const filteredCategories = categories.filter((c) => {
     if (showActiveOnly && !c.active) return false;
     if (searchText && !c.name.toLowerCase().includes(searchText.toLowerCase())) return false;
@@ -190,7 +85,7 @@ export default function CategoriesScreen() {
   function openAdd() {
     setEditingCategory(null);
     setFormName('');
-    setFormIcon(ICON_OPTIONS[0]);
+    setFormIconId(icons.length > 0 ? icons[0].id : '');
     setFormActive(true);
     setNameError('');
     setSheetVisible(true);
@@ -199,7 +94,7 @@ export default function CategoriesScreen() {
   function openEdit(cat: Category) {
     setEditingCategory(cat);
     setFormName(cat.name);
-    setFormIcon(cat.icon);
+    setFormIconId(cat.iconId);
     setFormActive(cat.active);
     setNameError('');
     setSheetVisible(true);
@@ -215,7 +110,7 @@ export default function CategoriesScreen() {
     setIsSaving(true);
     try {
       if (editingCategory) {
-        await categoryRepo.updateCategory(editingCategory.id, { name, icon: formIcon });
+        await categoryRepo.updateCategory(editingCategory.id, { name, iconId: formIconId });
         if (editingCategory.active !== formActive) {
           await categoryRepo.setActive(editingCategory.id, formActive);
         }
@@ -224,7 +119,7 @@ export default function CategoriesScreen() {
       } else {
         await categoryRepo.createCategory({
           name,
-          icon: formIcon,
+          iconId: formIconId,
           familyId: userAccount!.familyId,
         });
         setSuccessMsg('Categoria criada');
@@ -298,7 +193,7 @@ export default function CategoriesScreen() {
           onLongPress={drag}
         >
           <View style={s.rowIconWrap}>
-            <Icon source={cat.icon} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
+            <Icon source={cat.iconName} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
           </View>
           <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
           {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
@@ -320,7 +215,7 @@ export default function CategoriesScreen() {
         onLongPress={() => handleDelete(cat)}
       >
         <View style={s.rowIconWrap}>
-          <Icon source={cat.icon} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
+          <Icon source={cat.iconName} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
         </View>
         <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
         {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
@@ -424,7 +319,7 @@ export default function CategoriesScreen() {
                 onPress={() => setIconPickerVisible(true)}
                 disabled={isSaving}
               >
-                <Icon source={formIcon} size={24} color="#B5451B" />
+                <Icon source={resolveIconName(formIconId)} size={24} color="#B5451B" />
                 <Text style={s.iconPickerBtnText}>Selecionar icone</Text>
               </TouchableOpacity>
               {editingCategory && (
@@ -483,35 +378,13 @@ export default function CategoriesScreen() {
           </View>
         </Modal>
 
-        {/* Icon picker */}
-        <Modal
+        <IconPicker
           visible={iconPickerVisible}
-          animationType="slide"
-          onRequestClose={() => setIconPickerVisible(false)}
-        >
-          <View style={s.iconPickerContainer}>
-            <View style={s.iconPickerHeader}>
-              <Text style={s.iconPickerTitle}>Selecionar icone</Text>
-              <TouchableOpacity onPress={() => setIconPickerVisible(false)}>
-                <Text style={s.iconPickerClose}>Fechar</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={s.iconGrid}>
-              {ICON_OPTIONS.map((icon) => (
-                <TouchableOpacity
-                  key={icon}
-                  style={[s.iconCell, formIcon === icon && s.iconCellSelected]}
-                  onPress={() => {
-                    setFormIcon(icon);
-                    setIconPickerVisible(false);
-                  }}
-                >
-                  <Icon source={icon} size={28} color={formIcon === icon ? '#B5451B' : '#555555'} />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </Modal>
+          icons={icons}
+          selectedIconId={formIconId}
+          onSelect={setFormIconId}
+          onClose={() => setIconPickerVisible(false)}
+        />
 
         {/* Filter panel */}
         <Modal
@@ -695,27 +568,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   continuarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  // Icon picker
-  iconPickerContainer: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 48 },
-  iconPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  iconPickerTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
-  iconPickerClose: { fontSize: 16, color: '#B5451B', fontWeight: '600' },
-  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 8 },
-  iconCell: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCellSelected: { backgroundColor: '#FFF0EB', borderWidth: 2, borderColor: '#B5451B' },
   // Filter panel
   filterOverlay: { flex: 1, flexDirection: 'row' },
   filterOverlayTouch: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
