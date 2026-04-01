@@ -87,6 +87,7 @@ async function getCategoryNames(
     .from("shopping_categories")
     .select("id, name")
     .eq("family_id", familyId)
+    .eq("active", true)
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -112,7 +113,7 @@ async function classifyItem(
       body: JSON.stringify({ itemName, categories }),
       signal: AbortSignal.timeout(2000),
     });
-    if (!res.ok) return { category: "Other", parsedName: itemName, quantityNote: null };
+    if (!res.ok) return { category: "Outros", parsedName: itemName, quantityNote: null };
     const data = await res.json();
     return {
       category: data?.category ?? "Other",
@@ -120,7 +121,7 @@ async function classifyItem(
       quantityNote: data?.quantityNote ?? null,
     };
   } catch {
-    return { category: "Other", parsedName: itemName, quantityNote: null };
+    return { category: "Outros", parsedName: itemName, quantityNote: null };
   }
 }
 
@@ -158,7 +159,7 @@ async function handleAddItem(rawInput: string): Promise<Response> {
   // New item — create with Portuguese name, quantity, and classified category
   const matchedCat = cats.find((c) => c.name === category);
   const categoryId =
-    matchedCat?.id ?? cats.find((c) => c.name === "Other")?.id ?? cats[0]?.id;
+    matchedCat?.id ?? cats.find((c) => c.name === "Outros")?.id ?? cats[0]?.id;
 
   const ts = new Date().toISOString();
   await supabase.from("shopping_items").insert({

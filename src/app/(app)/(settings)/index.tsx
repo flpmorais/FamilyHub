@@ -21,6 +21,10 @@ const VACATION_ITEMS = [
   { label: 'Categorias', icon: 'shape', route: '/(app)/(settings)/categories' },
 ] as const;
 
+const SHOPPING_ITEMS = [
+  { label: 'Categorias de Compras', icon: 'cart', route: '/(app)/(settings)/shopping-categories' },
+] as const;
+
 export default function SettingsHubScreen() {
   const { userAccount, setUserAccount } = useAuthStore();
   const repositories = useContext(RepositoryContext);
@@ -80,6 +84,17 @@ export default function SettingsHubScreen() {
 
         <Text style={[s.sectionTitle, { marginTop: 24 }]}>Viagens</Text>
         {VACATION_ITEMS.map((item) => (
+          <TouchableOpacity key={item.route} style={s.row} onPress={() => router.push(item.route as any)}>
+            <View style={s.iconWrap}>
+              <Icon source={item.icon} size={22} color="#B5451B" />
+            </View>
+            <Text style={s.label}>{item.label}</Text>
+            <Icon source="chevron-right" size={20} color="#CCCCCC" />
+          </TouchableOpacity>
+        ))}
+
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Compras</Text>
+        {SHOPPING_ITEMS.map((item) => (
           <TouchableOpacity key={item.route} style={s.row} onPress={() => router.push(item.route as any)}>
             <View style={s.iconWrap}>
               <Icon source={item.icon} size={22} color="#B5451B" />

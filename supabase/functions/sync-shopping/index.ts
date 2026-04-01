@@ -68,7 +68,7 @@ serve(async (req: Request) => {
         }
         // New item
         const cat = categoryName ? await findCategoryByName(familyId, categoryName) : null;
-        const otherCat = !cat ? await findCategoryByName(familyId, "Other") : null;
+        const otherCat = !cat ? await findCategoryByName(familyId, "Outros") : null;
         const categoryId = cat?.id ?? otherCat?.id;
         await supabase.from("shopping_items").insert({
           family_id: familyId,
