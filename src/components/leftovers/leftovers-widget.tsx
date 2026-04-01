@@ -23,7 +23,8 @@ export function LeftoversWidget({ items, onPress }: LeftoversWidgetProps) {
   );
   const nearest = items.length > 0 ? items[0] : null;
   const nearestDays = nearest ? daysUntilExpiry(nearest.expiryDate) : 0;
-  const isUrgent = nearest !== null && nearestDays <= 0;
+  const expiredCount = items.filter((l) => daysUntilExpiry(l.expiryDate) < 0).length;
+  const expiresTodayCount = items.filter((l) => daysUntilExpiry(l.expiryDate) === 0).length;
 
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
@@ -39,13 +40,25 @@ export function LeftoversWidget({ items, onPress }: LeftoversWidgetProps) {
             {activeMeals} {activeMeals === 1 ? "refeição" : "refeições"} ·{" "}
             {totalActiveDoses} {totalActiveDoses === 1 ? "dose" : "doses"}
           </Text>
-          {nearest && (
+          {expiredCount > 0 && (
+            <View style={s.alertRow}>
+              <Icon source="alert-circle" size={14} color="#D32F2F" />
+              <Text style={s.alertExpired}>
+                {expiredCount} {expiredCount === 1 ? "item expirado" : "itens expirados"}
+              </Text>
+            </View>
+          )}
+          {expiresTodayCount > 0 && (
+            <View style={s.alertRow}>
+              <Icon source="alert-circle" size={14} color="#F59300" />
+              <Text style={s.alertWarning}>
+                {expiresTodayCount} {expiresTodayCount === 1 ? "item expira hoje" : "itens expiram hoje"}
+              </Text>
+            </View>
+          )}
+          {nearest && expiredCount === 0 && expiresTodayCount === 0 && (
             <View style={s.expiryRow}>
-              <Text
-                style={[s.expiryText, isUrgent && s.expiryExpired]}
-                numberOfLines={1}
-              >
-                {isUrgent ? "⚠️ " : ""}
+              <Text style={s.expiryText} numberOfLines={1}>
                 {nearest.name} {formatExpiryRelative(nearestDays)}
               </Text>
               <Text style={s.arrow}>→</Text>
@@ -98,8 +111,19 @@ const s = StyleSheet.create({
     color: "#555555",
     flex: 1,
   },
-  expiryExpired: {
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  alertExpired: {
+    fontSize: 13,
     color: "#D32F2F",
+    fontWeight: "600",
+  },
+  alertWarning: {
+    fontSize: 13,
+    color: "#F59300",
     fontWeight: "600",
   },
   arrow: {

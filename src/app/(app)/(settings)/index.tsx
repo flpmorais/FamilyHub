@@ -14,11 +14,11 @@ const FAMILY_ITEMS = [
 
 const VACATION_ITEMS = [
   { label: 'Modelos de Items', icon: 'content-copy', route: '/(app)/(settings)/templates' },
+  { label: 'Modelos de Malas', icon: 'bag-suitcase', route: '/(app)/(settings)/bag-templates' },
   { label: 'Modelos de Viagens', icon: 'bag-suitcase-outline', route: '/(app)/(settings)/vacation-templates' },
   { label: 'Tarefas', icon: 'clipboard-check-outline', route: '/(app)/(settings)/tasks' },
   { label: 'Etiquetas', icon: 'tag', route: '/(app)/(settings)/tags' },
   { label: 'Categorias', icon: 'shape', route: '/(app)/(settings)/categories' },
-  { label: 'Modelos de Malas', icon: 'bag-suitcase', route: '/(app)/(settings)/bag-templates' },
 ] as const;
 
 export default function SettingsHubScreen() {

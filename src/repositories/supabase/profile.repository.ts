@@ -232,6 +232,17 @@ export class SupabaseProfileRepository implements IProfileRepository {
       .eq('id', id);
   }
 
+  async batchReorder(items: { id: string; sortOrder: number }[]): Promise<void> {
+    await Promise.all(
+      items.map(({ id, sortOrder }) =>
+        this.client
+          .from('profiles')
+          .update({ sort_order: sortOrder })
+          .eq('id', id)
+      )
+    );
+  }
+
   async deleteProfile(id: string): Promise<void> {
     const { data: linked, error: checkError } = await this.client
       .from('user_accounts')

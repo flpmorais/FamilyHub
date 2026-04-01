@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { Icon } from "react-native-paper";
 import type { Leftover } from "../../types/leftover.types";
 import { daysUntilExpiry } from "../../utils/date.utils";
 
@@ -18,7 +19,8 @@ export function LeftoverItemCard({
   const remaining = item.totalDoses - item.dosesEaten - item.dosesThrownOut;
   const isActive = item.status === "active";
   const days = daysUntilExpiry(item.expiryDate);
-  const isExpired = isActive && days <= 0;
+  const isExpiresToday = isActive && days === 0;
+  const isExpired = isActive && days < 0;
 
   function handleThrowOut() {
     Alert.alert("Deitar fora", "Descartar todas as doses restantes?", [
@@ -33,7 +35,7 @@ export function LeftoverItemCard({
 
   return (
     <TouchableOpacity
-      style={[s.card, !isActive && s.cardClosed, isExpired && s.cardExpired]}
+      style={[s.card, !isActive && s.cardClosed, isExpiresToday && s.cardExpiresToday, isExpired && s.cardExpired]}
       onPress={() => onPress(item)}
       activeOpacity={0.7}
     >
@@ -42,9 +44,19 @@ export function LeftoverItemCard({
           {item.name}
         </Text>
         {isActive ? (
-          <Text style={[s.expiryBadge, days <= 0 && s.expiryExpired]}>
-            {days <= 0 ? "Expirado" : `${days}d`}
-          </Text>
+          isExpired ? (
+            <View style={s.badgeRow}>
+              <Icon source="alert-circle" size={14} color="#D32F2F" />
+              <Text style={[s.expiryBadge, s.expiryExpired]}>Expirado</Text>
+            </View>
+          ) : isExpiresToday ? (
+            <View style={s.badgeRow}>
+              <Icon source="alert-circle" size={14} color="#F59300" />
+              <Text style={[s.expiryBadge, s.expiryWarning]}>Expira hoje</Text>
+            </View>
+          ) : (
+            <Text style={s.expiryBadge}>{days}d</Text>
+          )
         ) : (
           <Text style={s.closedBadge}>Fechado</Text>
         )}
@@ -92,6 +104,11 @@ const s = StyleSheet.create({
     opacity: 0.6,
     backgroundColor: "#FAFAFA",
   },
+  cardExpiresToday: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#F59300",
+    borderColor: "#FFE0B2",
+  },
   cardExpired: {
     borderLeftWidth: 4,
     borderLeftColor: "#D32F2F",
@@ -122,9 +139,18 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  expiryWarning: {
+    color: "#F59300",
+    backgroundColor: "#FFF3E0",
+  },
   expiryExpired: {
     color: "#D32F2F",
     backgroundColor: "#FFEBEE",
+  },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   closedBadge: {
     fontSize: 12,

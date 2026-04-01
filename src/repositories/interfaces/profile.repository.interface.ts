@@ -17,4 +17,5 @@ export interface IProfileRepository {
   uploadAvatar(profileId: string, familyId: string, localUri: string): Promise<string>;
   deleteProfile(id: string): Promise<void>;
   reorderProfile(id: string, newOrder: number): Promise<void>;
+  batchReorder(items: { id: string; sortOrder: number }[]): Promise<void>;
 }

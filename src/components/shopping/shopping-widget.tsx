@@ -10,7 +10,7 @@ export function ShoppingWidget({ itemCount, onPress }: ShoppingWidgetProps) {
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
       <View style={s.titleRow}>
-        <Icon source="cart-outline" size={18} color="#B5451B" />
+        <Icon source="cart" size={18} color="#B5451B" />
         <Text style={s.title}>Compras</Text>
       </View>
       {itemCount === 0 ? (

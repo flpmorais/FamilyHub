@@ -119,10 +119,12 @@ export default function ProfilesScreen() {
 
   async function handleReorder(data: Profile[]) {
     setProfiles(data);
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].sortOrder !== i + 1) {
-        try { await profileRepository.reorderProfile(data[i].id, i + 1); } catch { /* ignore */ }
-      }
+    try {
+      await profileRepository.batchReorder(
+        data.map((p, i) => ({ id: p.id, sortOrder: i + 1 }))
+      );
+    } catch {
+      // ignore
     }
     await loadData();
   }
