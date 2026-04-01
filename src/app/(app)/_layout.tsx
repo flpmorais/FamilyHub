@@ -32,7 +32,7 @@ export default function AppLayout() {
         name="(vacations)"
         options={{
           title: 'Viagens',
-          tabBarIcon: ({ color, size }) => <Icon source="bag-suitcase" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Icon source="airplane" size={size} color={color} />,
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
