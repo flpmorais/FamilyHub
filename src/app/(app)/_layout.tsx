@@ -58,7 +58,7 @@ export default function AppLayout() {
         name="(shopping)"
         options={{
           title: 'Compras',
-          tabBarIcon: ({ color, size }) => <Icon source="cart" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Icon source="cart-outline" size={size} color={color} />,
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
