@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Snackbar } from "react-native-paper";
+import { useFocusEffect } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
 import { useAuthStore } from "../../../stores/auth.store";
 import {
@@ -84,7 +85,6 @@ export default function ShoppingScreen() {
   const [categories, setCategories] = useState<ShoppingCategory[]>([]);
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [addVisible, setAddVisible] = useState(false);
   const [editItem, setEditItem] = useState<ShoppingItem | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
@@ -104,20 +104,20 @@ export default function ShoppingScreen() {
       setCategories(catList);
     } catch (err) {
       logger.error("ShoppingScreen", "load failed", err);
-      // Surface error so user can report it
-      setLoadError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }
   }, [shoppingRepo, categoryRepo, familyId]);
 
-  useEffect(() => {
-    void reload();
-    if (familyId) {
-      supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
-        .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
-    }
-  }, [reload, familyId]);
+  useFocusEffect(
+    useCallback(() => {
+      void reload();
+      if (familyId) {
+        supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
+          .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
+      }
+    }, [reload, familyId])
+  );
 
   function showSuccess(msg: string) {
     setSnackbarColor("#388E3C");
@@ -245,9 +245,7 @@ export default function ShoppingScreen() {
 
       <View style={{ height: 16 }} />
 
-      {loadError ? (
-        <Text style={[s.empty, { color: '#D32F2F' }]}>Erro: {loadError}</Text>
-      ) : items.length === 0 ? (
+      {items.length === 0 ? (
         <Text style={s.empty}>Lista de compras vazia.</Text>
       ) : (
         <SectionList
