@@ -1,9 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALEXA_API_KEY = Deno.env.get("ALEXA_API_KEY") ?? "";
+const SYNC_KEY = Deno.env.get("SYNC_CATEGORIES_KEY") ?? "";
 const OTHER_ENV_SYNC_URL = Deno.env.get("OTHER_ENV_SYNC_URL") ?? "";
-const OTHER_ENV_ANON_KEY = Deno.env.get("OTHER_ENV_ANON_KEY") ?? "";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -21,15 +20,13 @@ async function getFamilyId(): Promise<string> {
 }
 
 async function mirrorToOtherEnv(payload: Record<string, unknown>) {
-  if (!OTHER_ENV_SYNC_URL || !OTHER_ENV_ANON_KEY) return;
+  if (!OTHER_ENV_SYNC_URL || !SYNC_KEY) return;
   try {
     await fetch(OTHER_ENV_SYNC_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OTHER_ENV_ANON_KEY}`,
-        "apikey": OTHER_ENV_ANON_KEY,
-        "X-Api-Key": ALEXA_API_KEY,
+        "X-Sync-Key": SYNC_KEY,
       },
       body: JSON.stringify({ ...payload, mirror: false }),
       signal: AbortSignal.timeout(3000),
@@ -40,24 +37,25 @@ async function mirrorToOtherEnv(payload: Record<string, unknown>) {
 }
 
 serve(async (req: Request) => {
-  // Auth — accept API key (cross-env calls) or JWT (app calls)
-  const apiKeyHeader =
-    req.headers.get("x-api-key") ??
-    req.headers.get("X-Api-Key") ??
-    new URL(req.url).searchParams.get("api_key");
-  const isApiKeyAuth = !!(ALEXA_API_KEY && apiKeyHeader === ALEXA_API_KEY);
+  // Auth — accept sync key (cross-env) or JWT (app calls)
+  const syncKeyHeader = req.headers.get("x-sync-key");
+  const isSyncKeyAuth = !!(SYNC_KEY && syncKeyHeader === SYNC_KEY);
 
   let isJwtAuth = false;
-  if (!isApiKeyAuth) {
+  if (!isSyncKeyAuth) {
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      isJwtAuth = !!user;
+      try {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        isJwtAuth = !!user;
+      } catch {
+        // Invalid token
+      }
     }
   }
 
-  if (!isApiKeyAuth && !isJwtAuth) {
+  if (!isSyncKeyAuth && !isJwtAuth) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
