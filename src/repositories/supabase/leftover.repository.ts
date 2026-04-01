@@ -15,6 +15,7 @@ function mapLeftover(row: any): Leftover {
     id: row.id,
     familyId: row.family_id,
     name: row.name,
+    type: row.type ?? 'meal',
     totalDoses: Number(row.total_doses),
     dosesEaten: Number(row.doses_eaten),
     dosesThrownOut: Number(row.doses_thrown_out),
@@ -53,6 +54,7 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
           id,
           family_id: input.familyId,
           name: input.name,
+          type: input.type ?? 'meal',
           total_doses: input.totalDoses,
           doses_eaten: 0,
           doses_thrown_out: 0,
@@ -80,6 +82,7 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     const updates: Record<string, unknown> = {};
 
     if (data.name !== undefined) updates.name = data.name;
+    if (data.type !== undefined) updates.type = data.type;
     if (data.totalDoses !== undefined) updates.total_doses = data.totalDoses;
     if (data.expiryDate !== undefined) updates.expiry_date = data.expiryDate;
     if (data.dosesEaten !== undefined) updates.doses_eaten = data.dosesEaten;
