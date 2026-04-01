@@ -37,20 +37,24 @@ async function mirrorToOtherEnv(payload: Record<string, unknown>) {
 }
 
 serve(async (req: Request) => {
-  // Auth
-  const apiKey =
+  // Auth — accept API key (cross-env calls) or JWT (app calls)
+  const apiKeyHeader =
     req.headers.get("x-api-key") ??
     req.headers.get("X-Api-Key") ??
-    req.headers.get("authorization")?.replace("Bearer ", "") ??
     new URL(req.url).searchParams.get("api_key");
+  const isApiKeyAuth = !!(ALEXA_API_KEY && apiKeyHeader === ALEXA_API_KEY);
 
-  // Allow service_role bearer token OR API key
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const isAuthorized =
-    (ALEXA_API_KEY && apiKey === ALEXA_API_KEY) ||
-    (serviceKey && apiKey === serviceKey);
+  let isJwtAuth = false;
+  if (!isApiKeyAuth) {
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      isJwtAuth = !!user;
+    }
+  }
 
-  if (!isAuthorized) {
+  if (!isApiKeyAuth && !isJwtAuth) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
