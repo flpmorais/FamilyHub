@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALEXA_API_KEY = Deno.env.get("ALEXA_API_KEY") ?? "";
 const OTHER_ENV_SYNC_URL = Deno.env.get("OTHER_ENV_SYNC_URL") ?? "";
+const OTHER_ENV_ANON_KEY = Deno.env.get("OTHER_ENV_ANON_KEY") ?? "";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -20,12 +21,14 @@ async function getFamilyId(): Promise<string> {
 }
 
 async function mirrorToOtherEnv(payload: Record<string, unknown>) {
-  if (!OTHER_ENV_SYNC_URL) return;
+  if (!OTHER_ENV_SYNC_URL || !OTHER_ENV_ANON_KEY) return;
   try {
     await fetch(OTHER_ENV_SYNC_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${OTHER_ENV_ANON_KEY}`,
+        "apikey": OTHER_ENV_ANON_KEY,
         "X-Api-Key": ALEXA_API_KEY,
       },
       body: JSON.stringify({ ...payload, mirror: false }),
