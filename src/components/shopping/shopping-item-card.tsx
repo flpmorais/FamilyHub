@@ -5,21 +5,23 @@ interface ShoppingItemCardProps {
   item: ShoppingItem;
   onPress: (item: ShoppingItem) => void;
   onLongPress: (item: ShoppingItem) => void;
+  onToggleUrgent: (item: ShoppingItem) => void;
 }
 
 export function ShoppingItemCard({
   item,
   onPress,
   onLongPress,
+  onToggleUrgent,
 }: ShoppingItemCardProps) {
   return (
-    <TouchableOpacity
-      style={[s.card, item.isTicked && s.cardTicked]}
-      onPress={() => onPress(item)}
-      onLongPress={() => onLongPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={s.row}>
+    <View style={[s.card, item.isTicked && s.cardTicked]}>
+      <TouchableOpacity
+        style={s.leftZone}
+        onPress={() => onPress(item)}
+        onLongPress={() => onLongPress(item)}
+        activeOpacity={0.7}
+      >
         <View style={s.checkbox}>
           {item.isTicked && <View style={s.checkboxFilled} />}
         </View>
@@ -39,25 +41,54 @@ export function ShoppingItemCard({
             </Text>
           ) : null}
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={s.rightZone}
+        onPress={() => onToggleUrgent(item)}
+        activeOpacity={0.7}
+      >
+        <View
+          style={[
+            s.tag,
+            item.isTicked
+              ? s.tagTicked
+              : item.isUrgent
+                ? s.tagUrgente
+                : s.tagComprar,
+          ]}
+        >
+          <Text style={s.tagText}>
+            {item.isUrgent ? "urgente" : "comprar"}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
+    flexDirection: "row",
+    alignItems: "center",
   },
   cardTicked: {
     backgroundColor: "#FAFAFA",
   },
-  row: {
+  leftZone: {
+    flex: 2,
     flexDirection: "row",
     alignItems: "center",
+    paddingLeft: 16,
+  },
+  rightZone: {
+    flex: 1,
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingRight: 16,
   },
   checkbox: {
     width: 22,
@@ -94,5 +125,27 @@ const s = StyleSheet.create({
   quantityTicked: {
     color: "#CCCCCC",
     textDecorationLine: "line-through",
+  },
+  tag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tagComprar: {
+    backgroundColor: "#388E3C",
+  },
+  tagUrgente: {
+    backgroundColor: "#D32F2F",
+  },
+  tagTicked: {
+    backgroundColor: "#CCCCCC",
+  },
+  tagText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
 });

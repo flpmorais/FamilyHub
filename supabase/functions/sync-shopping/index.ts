@@ -48,7 +48,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { action, name, categoryName, quantityNote } = await req.json();
+    const { action, name, categoryName, quantityNote, isUrgent } = await req.json();
     if (!action || !name) {
       return new Response(JSON.stringify({ ok: false, error: "Missing action or name" }), { status: 400 });
     }
@@ -61,7 +61,7 @@ serve(async (req: Request) => {
       case "add": {
         if (existing && !existing.is_ticked) break; // Already on list
         if (existing && existing.is_ticked) {
-          const updates: Record<string, unknown> = { is_ticked: false, updated_at: ts };
+          const updates: Record<string, unknown> = { is_ticked: false, is_urgent: isUrgent ?? false, updated_at: ts };
           if (quantityNote) updates.quantity_note = quantityNote;
           await supabase.from("shopping_items").update(updates).eq("id", existing.id);
           break;
@@ -75,6 +75,7 @@ serve(async (req: Request) => {
           name,
           category_id: categoryId,
           quantity_note: quantityNote ?? null,
+          is_urgent: isUrgent ?? false,
           is_ticked: false,
           created_at: ts,
           updated_at: ts,
@@ -85,6 +86,7 @@ serve(async (req: Request) => {
         if (existing) {
           const updates: Record<string, unknown> = { is_ticked: false, updated_at: ts };
           if (quantityNote) updates.quantity_note = quantityNote;
+          if (isUrgent !== undefined) updates.is_urgent = isUrgent;
           await supabase.from("shopping_items").update(updates).eq("id", existing.id);
         }
         break;

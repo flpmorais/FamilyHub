@@ -15,7 +15,7 @@ import {
 interface ShoppingAddFormProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; quantityNote?: string }) => Promise<
+  onSave: (data: { name: string; quantityNote?: string; isUrgent?: boolean }) => Promise<
     | { status: "created" }
     | { status: "unticked" }
     | { status: "duplicate_unticked" }
@@ -32,12 +32,14 @@ export function ShoppingAddForm({
 }: ShoppingAddFormProps) {
   const [name, setName] = useState("");
   const [quantityNote, setQuantityNote] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
 
   function resetForm() {
     setName("");
     setQuantityNote("");
+    setIsUrgent(false);
     setNameError("");
   }
 
@@ -55,6 +57,7 @@ export function ShoppingAddForm({
       const result = await onSave({
         name: trimmedName,
         quantityNote: quantityNote.trim() || undefined,
+        isUrgent,
       });
 
       if (result.status === "created" || result.status === "unticked") {
@@ -128,6 +131,28 @@ export function ShoppingAddForm({
             editable={!isSaving}
           />
 
+          <Text style={s.label}>Prioridade</Text>
+          <View style={s.priorityRow}>
+            <TouchableOpacity
+              style={[s.priorityChip, !isUrgent && s.priorityChipComprar]}
+              onPress={() => setIsUrgent(false)}
+              disabled={isSaving}
+            >
+              <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
+                Comprar
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.priorityChip, isUrgent && s.priorityChipUrgente]}
+              onPress={() => setIsUrgent(true)}
+              disabled={isSaving}
+            >
+              <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
+                Urgente
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={s.buttons}>
             <TouchableOpacity
               style={s.cancelBtn}
@@ -194,6 +219,39 @@ const s = StyleSheet.create({
     fontSize: 12,
     marginTop: -12,
     marginBottom: 12,
+  },
+  priorityRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  priorityChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
+  },
+  priorityChipComprar: {
+    borderColor: "#388E3C",
+    backgroundColor: "#E8F5E9",
+  },
+  priorityChipUrgente: {
+    borderColor: "#D32F2F",
+    backgroundColor: "#FFEBEE",
+  },
+  priorityChipText: {
+    fontSize: 13,
+    color: "#555555",
+  },
+  priorityChipTextComprar: {
+    color: "#388E3C",
+    fontWeight: "600",
+  },
+  priorityChipTextUrgente: {
+    color: "#D32F2F",
+    fontWeight: "600",
   },
   buttons: {
     flexDirection: "row",

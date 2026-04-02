@@ -14,6 +14,7 @@ export interface ShoppingItem {
   name: string;
   categoryId: string;
   quantityNote: string | null;
+  isUrgent: boolean;
   isTicked: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,12 +25,14 @@ export interface CreateShoppingItemInput {
   name: string;
   categoryId: string;
   quantityNote?: string;
+  isUrgent?: boolean;
 }
 
 export interface UpdateShoppingItemInput {
   name?: string;
   categoryId?: string;
   quantityNote?: string | null;
+  isUrgent?: boolean;
 }
 
 export interface CreateShoppingCategoryInput {

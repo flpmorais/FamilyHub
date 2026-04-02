@@ -3,37 +3,69 @@
 ## Architecture
 
 ```
-                                     ┌──────────────────────┐
-┌─────────────┐     HTTPS POST      │  alexa-shopping       │
-│  Amazon Echo │ ──────────────────► │  (PROD Edge Function) │──► PROD DB
-│  (English)   │ ◄────────────────── │                      │
-└─────────────┘   English response  │  • Auth: api_key      │
-                                     │  • English responses   │
-                                     │  • Calls classify-item │
-                                     └────────┬─────────────┘
-                                              │ fire-and-forget
-                                     ┌────────▼─────────────┐
-                                     │  sync-shopping        │
-                                     │  (DEV Edge Function)  │──► DEV DB
-                                     │                      │
-                                     │  • Receives parsed PT │
-                                     │  • Mirrors mutations   │
-                                     └──────────────────────┘
+                                     ┌──────────────────────────┐
+┌─────────────┐     HTTPS POST      │  alexa-shopping            │
+│  Amazon Echo │ ──────────────────► │  (PROD Edge Function)      │──► PROD DB
+│  (English)   │ ◄────────────────── │                            │
+└─────────────┘   English response  │  • Auth: api_key            │
+                                     │  • English responses         │
+                                     │  • Calls classify-item       │
+                                     │  • Detects urgency via LLM   │
+                                     └────────┬───────────────────┘
+                                              │ fire-and-forget POST
+                                              │ (one-way, no response needed)
+                                     ┌────────▼───────────────────┐
+                                     │  sync-shopping               │
+                                     │  (DEV Edge Function)         │──► DEV DB
+                                     │                              │
+                                     │  • Receives parsed PT data   │
+                                     │  • Mirrors mutations          │
+                                     │  • Never sends back (no loop)│
+                                     └──────────────────────────────┘
+```
 
-  classify-item (on PROD):
-    Input: "3 packs of milk" (English)
-    → Gemini/Haiku LLM
-    → Output: { name: "leite", quantity: "3 pacotes", category: "Dairy" }
+### Nodes
+
+| Node | Environment | Role |
+|---|---|---|
+| **Amazon Echo (Alexa)** | Cloud | Captures English voice, sends JSON intent to prod endpoint. Single `AMAZON.SearchQuery` slot per intent. |
+| **alexa-shopping** | Prod | Main handler. Authenticates via API key, routes intents (Add, Remove, Check, LastItem, SetQuantity), calls classify-item for translation/classification/urgency detection, writes to prod DB, mirrors to dev via fire-and-forget POST. |
+| **classify-item** | Prod + Dev | LLM-powered function. Receives raw English input + category list. Returns Portuguese name, quantity, category, and urgency flag. Providers: Claude Haiku 4.5 (default) or Gemini Flash. |
+| **sync-shopping** | Dev only | Receives mirrored mutations from prod. Applies add/untick/tick/setQuantity to dev DB. **Never mirrors back** — this is the key to preventing loops. |
+| **LLM (Claude Haiku / Gemini)** | External API | Translates English → Portuguese, extracts quantity, classifies category, detects urgency markers ("urgent", "asap", etc.). Called by classify-item. |
+| **Prod DB** | Prod Supabase | Primary data store. Alexa always writes here first. |
+| **Dev DB** | Dev Supabase | Mirror. Receives data from sync-shopping. App UI on dev reads/writes here directly. |
+
+### Data Flow
+
+```
+User speaks English to Alexa
+  ↓
+Alexa sends intent JSON to alexa-shopping (PROD)
+  ↓
+alexa-shopping calls classify-item (PROD)
+  ↓
+classify-item calls LLM API (Claude Haiku or Gemini Flash)
+  ↓
+LLM returns: { name: "leite", quantity: "3 pacotes", category: "Lacticínios", urgent: true }
+  ↓
+alexa-shopping writes to PROD DB (name, category, quantity, is_urgent)
+  ↓
+alexa-shopping fires mirrorToDev() — one-way POST to sync-shopping (DEV)
+  ↓
+sync-shopping writes to DEV DB (same data, including is_urgent)
+  ↓
+Alexa responds in English: "Added urgent 3 packs of milk to the list"
 ```
 
 ### Language Flow
 
-1. **You speak English** to Alexa: "add 3 packs of milk"
-2. **Alexa responds in English**: "Added 3 packs of milk to the list"
-3. **LLM translates + classifies**: name → "leite", quantity → "3 pacotes", category → "Dairy"
-4. **Prod DB stores Portuguese**: name="leite", quantity_note="3 pacotes"
+1. **You speak English** to Alexa: "add urgent 3 packs of milk"
+2. **Alexa responds in English**: "Added urgent 3 packs of milk to the list"
+3. **LLM translates + classifies + detects urgency**: name → "leite", quantity → "3 pacotes", category → "Lacticínios", urgent → true
+4. **Prod DB stores Portuguese**: name="leite", quantity_note="3 pacotes", is_urgent=true
 5. **Dev DB mirrors**: same item created automatically via fire-and-forget
-6. **Both apps display Portuguese**: "leite" under Dairy with note "3 pacotes"
+6. **Both apps display Portuguese**: "leite" under Lacticínios with note "3 pacotes" and "urgente" tag
 
 ### Dual Environment
 
@@ -44,13 +76,48 @@ The Alexa endpoint always points to **prod**. After each successful mutation (ad
 - If dev is down, prod works normally — nothing breaks
 - Dev doesn't need its own Alexa endpoint
 
-### Edge Functions
+### Loop Prevention
+
+The system is designed with a strict one-way mirror to prevent infinite replication loops:
+
+1. **Alexa → Prod** — alexa-shopping writes to prod DB and fires `mirrorToDev()`
+2. **Prod → Dev** — sync-shopping receives the payload and writes to dev DB
+3. **Dev never mirrors back** — sync-shopping has no outbound calls, it only receives
+
+The app UI writes directly to whichever DB it's connected to (dev or prod). UI changes are **not** mirrored between environments — only Alexa-initiated mutations are.
+
+---
+
+## Urgent Items
+
+Items can be marked as urgent via voice or the app UI.
+
+### Via Alexa (voice)
+
+Say "urgent" anywhere in the item name. The LLM detects urgency markers and strips them from the item name:
+
+- "add urgent milk" → item "leite" with `is_urgent=true`
+- "add milk urgent" → item "leite" with `is_urgent=true`
+- "add 3 packs of urgent milk" → item "leite", quantity "3 pacotes", `is_urgent=true`
+
+Recognized urgency markers: "urgent", "urgently", "asap", "right now"
+
+### Via App UI
+
+- **List view**: Tap the tag on the right side of each item to toggle between "comprar" (green) and "urgente" (red)
+- **Add form**: Select "Comprar" or "Urgente" chips when creating a new item
+- **Edit form**: Change priority via the same chips when editing an existing item
+
+---
+
+## Edge Functions
 
 | Function | Deployed to | Purpose |
 |---|---|---|
 | `alexa-shopping` | Prod + Dev | Handles Alexa intents, writes to local DB, mirrors to dev (prod only) |
-| `classify-item` | Prod + Dev | Translates English → Portuguese, parses quantity, classifies category |
-| `sync-shopping` | Dev only | Receives mirrored mutations from prod |
+| `classify-item` | Prod + Dev | Translates English → Portuguese, parses quantity, classifies category, detects urgency |
+| `sync-shopping` | Dev only | Receives mirrored mutations from prod (never sends back) |
+| `sync-categories` | Prod + Dev | Bidirectional category sync between environments (separate from items) |
 
 ### LLM Provider
 
@@ -68,6 +135,8 @@ To switch: `npx supabase secrets set LLM_PROVIDER=gemini` (or `haiku`)
 |---|---|---|
 | **Add item** | "Alexa, ask Diva to add milk" | "Added milk to the list" |
 | **Add with quantity** | "Alexa, tell Diva to add 3 packs of milk" | "Added 3 packs of milk to the list" |
+| **Add urgent item** | "Alexa, ask Diva to add urgent milk" | "Added urgent milk to the list" |
+| **Add urgent with qty** | "Alexa, tell Diva to add 3 packs of urgent milk" | "Added urgent 3 packs of urgent milk to the list" |
 | **Remove item** | "Alexa, tell Diva to remove butter" | "Removed butter from the list" |
 | **Check item** | "Alexa, ask Diva if I have bread" | "Yes, bread is on the list" |
 | **Last item** | "Alexa, ask Diva what was the last item" | "The last item was leite" |
@@ -159,6 +228,8 @@ npx supabase secrets set DEV_SYNC_URL=https://vblyzgjvseodveypmxdz.supabase.co/f
 **Items appear in prod but not dev** → Check `DEV_SYNC_URL` secret on prod. Check `sync-shopping` is deployed on dev. Mirror is best-effort — check dev function logs.
 
 **401 Unauthorized** → API key mismatch. Ensure `ALEXA_API_KEY` is the same on both environments and matches the endpoint URL query parameter.
+
+**Urgent not detected** → The LLM looks for "urgent", "urgently", "asap", "right now" in the input. If none found, defaults to non-urgent. Check classify-item logs for the LLM response.
 
 ## Future Enhancements
 

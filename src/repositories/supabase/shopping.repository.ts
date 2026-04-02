@@ -15,6 +15,7 @@ function mapShoppingItem(row: any): ShoppingItem {
     name: row.name,
     categoryId: row.category_id,
     quantityNote: row.quantity_note ?? null,
+    isUrgent: Boolean(row.is_urgent),
     isTicked: Boolean(row.is_ticked),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -41,6 +42,7 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
           name: input.name,
           category_id: input.categoryId,
           quantity_note: input.quantityNote ?? null,
+          is_urgent: input.isUrgent ?? false,
           is_ticked: false,
           created_at: ts,
           updated_at: ts,
@@ -96,12 +98,32 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
     }
   }
 
+  async setUrgent(id: string, isUrgent: boolean): Promise<ShoppingItem> {
+    try {
+      const { data, error } = await this.client
+        .from('shopping_items')
+        .update({ is_urgent: isUrgent, updated_at: now() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return mapShoppingItem(data);
+    } catch (err) {
+      logger.error("ShoppingRepository", "setUrgent failed", err);
+      throw new Error(
+        `Erro ao atualizar urgência: ${err instanceof Error ? err.message : "Erro"}`,
+      );
+    }
+  }
+
   async editItem(id: string, data: UpdateShoppingItemInput): Promise<ShoppingItem> {
     const updates: Record<string, unknown> = {};
 
     if (data.name !== undefined) updates.name = data.name;
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
     if (data.quantityNote !== undefined) updates.quantity_note = data.quantityNote;
+    if (data.isUrgent !== undefined) updates.is_urgent = data.isUrgent;
 
     updates.updated_at = now();
 

@@ -5,6 +5,7 @@ export interface IShoppingRepository {
   tickItem(id: string): Promise<ShoppingItem>;
   untickItem(id: string): Promise<ShoppingItem>;
   editItem(id: string, data: UpdateShoppingItemInput): Promise<ShoppingItem>;
+  setUrgent(id: string, isUrgent: boolean): Promise<ShoppingItem>;
   deleteItem(id: string): Promise<void>;
   getItems(familyId: string): Promise<ShoppingItem[]>;
   findByName(familyId: string, name: string): Promise<ShoppingItem | null>;

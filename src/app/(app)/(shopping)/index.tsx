@@ -47,7 +47,7 @@ function buildSections(
   }
 
   const sortByTicked = (a: ShoppingItem, b: ShoppingItem) =>
-    Number(a.isTicked) - Number(b.isTicked);
+    Number(a.isTicked) - Number(b.isTicked) || Number(b.isUrgent) - Number(a.isUrgent);
 
   const sections = categories
     .filter((c) => grouped.has(c.id))
@@ -131,7 +131,7 @@ export default function ShoppingScreen() {
     setSuccessVisible(true);
   }
 
-  async function handleAdd(data: { name: string; quantityNote?: string }) {
+  async function handleAdd(data: { name: string; quantityNote?: string; isUrgent?: boolean }) {
     if (!familyId) return { status: "created" as const };
 
     try {
@@ -163,6 +163,7 @@ export default function ShoppingScreen() {
         name: data.name,
         categoryId,
         quantityNote: data.quantityNote,
+        isUrgent: data.isUrgent,
       });
       showSuccess("Item adicionado");
       await reload();
@@ -200,6 +201,21 @@ export default function ShoppingScreen() {
     } catch (err) {
       logger.error("ShoppingScreen", "toggle failed", err);
       showError("Erro ao atualizar item");
+      await reload();
+    }
+  }
+
+  async function handleToggleUrgent(item: ShoppingItem) {
+    try {
+      await shoppingRepo.setUrgent(item.id, !item.isUrgent);
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, isUrgent: !i.isUrgent } : i,
+        ),
+      );
+    } catch (err) {
+      logger.error("ShoppingScreen", "toggleUrgent failed", err);
+      showError("Erro ao atualizar urgência");
       await reload();
     }
   }
@@ -259,6 +275,7 @@ export default function ShoppingScreen() {
               item={item}
               onPress={handleToggle}
               onLongPress={setEditItem}
+              onToggleUrgent={handleToggleUrgent}
             />
           )}
           contentContainerStyle={s.list}

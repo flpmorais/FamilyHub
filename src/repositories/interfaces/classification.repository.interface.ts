@@ -2,6 +2,7 @@ export interface ClassificationResult {
   category: string;
   parsedName: string;
   quantityNote: string | null;
+  isUrgent: boolean;
 }
 
 export interface IClassificationRepository {

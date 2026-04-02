@@ -18,7 +18,7 @@ const corsHeaders = {
 
 function fallbackResponse(itemName: string) {
   return new Response(
-    JSON.stringify({ category: FALLBACK_CATEGORY, parsedName: itemName, quantityNote: null }),
+    JSON.stringify({ category: FALLBACK_CATEGORY, parsedName: itemName, quantityNote: null, isUrgent: false }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 }
@@ -102,21 +102,26 @@ serve(async (req: Request) => {
     }
 
     // Build prompt (shared across providers)
-    const prompt = `You receive a shopping item input (in any language) that may contain a quantity and an item name. Parse it, translate the item name and quantity to Portuguese, and classify into a category.
+    const prompt = `You receive a shopping item input (in any language) that may contain a quantity, an urgency marker, and an item name. Parse it, translate the item name and quantity to Portuguese, classify into a category, and detect if it is urgent.
+
+If the input contains urgency markers like "urgent", "urgently", "asap", or "right now", set "urgent" to true and remove the urgency word from the item name. Otherwise set "urgent" to false.
 
 Input: "${itemName}"
 Categories: ${categories.join(", ")}
 
 Reply with ONLY a JSON object (no markdown, no backticks):
-{"name": "<item name in Portuguese, without quantity>", "quantity": <quantity string in Portuguese, or null if none>, "category": "<best category from the list>"}
+{"name": "<item name in Portuguese, without quantity or urgency words>", "quantity": <quantity string in Portuguese, or null if none>, "category": "<best category from the list>", "urgent": <true or false>}
 
 Examples:
-- "milk" → {"name": "leite", "quantity": null, "category": "Lacticínios"}
-- "3 packs of milk" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios"}
-- "olive oil" → {"name": "azeite", "quantity": null, "category": "Despensa"}
-- "half a kilo of rice" → {"name": "arroz", "quantity": "meio quilo", "category": "Despensa"}
-- "leite" → {"name": "leite", "quantity": null, "category": "Lacticínios"}
-- "3 pacotes de leite" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios"}`;
+- "milk" → {"name": "leite", "quantity": null, "category": "Lacticínios", "urgent": false}
+- "3 packs of milk" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios", "urgent": false}
+- "urgent milk" → {"name": "leite", "quantity": null, "category": "Lacticínios", "urgent": true}
+- "milk urgent" → {"name": "leite", "quantity": null, "category": "Lacticínios", "urgent": true}
+- "3 packs of urgent milk" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios", "urgent": true}
+- "olive oil" → {"name": "azeite", "quantity": null, "category": "Despensa", "urgent": false}
+- "half a kilo of rice" → {"name": "arroz", "quantity": "meio quilo", "category": "Despensa", "urgent": false}
+- "leite" → {"name": "leite", "quantity": null, "category": "Lacticínios", "urgent": false}
+- "3 pacotes de leite" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios", "urgent": false}`;
 
     // Call selected provider
     let rawText: string;
@@ -130,7 +135,7 @@ Examples:
     }
 
     // Parse JSON response (shared)
-    let parsed: { name?: string; quantity?: string | null; category?: string };
+    let parsed: { name?: string; quantity?: string | null; category?: string; urgent?: boolean };
     try {
       parsed = JSON.parse(rawText);
     } catch {
@@ -139,7 +144,7 @@ Examples:
         (c) => c.toLowerCase() === rawText.toLowerCase(),
       );
       return new Response(
-        JSON.stringify({ category: matched ?? FALLBACK_CATEGORY, parsedName: itemName, quantityNote: null }),
+        JSON.stringify({ category: matched ?? FALLBACK_CATEGORY, parsedName: itemName, quantityNote: null, isUrgent: false }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -155,13 +160,14 @@ Examples:
         category: matchedCategory ?? FALLBACK_CATEGORY,
         parsedName,
         quantityNote,
+        isUrgent: Boolean(parsed.urgent),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("classify-item error:", err);
     return new Response(
-      JSON.stringify({ category: FALLBACK_CATEGORY, parsedName: "", quantityNote: null }),
+      JSON.stringify({ category: FALLBACK_CATEGORY, parsedName: "", quantityNote: null, isUrgent: false }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

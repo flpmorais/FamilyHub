@@ -97,6 +97,7 @@ interface ClassifyResult {
   category: string;
   parsedName: string;
   quantityNote: string | null;
+  isUrgent: boolean;
 }
 
 async function classifyItem(
@@ -113,15 +114,16 @@ async function classifyItem(
       body: JSON.stringify({ itemName, categories }),
       signal: AbortSignal.timeout(2000),
     });
-    if (!res.ok) return { category: "Outros", parsedName: itemName, quantityNote: null };
+    if (!res.ok) return { category: "Outros", parsedName: itemName, quantityNote: null, isUrgent: false };
     const data = await res.json();
     return {
       category: data?.category ?? "Other",
       parsedName: data?.parsedName || itemName,
       quantityNote: data?.quantityNote ?? null,
+      isUrgent: Boolean(data?.isUrgent),
     };
   } catch {
-    return { category: "Outros", parsedName: itemName, quantityNote: null };
+    return { category: "Outros", parsedName: itemName, quantityNote: null, isUrgent: false };
   }
 }
 
@@ -133,7 +135,7 @@ async function handleAddItem(rawInput: string): Promise<Response> {
   // Parse + translate to Portuguese + classify in one LLM call
   const cats = await getCategoryNames(familyId);
   const catNames = cats.map((c) => c.name);
-  const { parsedName, quantityNote, category } = await classifyItem(rawInput, catNames);
+  const { parsedName, quantityNote, category, isUrgent } = await classifyItem(rawInput, catNames);
 
   // Dedup check using Portuguese parsed name
   const existing = await findByName(familyId, parsedName);
@@ -145,6 +147,7 @@ async function handleAddItem(rawInput: string): Promise<Response> {
   if (existing && existing.is_ticked) {
     const updates: Record<string, unknown> = {
       is_ticked: false,
+      is_urgent: isUrgent,
       updated_at: new Date().toISOString(),
     };
     if (quantityNote) updates.quantity_note = quantityNote;
@@ -152,7 +155,7 @@ async function handleAddItem(rawInput: string): Promise<Response> {
       .from("shopping_items")
       .update(updates)
       .eq("id", existing.id);
-    mirrorToDev({ action: "untick", name: parsedName, quantityNote });
+    mirrorToDev({ action: "untick", name: parsedName, quantityNote, isUrgent });
     return alexaResponse(`${rawInput} is back on the list.`);
   }
 
@@ -167,13 +170,15 @@ async function handleAddItem(rawInput: string): Promise<Response> {
     name: parsedName,
     category_id: categoryId,
     quantity_note: quantityNote,
+    is_urgent: isUrgent,
     is_ticked: false,
     created_at: ts,
     updated_at: ts,
   });
 
-  mirrorToDev({ action: "add", name: parsedName, categoryName: category, quantityNote });
-  return alexaResponse(`Added ${rawInput} to the list.`);
+  mirrorToDev({ action: "add", name: parsedName, categoryName: category, quantityNote, isUrgent });
+  const urgentPrefix = isUrgent ? "urgent " : "";
+  return alexaResponse(`Added ${urgentPrefix}${rawInput} to the list.`);
 }
 
 async function handleRemoveItem(rawInput: string): Promise<Response> {

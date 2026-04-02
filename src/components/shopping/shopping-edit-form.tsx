@@ -21,7 +21,7 @@ interface ShoppingEditFormProps {
   onClose: () => void;
   onSave: (
     id: string,
-    data: { name?: string; categoryId?: string; quantityNote?: string | null },
+    data: { name?: string; categoryId?: string; quantityNote?: string | null; isUrgent?: boolean },
   ) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
@@ -37,6 +37,7 @@ export function ShoppingEditForm({
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [quantityNote, setQuantityNote] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
 
@@ -45,6 +46,7 @@ export function ShoppingEditForm({
       setName(item.name);
       setCategoryId(item.categoryId);
       setQuantityNote(item.quantityNote ?? "");
+      setIsUrgent(item.isUrgent);
       setNameError("");
     }
   }, [item]);
@@ -65,6 +67,7 @@ export function ShoppingEditForm({
         name: trimmedName !== item!.name ? trimmedName : undefined,
         categoryId: categoryId !== item!.categoryId ? categoryId : undefined,
         quantityNote: quantityNote.trim() || null,
+        isUrgent: isUrgent !== item!.isUrgent ? isUrgent : undefined,
       });
       onClose();
     } finally {
@@ -151,6 +154,28 @@ export function ShoppingEditForm({
               autoCapitalize="sentences"
               editable={!isSaving}
             />
+
+            <Text style={s.label}>Prioridade</Text>
+            <View style={s.priorityRow}>
+              <TouchableOpacity
+                style={[s.priorityChip, !isUrgent && s.priorityChipComprar]}
+                onPress={() => setIsUrgent(false)}
+                disabled={isSaving}
+              >
+                <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
+                  Comprar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.priorityChip, isUrgent && s.priorityChipUrgente]}
+                onPress={() => setIsUrgent(true)}
+                disabled={isSaving}
+              >
+                <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
+                  Urgente
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={s.buttons}>
               <TouchableOpacity
@@ -252,6 +277,39 @@ const s = StyleSheet.create({
   },
   categoryChipTextSelected: {
     color: "#B5451B",
+    fontWeight: "600",
+  },
+  priorityRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  priorityChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
+  },
+  priorityChipComprar: {
+    borderColor: "#388E3C",
+    backgroundColor: "#E8F5E9",
+  },
+  priorityChipUrgente: {
+    borderColor: "#D32F2F",
+    backgroundColor: "#FFEBEE",
+  },
+  priorityChipText: {
+    fontSize: 13,
+    color: "#555555",
+  },
+  priorityChipTextComprar: {
+    color: "#388E3C",
+    fontWeight: "600",
+  },
+  priorityChipTextUrgente: {
+    color: "#D32F2F",
     fontWeight: "600",
   },
   buttons: {

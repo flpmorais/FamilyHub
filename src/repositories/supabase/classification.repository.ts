@@ -7,6 +7,7 @@ const FALLBACK = (itemName: string): ClassificationResult => ({
   category: OTHER_CATEGORY_NAME,
   parsedName: itemName,
   quantityNote: null,
+  isUrgent: false,
 });
 
 export class SupabaseClassificationRepository implements IClassificationRepository {
@@ -32,6 +33,7 @@ export class SupabaseClassificationRepository implements IClassificationReposito
         category: validCategory,
         parsedName: data?.parsedName || itemName,
         quantityNote: data?.quantityNote ?? null,
+        isUrgent: Boolean(data?.isUrgent),
       };
     } catch (err) {
       logger.warn("ClassificationRepository", "classify failed, using fallback", err);
