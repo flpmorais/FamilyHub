@@ -1,10 +1,9 @@
-import { useCallback, useContext, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { useAuthStore } from '../../../stores/auth.store';
-import { RepositoryContext } from '../../../repositories/repository.context';
 import { PageHeader } from '../../../components/page-header';
 import type { Family } from '../../../types/profile.types';
 
@@ -26,26 +25,8 @@ const SHOPPING_ITEMS = [
 ] as const;
 
 export default function SettingsHubScreen() {
-  const { userAccount, setUserAccount } = useAuthStore();
-  const repositories = useContext(RepositoryContext);
+  const { userAccount } = useAuthStore();
   const [family, setFamily] = useState<Family | null>(null);
-
-  function handleLogout() {
-    Alert.alert('Terminar sessão', 'Tens a certeza que queres sair?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await repositories!.auth.signOut();
-          } finally {
-            setUserAccount(null);
-          }
-        },
-      },
-    ]);
-  }
 
   useFocusEffect(
     useCallback(() => {
@@ -104,13 +85,6 @@ export default function SettingsHubScreen() {
           </TouchableOpacity>
         ))}
 
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Conta</Text>
-        <TouchableOpacity style={s.row} onPress={handleLogout}>
-          <View style={s.iconWrap}>
-            <Icon source="logout" size={22} color="#D32F2F" />
-          </View>
-          <Text style={[s.label, { color: '#D32F2F' }]}>Terminar sessão</Text>
-        </TouchableOpacity>
       </View>
     </ScrollView>
   );
