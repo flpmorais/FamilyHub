@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2']
+stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4']
 classification:
   projectType: 'mobile_app'
   domain: 'general'
@@ -13,12 +13,16 @@ briefCount: 1
 brainstormingCount: 1
 researchCount: 0
 projectDocsCount: 0
-lastEdited: '2026-03-31'
+lastEdited: '2026-04-01-b'
 editHistory:
   - date: '2026-03-27'
     changes: 'V2 Leftovers module expansion — added user journey, full functional requirements, success criteria, product scope, phased development, offline scope, NFR'
   - date: '2026-03-31'
     changes: 'Version rebrand — V1 now includes Vacation & Leftovers (both shipped). V3→V2, V4→V3, V5→V4, V6→V5, V7+→V6+. Updated success criteria (V1 shipped), product scope, phased development, all FR/NFR version refs. V2 Shopping module fully expanded — two user journeys (Alexa voice input, supermarket run), 29 FRs (living list, Alexa Skill, AI categorization, dedup, offline sync), 7 new NFRs (Alexa latency, LLM cost cap, category persistence). Risks updated for V2.'
+  - date: '2026-04-01'
+    changes: 'Version rebrand — split V5 (Recipes+Meal Planning) into V3 Meal Plan and V4 Recipes. Finances V3→V5, Maid V4→V6, Intelligence V6+→V7+. Maid salary integration moved from Finances to Maid. Shopping list generation from meal plan moved to V4 Recipes. Removed offline-first entirely (cancelled, never implemented). Removed Journey 3 (offline), offline FRs (FR37-38 old, FR57 old, FR83-85 old), offline NFRs (NFR4 old cache, NFR13-14 old queue, NFR19 old Supabase unreachable). Renumbered all FRs (88 total→88 total) and NFRs (28→24). Added V3/V4 dependency risk.'
+  - date: '2026-04-01'
+    changes: 'V3 Meal Plan full expansion — added Journey 8 (weekly meal planning), V3 success criteria signal, expanded Product Scope and Phase 3 descriptions. Replaced 2 placeholder FRs (FR81-82) with 19 detailed FRs (FR81-FR99): meal plan configuration (3), core CRUD (8), participant management (3), leftovers integration (2), dashboard widget (3). Renumbered future module FRs to FR100-FR105. Added 2 NFRs (NFR25 week view load, NFR26 default config propagation). Total FRs: 105. Total NFRs: 26.'
 ---
 
 # Product Requirements Document - FamilyHub
@@ -32,17 +36,17 @@ FamilyHub is a personal family management mobile app built by Filipe Morais excl
 
 The app is built for a specific household structure: two symmetric admin users (the couple), two child profiles that will eventually become accounts, and a scoped employee user (the maid). It consolidates vacation planning, shopping, leftovers tracking, household finances, maid billing, recipes, and meal planning into a single integrated system — built in Portuguese, with no generic defaults, and no design compromises for a hypothetical broader audience.
 
-V1 shipped Vacation and Leftovers together — both modules are in active family use. Remaining modules are delivered incrementally across four versions (V2 Shopping → V5 Recipes), each shipping one complete, usable module. AI features and background jobs are explicitly post-V5. The backend runs on Supabase (free tier). Every external service is accessed through a swappable repository pattern interface. The app is distributed as a private APK — no app store involved.
+V1 shipped Vacation and Leftovers together — both modules are in active family use. Remaining modules are delivered incrementally across five versions (V2 Shopping → V6 Maid), each shipping one complete, usable module. AI features and background jobs are explicitly post-V6. The backend runs on Supabase (free tier). Every external service is accessed through a swappable repository pattern interface. The app is distributed as a private APK — no app store involved.
 
 ### What Makes This Special
 
 **One family, perfectly served.** No market fit to validate, no onboarding funnel, no generic defaults. Every design decision — budget category names, shopping list sections, UI language, the maid's purpose-built experience, private spending envelopes for each spouse — reflects the exact reality of this household.
 
-**Modules that integrate meaningfully.** Vacation status adjusts household budget proportionally. Maid salary auto-posts as a household expense. Meal plan generates a deduplicated shopping list. Leftovers surface in meal planning before expiry. Shopping list integrates with meal planning and recipes. The system behaves as a coherent whole, not a collection of features.
+**Modules that integrate meaningfully.** Vacation status adjusts household budget proportionally. Maid salary auto-posts as a household expense. Recipes generate a deduplicated shopping list from the meal plan. Leftovers surface in meal planning before expiry. Shopping list integrates with meal planning and recipes. The system behaves as a coherent whole, not a collection of features.
 
 **Built by the person who lives the problem.** The builder's prior OutSystems app validated the vacation module concept but was constrained by licensing. FamilyHub is the unconstrained successor — full-stack, properly architected, designed to grow with the family over years.
 
-**Vendor-independent by design.** The repository pattern ensures no vendor lock-in. Replacing Supabase, Google Drive, or any other service means rewriting one module — nothing else.
+**Vendor-independent by design.** The repository pattern ensures no vendor lock-in. Replacing Supabase, Google Drive, or any other service means rewriting one service module — nothing else.
 
 **Voice-first where it matters.** The shopping list integrates with Amazon Alexa via a custom Skill — items are added hands-free from the kitchen. AI categorization (cheap LLM) assigns items to shopping categories automatically, learning from admin reclassifications.
 
@@ -50,7 +54,7 @@ V1 shipped Vacation and Leftovers together — both modules are in active family
 
 - **Project Type:** Cross-platform mobile app (Android-first), private APK sideload distribution — no app store
 - **Domain:** General / Personal Productivity
-- **Complexity:** Low-Medium — technically non-trivial (real-time sync, offline-first, multi-module integration, service abstraction) but zero regulatory or compliance overhead
+- **Complexity:** Low-Medium — technically non-trivial (real-time sync, multi-module integration, service abstraction) but zero regulatory or compliance overhead
 - **Project Context:** Greenfield
 
 ---
@@ -65,13 +69,16 @@ FamilyHub has no commercial success metrics. Success is personal and behavioural
 Filipe built the app and will rationalise using it. Angela has no such bias. If she uses FamilyHub willingly and considers it a net improvement to how the family operates, the app works. If she describes it as extra work or stops using it, the app has failed — regardless of technical quality or feature completeness.
 
 **V1 signal — one complete vacation planned end-to-end. ✅ SHIPPED**
-V1 Vacation module is in active family use. Packing lists, templates, task tracking, and offline sync are operational.
+V1 Vacation module is in active family use. Packing lists, templates, and task tracking are operational.
 
 **V1 signal — leftovers tracked for one full month. ✅ SHIPPED**
 V1 Leftovers module is in active family use. Both admins log leftovers, track doses, and act on expiry through the dashboard widget.
 
 **V2 signal — shopping list used every supermarket visit.**
 Within one month of V2 shipping, both admins use the shared shopping list for every supermarket trip. Voice entry and real-time sync eliminate the memory test. The subjective test: did anyone forget something they needed?
+
+**V3 signal — meal plan used every week.**
+Within one month of V3 shipping, both admins use the weekly meal plan consistently. The plan is prepared before the week starts, adjusted as reality changes, and the family stops asking "what are we eating tonight?" The subjective test: does the family eat better and waste less because meals are planned?
 
 **Ongoing signal — modules used without friction.**
 Each module in active use should feel like a shortcut, not an obligation. The moment any module becomes a chore, that module has failed its design goal.
@@ -84,7 +91,6 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 
 ### Technical Success
 
-- **Offline-first:** Core features (packing lists, shopping list, hours logging) function fully without network connectivity. Changes sync on reconnect without data loss.
 - **Real-time sync:** When both admins are online, list changes (shopping ticks, packing status updates) propagate without requiring manual refresh.
 - **APK distribution:** App installs cleanly via sideloaded APK on Android devices. No Play Store dependency.
 - **Free-tier backend:** Supabase usage stays within free tier limits at family scale. No unexpected cloud costs.
@@ -98,6 +104,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | Angela adopted | Using app without prompting or complaints | ✅ Achieved |
 | No leftover spoilage | Leftovers consistently logged and acted on before expiry — thrown-out doses trend downward over first 3 months of use | ✅ Shipped (V1) |
 | Shopping friction eliminated | Shopping list used every supermarket visit | V2 (next) |
+| Meal planning adopted | Meal plan prepared weekly, adjusted in real-time, "what's for dinner?" eliminated | V3 (planned) |
 | Version gate reached | Each module in daily use before next version begins | V1 gate passed |
 
 ---
@@ -106,12 +113,13 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 
 | Version | Module | Core Capability | Status |
 |---|---|---|---|
-| V1 | Vacation & Leftovers | Packing lists, booking tasks, templates, offline sync; fridge inventory with dose tracking, per-item expiry, eaten/thrown-out counters, dashboard widget, full list with infinite scroll | ✅ Shipped |
+| V1 | Vacation & Leftovers | Packing lists, booking tasks, templates; fridge inventory with dose tracking, per-item expiry, eaten/thrown-out counters, dashboard widget, full list with infinite scroll | ✅ Shipped |
 | V2 | Shopping | Living shared list (tick/untick), Alexa Skill voice input, AI categorization (cheap LLM), category-grouped display, real-time sync, dashboard widget (open item count) | Next |
-| V3 | Finances | Budgets, envelopes, expense tracking, maid salary integration | Planned |
-| V4 | Maid | Hours logging, billing, payment register, PDF payslips | Planned |
-| V5 | Recipes | Import, search, scaling, meal plan, shopping list generation | Planned |
-| V6+ | Intelligence | AI features, push notifications, Google Drive/Calendar, child accounts | Vision |
+| V3 | Meal Plan | 7-day week grid (lunch + dinner), configurable default participants per slot, meal types (home-cooked, eating out, takeaway, leftovers), per-meal participant overrides, slot skip/enable overrides, leftovers linking to previous meals, dashboard widget (next meal + planning reminders) | Planned |
+| V4 | Recipes | Import, search, scaling, organisation, deduplicated shopping list generation from meal plan | Planned |
+| V5 | Finances | Budgets, envelopes, expense tracking | Planned |
+| V6 | Maid | Hours logging, billing, payment register, PDF payslips, maid salary as household expense | Planned |
+| V7+ | Intelligence | AI features, push notifications, Google Drive/Calendar, child accounts | Vision |
 
 See **Project Scoping & Phased Development** for full V1 capability list and phased roadmap.
 
@@ -151,17 +159,7 @@ On his phone, Filipe's list updates in real-time. He sees the new item, the tick
 
 ---
 
-### Journey 3: Filipe — Offline on the Plane (Edge Case, Offline Resilience)
-
-The family boards the plane. Airplane mode on. Filipe opens FamilyHub — loads fully from local cache. He marks the last three items **Packed**, adds a note to one item. Angela, also offline, marks two overlapping items **Packed**.
-
-The plane lands. Both phones reconnect. FamilyHub syncs. Overlapping changes resolve via last-write-wins — no conflict dialogs, no data loss. The list converges silently.
-
-**Capabilities revealed:** offline-first data layer, full local cache, sync-on-reconnect, last-write-wins conflict resolution.
-
----
-
-### Journey 4: Filipe — First-Time Setup (Admin Operations, V1)
+### Journey 3: Filipe — First-Time Setup (Admin Operations, V1)
 
 Filipe installs the APK, signs in with Google. App is empty.
 
@@ -173,7 +171,7 @@ Filipe installs the APK, signs in with Google. App is empty.
 
 ---
 
-### Journey 5: Filipe — Configuring Categories, Tags, and Templates (Setup & Configuration)
+### Journey 4: Filipe — Configuring Categories, Tags, and Templates (Setup & Configuration)
 
 Before planning the first vacation, Filipe sets up the app's vocabulary.
 
@@ -189,7 +187,7 @@ When creating the Algarve vacation, he selects both templates. Items are merged,
 
 ---
 
-### Journey 6: Filipe — Managing Leftovers (Daily Fridge Loop, V1)
+### Journey 5: Filipe — Managing Leftovers (Daily Fridge Loop, V1)
 
 It's Sunday evening. Filipe made lasagna — enough for the family plus leftovers. He opens FamilyHub, taps the Leftovers module, and adds: "Lasagna — 4 doses — 5 days". The item appears in the list immediately.
 
@@ -207,7 +205,7 @@ Scrolling down in the full list, Filipe can see the closed items: lasagna (4 eat
 
 ---
 
-### Journey 7: Filipe — Adding Items from the Kitchen (Alexa Voice Input, V2)
+### Journey 6: Filipe — Adding Items from the Kitchen (Alexa Voice Input, V2)
 
 It's Wednesday evening. Filipe is cooking dinner and reaches for olive oil — nearly empty. Without touching his phone, he says: *"Alexa, tell FamilyHub to add olive oil."* The Alexa Skill sends "olive oil" to FamilyHub's backend. The system checks the shopping list — olive oil exists but is ticked (shopped last week). The system unticks it. No LLM call needed.
 
@@ -225,7 +223,7 @@ He also notices "azeite" and "olive oil" both on the list — Alexa sometimes ca
 
 ---
 
-### Journey 8: Angela — Saturday Supermarket Run (Shopping at the Store, V2)
+### Journey 7: Angela — Saturday Supermarket Run (Shopping at the Store, V2)
 
 Saturday morning. Angela grabs her phone and heads to Continente. She opens FamilyHub, taps the Shopping widget. **14 items** unticked.
 
@@ -243,29 +241,55 @@ Back home, Filipe checks the app. He sees what Angela bought, what's still pendi
 
 ---
 
+### Journey 8: Filipe — Planning the Week's Meals (Meal Plan, V3)
+
+It's Sunday afternoon. Filipe opens FamilyHub and taps the Meal Plan widget. It reads: **"No meals planned for next week."** He taps through to the weekly view.
+
+The week grid shows Monday through Sunday, two rows: Lunch and Dinner. Some slots are greyed out — Thursday lunch is marked "don't plan" (everyone eats at work/school). Weekend lunches and all dinners show the default participants: Filipe, Angela, Aurora. Weekday lunches show Filipe and Angela only. Isabel is too young to be in the defaults.
+
+Filipe starts filling in the week. Monday dinner: "Grilled chicken with rice". Tuesday dinner: "Lasagna". He taps Wednesday dinner, selects meal type **Leftovers**, and links it to Tuesday's lasagna. The slot shows "Leftovers — Lasagna" with a visual link indicator.
+
+Thursday dinner: he selects **Eating out** and types "Cervejaria Ramiro". Friday dinner: "Fish and chips". Saturday lunch: **Takeaway** — "Sushi from Noori". Saturday dinner: "Steak". Sunday lunch: "Roast lamb". Sunday dinner: he leaves empty for now.
+
+For Monday lunch, he and Angela are both working from home. He types "Salads". Wednesday lunch — it's a public holiday. The slot is normally skipped (weekday lunch, they usually eat separately), but Filipe taps it to **enable** it for this week. He types "Grilled sardines" and the default participants (Filipe + Angela) appear. He adds Aurora — she'll be home too.
+
+For Saturday dinner, Aurora is sleeping at a friend's house. Filipe taps the participants and removes Aurora from that meal. The steak is now for two.
+
+The week is mostly planned. The dashboard widget now reads: **"Next: Monday Lunch — Salads (Filipe, Angela)"**.
+
+Tuesday evening. Filipe made lasagna but the family ate more than expected — only 1 dose left instead of the planned 2 dinners' worth. He opens the meal plan, removes Wednesday dinner's leftovers link, and replaces it with "Pasta carbonara". Quick adjustment, plan stays current.
+
+Thursday. Angela checks the dashboard at 5pm. Widget reads: **"Next: Dinner — Cervejaria Ramiro (Filipe, Angela, Aurora)"**. She knows exactly where the family is eating tonight.
+
+The following Sunday, Filipe hasn't opened the meal plan yet. The widget reads: **"No meals planned for next week"** — a gentle nudge to plan ahead.
+
+**Capabilities revealed:** 7-day week grid (lunch + dinner), configurable default participants per slot, meal types (home-cooked, eating out, takeaway, leftovers), leftovers linking to previous meals, optional detail for eating out/takeaway, per-meal participant override (add/remove), enable a normally-skipped slot, disable a normally-enabled slot, multi-week navigation (current, next, past, future), dashboard widget (next meal + planning reminder), real-time sync between admins.
+
+---
+
 ### Journey Requirements Summary
 
 | Journey | Module | Capabilities Required |
 |---|---|---|
 | 1. Vacation planning | V1 Vacation | Vacation CRUD (image/location/dates/participants), lifecycle, pinning, tasks, document check + child tasks, template application with participant filter, packing list with quantities and six statuses |
 | 2. Collaborative packing | V1 Vacation | Real-time sync, profile filtering, multi-admin item management |
-| 3. Offline use | V1 Cross-cutting | Offline-first, local cache, sync-on-reconnect, last-write-wins |
-| 4. First-time setup | V1 Cross-cutting | Profile CRUD, account-to-profile linking, admin user management |
-| 5. Configuration | V1 Cross-cutting | User-defined categories + tags, template CRUD, template tagging |
-| 6. Leftovers (V1) | V1 Leftovers | Leftover CRUD (name/doses/expiry), eaten counter (per dose), throw out (bulk remaining), auto-close, expiry flagging, dashboard widget (meals + doses + nearest expiry), full list with active/closed sorting, infinite scroll |
-| 7. Alexa voice input (V2) | V2 Shopping | Alexa Skill (add/remove/query/set quantity), AI categorization (cheap LLM) for unknown items, untick for known items, category reclassification, free-text quantity |
-| 8. Supermarket shopping (V2) | V2 Shopping | Living list (tick/untick, no lifecycle), category-grouped display, real-time sync, ticked items greyed, carry-over, dashboard widget (open item count) |
+| 3. First-time setup | V1 Cross-cutting | Profile CRUD, account-to-profile linking, admin user management |
+| 4. Configuration | V1 Cross-cutting | User-defined categories + tags, template CRUD, template tagging |
+| 5. Leftovers (V1) | V1 Leftovers | Leftover CRUD (name/doses/expiry), eaten counter (per dose), throw out (bulk remaining), auto-close, expiry flagging, dashboard widget (meals + doses + nearest expiry), full list with active/closed sorting, infinite scroll |
+| 6. Alexa voice input (V2) | V2 Shopping | Alexa Skill (add/remove/query/set quantity), AI categorization (cheap LLM) for unknown items, untick for known items, category reclassification, free-text quantity |
+| 7. Supermarket shopping (V2) | V2 Shopping | Living list (tick/untick, no lifecycle), category-grouped display, real-time sync, ticked items greyed, carry-over, dashboard widget (open item count) |
+| 8. Weekly meal planning (V3) | V3 Meal Plan | 7-day week grid (lunch + dinner), configurable default participants, meal types (home-cooked, eating out, takeaway, leftovers), leftovers linking, participant overrides, slot skip/enable overrides, dashboard widget (next meal + planning reminder), real-time sync |
 
 ---
 
 ## Domain-Specific Requirements
 
-### Data Privacy Between Users
+### Data Privacy Between Users (V5+)
 
 FamilyHub enforces intra-household privacy boundaries as first-class data model constraints — not UI-layer restrictions:
 
-- **Private spending envelopes:** Each admin's personal budget category is a data black box to the other admin. The dashboard shows "Personal — Filipe: 80% spent" without line items. Neither spouse can read the other's personal transactions. Enforced at the data model level, not the display layer.
-- **Maid billing isolation:** Each maid account sees only her own billing history. Historical records from prior maids are visible only to admins, isolated by account period. A new maid cannot access any prior maid's data.
+- **Private spending envelopes (V5):** Each admin's personal budget category is a data black box to the other admin. The dashboard shows "Personal — Filipe: 80% spent" without line items. Neither spouse can read the other's personal transactions. Enforced at the data model level, not the display layer.
+- **Maid billing isolation (V6):** Each maid account sees only her own billing history. Historical records from prior maids are visible only to admins, isolated by account period. A new maid cannot access any prior maid's data.
 - **Child profiles:** Aurora and Isabel exist as profiles but have no account credentials. Their data is accessible to admins only until they have their own accounts.
 
 ### GDPR Considerations (Portugal / EU)
@@ -301,7 +325,7 @@ Three candidates remain under evaluation:
 
 | Framework | Strengths | Concerns |
 |---|---|---|
-| Flutter | Strong offline support, Dart type safety, high performance, single codebase | Larger APK size, Dart learning curve if unfamiliar |
+| Flutter | Dart type safety, high performance, single codebase | Larger APK size, Dart learning curve if unfamiliar |
 | React Native | JavaScript ecosystem, large community, strong Supabase SDK support | Bridge overhead, more native setup complexity |
 | Expo (React Native managed) | Fastest bootstrap, EAS OTA updates, easiest sideload APK generation | EAS build dependency, limited native module access in managed workflow |
 
@@ -323,34 +347,20 @@ Permissions scoped strictly to what is needed per version:
 | Permission | Version | Purpose |
 |---|---|---|
 | `INTERNET` | V1 | Supabase sync, Google Sign-In |
-| `READ/WRITE_EXTERNAL_STORAGE` | V1 | Local offline cache persistence |
 | `CAMERA` | V2+ (optional) | Profile photo capture |
-| `RECORD_AUDIO` | V2 (nice-to-have) | In-app voice entry for shopping list items (deprioritized — Alexa is primary voice channel) |
-| `CAMERA` (extended) | V6+ | Receipt OCR, recipe photo scanning |
-| `POST_NOTIFICATIONS` | V6+ | Push notification delivery |
+| `RECORD_AUDIO` | V2 (nice-to-have) | In-app voice entry for shopping list items (deprioritised — Alexa is primary voice channel) |
+| `CAMERA` (extended) | V7+ | Receipt OCR, recipe photo scanning |
+| `POST_NOTIFICATIONS` | V7+ | Push notification delivery |
 
-V1 requires only `INTERNET` and storage permissions — minimal permission surface.
-
-### Offline Mode
-
-Offline-first is a first-class architectural requirement from V1, not a progressive enhancement.
-
-- **Scope:** Core features must function fully without network: packing list CRUD, vacation data, item status updates
-- **Local cache:** All user data persisted locally on device. App loads from cache on startup regardless of connectivity state
-- **Sync strategy:** Changes made offline are queued and applied to Supabase on reconnect
-- **Conflict resolution:** Last-write-wins — no conflict dialogs, no manual merge required. Silent convergence
-- **Per-version offline scope:**
-  - V1: Packing lists, vacation data, profile data, leftover item CRUD, dose tracking, expiry calculations (shipped)
-  - V2: Shopping list tick/add operations
-  - V4: Maid hours logging (critical — maid may be on-site without reliable connectivity)
+V1 requires only `INTERNET` — minimal permission surface.
 
 ### Push Notification Strategy
 
-Push notifications are explicitly **out of scope for V1–V5**.
+Push notifications are explicitly **out of scope for V1–V6**.
 
-- V1–V5: In-app alerts only (e.g., leftover expiry banners in V1, booking task urgency indicators in V1 dashboard widget)
-- V6+: Background jobs and push notifications added as a dedicated platform capability once core modules are stable
-- No notification permission requested until V6+
+- V1–V6: In-app alerts only (e.g., leftover expiry banners in V1, booking task urgency indicators in V1 dashboard widget)
+- V7+: Background jobs and push notifications added as a dedicated platform capability once core modules are stable
+- No notification permission requested until V7+
 
 ### Store Compliance & Distribution
 
@@ -376,7 +386,7 @@ No app store compliance requirements apply.
 
 **Status:** ✅ Shipped and in active family use.
 
-**Core User Journeys Supported:** All six V1 journeys — vacation planning, collaborative packing, offline use, first-time setup, configuration, leftovers management.
+**Core User Journeys Supported:** All five V1 journeys — vacation planning, collaborative packing, first-time setup, configuration, leftovers management.
 
 **Shipped Capabilities:**
 
@@ -397,7 +407,6 @@ No app store compliance requirements apply.
 - Leftovers dashboard widget (meal count + dose count + nearest expiry)
 - Full leftovers list with active/closed sorting and infinite scroll
 - Expired item visual flagging
-- Offline-first with last-write-wins sync
 - Real-time sync between admins
 - Private APK distribution with OTA update check
 
@@ -409,22 +418,23 @@ No app store compliance requirements apply.
 
 **Deferred from V2:** Maid access, multiple lists, in-app voice input (nice-to-have only), cross-language deduplication.
 
-### Phase 3 — V3–V5: Household Operations
+### Phase 3 — V3–V6: Household Operations
 
-**V3 — Finances:** Budgets, expense tracking, private spending envelopes per admin (RLS-enforced).
+**V3 — Meal Plan:** 7-day week grid with lunch and dinner slots. Configurable default participants per slot (which profiles eat at which day+meal). Slots can be marked "don't plan" by default (e.g., Thursday lunch — everyone eats at work). Four meal types: home-cooked (free text), eating out (with optional restaurant detail), takeaway (with optional order detail), leftovers (linked to a previous home-cooked meal in the plan). Per-meal participant overrides — add/remove profiles, enable skipped slots (public holidays), disable active slots (change of plans). Dashboard widget shows next upcoming meal; warns if no meal set or if next week is unplanned. Foundation for recipe-driven shopping list generation in V4.
 
-**V4 — Maid:** Hours logging, billing, payment register, PDF payslips.
+**V4 — Recipes:** Import, search, scaling, and organisation. Generates a deduplicated shopping list from the weekly meal plan. Requires V3 Meal Plan as prerequisite.
 
-**V5 — Recipes + Meal Planning:** Import, search, scaling, meal plan, deduplicated shopping list generation.
+**V5 — Finances:** Budgets, expense tracking, private spending envelopes per admin (RLS-enforced).
 
-### Vision — V6+: Intelligence Layer
+**V6 — Maid:** Hours logging, billing, payment register, PDF payslips. Maid salary auto-posts as a household expense (integrates with V5 Finances).
+
+### Vision — V7+: Intelligence Layer
 
 AI features (receipt OCR, recipe URL/video/photo import), push notifications, background jobs, Google Drive vault, Google Calendar deadline sync. Child accounts (Aurora, Isabel) also deferred here.
 
 ### Risk Mitigation Strategy
 
 **Technical Risks:**
-- *Offline-first + real-time sync is the hardest V1 requirement.* ✅ Resolved — sync layer implemented and stable in V1.
 - *Framework decision is a V1 blocker.* ✅ Resolved — Expo selected, V1 shipped.
 - *Alexa Skill certification (V2).* Mitigation: Alexa Skills for personal/household use can be deployed without public certification. If Amazon changes policy, the Skill can be replaced with a webhook-based alternative.
 - *LLM API dependency (V2).* Mitigation: categorization failure falls back to "Other" category — LLM unavailability never blocks item creation. LLM provider is swappable via repository pattern.
@@ -436,6 +446,7 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 
 **Resource Risks:**
 - *Scope creep (solo developer).* Mitigation: strict version gates. Nothing from V3+ is added to V2, even if implementation seems easy. The gate is behavioural, not feature-based.
+- *V3/V4 dependency chain.* Meal Plan (V3) must ship before Recipes (V4) can generate shopping lists from it. If V3 stalls, V4 is blocked. Mitigation: V3 scope is deliberately narrow (planning/scheduling only) to minimise delay risk.
 - *Supabase free tier limits.* Mitigation: family-scale traffic is negligible. Free tier monitored; paid upgrade is a defined fallback (low cost, no architecture change needed).
 
 ---
@@ -464,7 +475,7 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **FR12:** Admin can advance a vacation through its lifecycle: Planning → Upcoming → Active → Completed
 - **FR13:** Admin can pin or unpin any vacation to the household dashboard
 - **FR14:** System applies a pin state household-wide — pinned vacations appear on all Admin devices simultaneously
-- **FR15:** System supports multiple simultaneously pinned vacations
+- **FR15:** System supports two or more simultaneously pinned vacations
 
 ### Booking Tasks
 
@@ -499,88 +510,117 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **FR35:** Vacation widget displays the vacation name, participant count, and incomplete booking tasks sorted by next due date
 - **FR36:** Admin can navigate from a dashboard widget to the full vacation detail view
 
-### Data Sync & Offline
+### Data Sync & Updates
 
-- **FR37:** System persists all vacation, packing, profile, category, and leftover (V1) data locally on-device for offline access
-- **FR38:** System queues data changes made while offline and syncs them to the backend on reconnect
-- **FR39:** System resolves concurrent Admin edit conflicts using last-write-wins without presenting conflict dialogs to the user
-- **FR40:** System checks for a newer app version on launch and notifies the user non-blockingly if an update is available
+- **FR37:** System propagates data changes from one Admin to all other connected Admin devices in real-time
+- **FR38:** System resolves concurrent Admin edit conflicts using last-write-wins without presenting conflict dialogs to the user
+- **FR39:** System checks for a newer app version on launch and notifies the user non-blockingly if an update is available
 
-### Data Privacy (V3+)
+### Data Privacy (V5+)
 
-- **FR41:** System ensures that one Admin's private spending envelope transactions are never visible to any other user — enforced at the data layer, not the display layer
-- **FR42:** System partitions Maid account data such that a new Maid account cannot access any prior Maid's records
-- **FR43:** System enforces all privacy boundaries through database-level access control policies, not application-level filtering
+- **FR40:** System ensures that one Admin's private spending envelope transactions are never visible to any other user — enforced at the data layer, not the display layer (V5)
+- **FR41:** System partitions Maid account data such that a new Maid account cannot access any prior Maid's records (V6)
+- **FR42:** System enforces all privacy boundaries through database-level access control policies, not application-level filtering (V5+)
 
 ### Leftovers Management (V1)
 
-- **FR44:** Admin can add a leftover item with a name, total doses, and expiry duration in days (default: 5 days, overridable at creation)
-- **FR45:** System records the date added automatically and calculates the expiry date from date added + expiry duration
-- **FR46:** Admin can tap "Eaten" on an active leftover item to increment the eaten dose counter by one
-- **FR47:** Admin can tap "Throw out" on an active leftover item to discard all remaining doses at once, setting thrown-out doses to the remaining count
-- **FR48:** System enforces that doses eaten + doses thrown out never exceeds total doses
-- **FR49:** System closes a leftover item automatically when doses eaten + doses thrown out equals total doses
-- **FR50:** Admin can edit an active leftover item's name, total doses, and expiry duration
-- **FR51:** Admin can delete a leftover item
-- **FR52:** System visually flags active leftover items that have passed their expiry date (highlighted/red)
-- **FR53:** Dashboard displays a Leftovers widget showing: count of active items (meals), sum of remaining doses across active items, and the name and expiry date of the nearest-expiring active item
-- **FR54:** Admin can navigate from the Leftovers dashboard widget to the full leftovers list
-- **FR55:** Full leftovers list displays all items (active and closed), sorted by status (active first) then by expiry date (nearest first for active, most recent first for closed)
-- **FR56:** Full leftovers list loads items progressively via infinite scroll
-- **FR57:** System persists all leftover data locally on-device for offline access and syncs changes to the backend on reconnect
+- **FR43:** Admin can add a leftover item with a name, total doses, and expiry duration in days (default: 5 days, overridable at creation)
+- **FR44:** System records the date added automatically and calculates the expiry date from date added + expiry duration
+- **FR45:** Admin can tap "Eaten" on an active leftover item to increment the eaten dose counter by one
+- **FR46:** Admin can tap "Throw out" on an active leftover item to discard all remaining doses at once, setting thrown-out doses to the remaining count
+- **FR47:** System enforces that doses eaten + doses thrown out never exceeds total doses
+- **FR48:** System closes a leftover item automatically when doses eaten + doses thrown out equals total doses
+- **FR49:** Admin can edit an active leftover item's name, total doses, and expiry duration
+- **FR50:** Admin can delete a leftover item
+- **FR51:** System visually flags active leftover items that have passed their expiry date (highlighted/red)
+- **FR52:** Dashboard displays a Leftovers widget showing: count of active items (meals), sum of remaining doses across active items, and the name and expiry date of the nearest-expiring active item
+- **FR53:** Admin can navigate from the Leftovers dashboard widget to the full leftovers list
+- **FR54:** Full leftovers list displays all items (active and closed), sorted by status (active first) then by expiry date (nearest first for active, most recent first for closed)
+- **FR55:** Full leftovers list loads items progressively via infinite scroll
 
 ### Shopping Management (V2)
 
 #### Shopping List Core
 
-- **FR58:** The household has a single shared shopping list with no lifecycle or status — items are either unticked (needed) or ticked (shopped)
-- **FR59:** Admin can add an item to the shopping list with a name and optional free-text quantity note
-- **FR60:** Admin can tick an item to mark it as shopped or untick a previously ticked item to mark it as needed again
-- **FR61:** Admin can edit any shopping item's name, category, and quantity note
-- **FR62:** Admin can delete any shopping item from the list
-- **FR63:** Shopping list displays items grouped by category, with unticked items above ticked items within each group
-- **FR64:** Ticked items remain visible (greyed out) in the list — they are not hidden or archived
-- **FR65:** System propagates shopping list changes from one Admin to all other connected Admin devices in real-time
-- **FR66:** Dashboard displays a Shopping widget showing the count of unticked (open) items
-- **FR67:** Admin can navigate from the Shopping dashboard widget to the full shopping list
+- **FR56:** The household has a single shared shopping list with no lifecycle or status — items are either unticked (needed) or ticked (shopped)
+- **FR57:** Admin can add an item to the shopping list with a name and optional free-text quantity note
+- **FR58:** Admin can tick an item to mark it as shopped or untick a previously ticked item to mark it as needed again
+- **FR59:** Admin can edit any shopping item's name, category, and quantity note
+- **FR60:** Admin can delete any shopping item from the list
+- **FR61:** Shopping list displays items grouped by category, with unticked items above ticked items within each group
+- **FR62:** Ticked items remain visible (greyed out) in the list — they are not hidden or archived
+- **FR63:** System propagates shopping list changes from one Admin to all other connected Admin devices in real-time
+- **FR64:** Dashboard displays a Shopping widget showing the count of unticked (open) items
+- **FR65:** Admin can navigate from the Shopping dashboard widget to the full shopping list
 
 #### AI Categorization
 
-- **FR68:** When a new item is added that has never existed in the shopping list, the system auto-categorizes it using an AI classification service and assigns the returned category automatically
-- **FR69:** When an item is added that already exists in the shopping list (ticked), the system unticks it without calling the LLM — the existing category is preserved
-- **FR70:** Admin can reclassify any item to a different category; the system persists this reclassification as the item's permanent category for future additions
-- **FR71:** Admin can create, edit, and delete shopping categories
-- **FR72:** System ships with a default set of shopping categories: Dairy, Meat, Fish, Fruit, Vegetables, Bakery, Frozen, Pantry, Beverages, Snacks, Spices & Condiments, Eggs, Cleaning, Hygiene, Baby, Other
-- **FR73:** If the LLM is unreachable, the item is added under the "Other" category — categorization failure never blocks item creation
+- **FR66:** When a new item is added that has never existed in the shopping list, the system auto-categorizes it using an AI classification service and assigns the returned category automatically
+- **FR67:** When an item is added that already exists in the shopping list (ticked), the system unticks it without calling the LLM — the existing category is preserved
+- **FR68:** Admin can reclassify any item to a different category; the system persists this reclassification as the item's permanent category for future additions
+- **FR69:** Admin can create, edit, and delete shopping categories
+- **FR70:** System ships with a default set of shopping categories: Dairy, Meat, Fish, Fruit, Vegetables, Bakery, Frozen, Pantry, Beverages, Snacks, Spices & Condiments, Eggs, Cleaning, Hygiene, Baby, Other
+- **FR71:** If the LLM is unreachable, the item is added under the "Other" category — categorization failure never blocks item creation
 
 #### Alexa Skill Integration
 
-- **FR74:** A custom Alexa Skill allows users to add items to the FamilyHub shopping list by voice command (e.g., "Alexa, tell FamilyHub to add olive oil")
-- **FR75:** The Alexa Skill supports removing items from the shopping list by voice (e.g., "Alexa, tell FamilyHub to remove olive oil")
-- **FR76:** The Alexa Skill supports querying whether an item exists on the list (e.g., "Alexa, do I have milk on the FamilyHub list?")
-- **FR77:** The Alexa Skill supports querying the last item added (e.g., "Alexa, what was the last item I added to FamilyHub?")
-- **FR78:** The Alexa Skill supports setting a quantity note on an item (e.g., "Alexa, tell FamilyHub to set the quantity of milk to 3 packs")
-- **FR79:** The Alexa Skill communicates with FamilyHub's backend via a dedicated API endpoint authenticated with a household-level API key
-- **FR80:** If the Alexa Skill receives a duplicate item (already unticked on the list), it responds with a confirmation that the item is already on the list without creating a duplicate
+- **FR72:** A custom Alexa Skill allows users to add items to the FamilyHub shopping list by voice command (e.g., "Alexa, tell FamilyHub to add olive oil")
+- **FR73:** The Alexa Skill supports removing items from the shopping list by voice (e.g., "Alexa, tell FamilyHub to remove olive oil")
+- **FR74:** The Alexa Skill supports querying whether an item exists on the list (e.g., "Alexa, do I have milk on the FamilyHub list?")
+- **FR75:** The Alexa Skill supports querying the last item added (e.g., "Alexa, what was the last item I added to FamilyHub?")
+- **FR76:** The Alexa Skill supports setting a quantity note on an item (e.g., "Alexa, tell FamilyHub to set the quantity of milk to 3 packs")
+- **FR77:** The Alexa Skill communicates with FamilyHub's backend via a dedicated API endpoint authenticated with a household-level API key
+- **FR78:** If the Alexa Skill receives a duplicate item (already unticked on the list), it responds with a confirmation that the item is already on the list without creating a duplicate
 
 #### Deduplication
 
-- **FR81:** When an admin adds an item via the app that matches an existing ticked item (case-insensitive), the system prompts to untick the existing item rather than creating a duplicate
-- **FR82:** When an admin adds an item that matches an existing unticked item, the system flags the duplicate and prevents creation
+- **FR79:** When an admin adds an item via the app that matches an existing ticked item (case-insensitive), the system prompts to untick the existing item rather than creating a duplicate
+- **FR80:** When an admin adds an item that matches an existing unticked item, the system flags the duplicate and prevents creation
 
-#### Offline & Sync
+### Meal Plan Management (V3)
 
-- **FR83:** System persists all shopping list data locally on-device for offline access
-- **FR84:** Tick/untick operations made while offline are queued and synced to the backend on reconnect
-- **FR85:** System resolves concurrent tick/untick conflicts using last-write-wins without presenting conflict dialogs
+#### Meal Plan Configuration
 
-### Future Module Capabilities (V3–V5)
+- **FR81:** Admin can configure default participants per meal slot — assigning which family profiles eat at each day-of-week + meal combination (e.g., Filipe + Angela + Aurora for all dinners, Filipe + Angela for weekday lunches)
+- **FR82:** Admin can mark any day-of-week + meal slot as "don't plan" by default (e.g., Thursday lunch — everyone eats at work/school)
+- **FR83:** System applies the configured defaults automatically when a new meal plan week is created — pre-populating participant lists and skipping "don't plan" slots
 
-- **FR86:** Admin can record household income and expenses against budget categories and envelopes (V3)
-- **FR87:** Maid can log daily work hours with a single-tap interaction (V4)
-- **FR88:** Admin can generate a billing statement and payslip for the Maid for any period (V4)
-- **FR89:** Admin can import, search, scale, and organise recipes (V5)
-- **FR90:** Admin can build a weekly meal plan and generate a deduplicated shopping list from it (V5)
+#### Meal Plan Core
+
+- **FR84:** Admin can view the meal plan for any week — current, past, or future — displayed as a 7-day grid with lunch and dinner rows
+- **FR85:** Admin can navigate between weeks: previous, current, next, and jump to any specific week
+- **FR86:** Admin can create a meal entry for any lunch or dinner slot with a free-text name (e.g., "Grilled chicken with rice")
+- **FR87:** Admin can edit any existing meal entry's name, type, detail, or participants
+- **FR88:** Admin can delete a meal entry from any slot
+- **FR89:** Admin can set a meal type for each entry: home-cooked, eating out, takeaway, or leftovers
+- **FR90:** For eating out or takeaway meals, admin can add an optional free-text detail (restaurant name, order description)
+- **FR91:** System propagates meal plan changes from one Admin to all other connected Admin devices in real-time
+
+#### Participant Management
+
+- **FR92:** Admin can override the default participants for any specific meal — adding or removing profiles from that meal only, without changing the global defaults
+- **FR93:** Admin can enable a normally-skipped slot for a specific week (e.g., a public holiday falls on a day normally marked "don't plan") — the slot becomes plannable with the default participants for that meal type
+- **FR94:** Admin can disable a normally-enabled slot for a specific week (e.g., plans changed, family won't be eating that meal) — the slot is marked as skipped and any planned meal is removed
+
+#### Leftovers Integration
+
+- **FR95:** Admin can set a meal's type to "leftovers" and link it to a previous home-cooked meal in the same or a prior week's plan — the slot displays the linked meal's name with a visual indicator (e.g., "Leftovers — Lasagna")
+- **FR96:** Admin can adjust the meal plan when leftover quantities don't match expectations — unlinking a leftovers entry and replacing it with a new meal, or converting a home-cooked meal to leftovers if surplus remains
+
+#### Dashboard Widget
+
+- **FR97:** Dashboard displays a Meal Plan widget showing the next upcoming meal's name, type, and participants
+- **FR98:** If the next upcoming meal slot has no meal set and the slot is not marked as skipped, the widget displays a warning indicating no meal is planned
+- **FR99:** If it is the last day of the current planned week (Sunday) and the following week has no meals planned, the widget displays a planning reminder
+
+### Future Module Capabilities (V4–V6)
+
+- **FR100:** Admin can import, search, scale, and organise recipes (V4)
+- **FR101:** Admin can generate a deduplicated shopping list from the weekly meal plan based on recipe ingredients (V4)
+- **FR102:** Admin can record household income and expenses against budget categories and envelopes (V5)
+- **FR103:** Maid can log daily work hours with a single-tap interaction (V6)
+- **FR104:** Admin can generate a billing statement and payslip for the Maid for any period (V6)
+- **FR105:** Maid salary auto-posts as a household expense in the Finances module (V6)
 
 ---
 
@@ -591,40 +631,38 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **NFR1:** App launches to an interactive state within 2 seconds from cold start on supported Android devices
 - **NFR2:** Packing item status changes reflect in the UI immediately (optimistic update), confirmed to backend within 3 seconds on a normal mobile connection
 - **NFR3:** Real-time sync changes from one Admin reach all other connected Admin devices within 3 seconds
-- **NFR4:** App loads fully from local cache within 1 second of launch when offline — no degraded or loading state shown to the user
-- **NFR5:** All list operations (add, edit, delete, filter) complete within 100ms on devices running Android 8.0+
+- **NFR4:** All list operations (add, edit, delete, filter) complete within 100ms on devices running Android 8.0+
 
 ### Security & Privacy
 
-- **NFR6:** All data in transit is encrypted using TLS 1.2 or higher
-- **NFR7:** All data at rest is encrypted by the backend provider's default encryption
-- **NFR8:** Authentication is handled exclusively through Google Sign-In — no passwords are stored by FamilyHub
-- **NFR9:** Session tokens are stored in secure, platform-provided credential storage — never in plaintext or shared storage
-- **NFR10:** One Admin's private spending envelope transactions must not appear in any shared database query, API response, or sync payload — enforced at the database access control layer, not the application layer
-- **NFR11:** A Maid user account must be incapable of reading any records belonging to a prior Maid account — enforced at the database access control layer
-- **NFR12:** FamilyHub stores only the Google user ID and email from Google Sign-In — no additional personal data from Google is retained
+- **NFR5:** All data in transit is encrypted using TLS 1.2 or higher
+- **NFR6:** All data at rest is encrypted by the backend provider's default encryption
+- **NFR7:** Authentication is handled exclusively through Google Sign-In — no passwords are stored by FamilyHub
+- **NFR8:** Session tokens are stored in secure, platform-provided credential storage — never in plaintext or shared storage
+- **NFR9:** One Admin's private spending envelope transactions must not appear in any shared database query, API response, or sync payload — enforced at the database access control layer, not the application layer (V5)
+- **NFR10:** A Maid user account must be incapable of reading any records belonging to a prior Maid account — enforced at the database access control layer (V6)
+- **NFR11:** FamilyHub stores only the Google user ID and email from Google Sign-In — no additional personal data from Google is retained
 
 ### Reliability & Data Integrity
 
-- **NFR13:** No user action that successfully commits data to the local store may be silently discarded — all changes either sync to the backend or remain in the offline queue until they do
-- **NFR14:** The offline sync queue survives app restarts — changes queued while offline are not lost if the app is closed before reconnecting
-- **NFR15:** Last-write-wins conflict resolution must always produce a valid, readable data state — no record may be left in a corrupted or null state after sync
-- **NFR16:** The app installs cleanly via APK sideload on Android 8.0 (API 26) and above without requiring non-standard device configuration beyond enabling "Install from unknown sources"
-- **NFR17:** Backend free tier usage must not be exceeded at household scale (maximum ~5 concurrent users, low transaction volume)
+- **NFR12:** Last-write-wins conflict resolution must always produce a valid, readable data state — no record may be left in a corrupted or null state after sync
+- **NFR13:** The app installs cleanly via APK sideload on Android 8.0 (API 26) and above without requiring non-standard device configuration beyond enabling "Install from unknown sources"
+- **NFR14:** Backend free tier usage must not be exceeded at household scale (maximum ~5 concurrent users, low transaction volume)
 
 ### Integration
 
-- **NFR18:** If Google Sign-In is unavailable at launch, a valid cached session is used without forcing re-authentication
-- **NFR19:** If Supabase is unreachable, the app remains fully functional for all offline-supported operations — unavailability is never surfaced as an app error to the user
-- **NFR20:** An OTA update check failure is silent — it must not block app launch or display an error
-- **NFR21:** Any external service (Supabase, Google Sign-In, Alexa Skill, LLM API, future Google Drive/Calendar) must be accessed exclusively through its repository interface module — business logic may not call external services directly
-- **NFR22:** The Alexa Skill backend endpoint must respond to Alexa within 3 seconds to avoid Alexa timeout errors (V2)
-- **NFR23:** AI categorization (LLM call) must complete within 2 seconds; if exceeded, the item is assigned to "Other" category and the user is not blocked (V2)
-- **NFR24:** Alexa Skill endpoint must authenticate requests using a household-level API key — unauthenticated requests are rejected (V2)
-- **NFR25:** LLM API costs for AI categorization must remain under €1/month at family-scale usage (V2)
+- **NFR15:** If Google Sign-In is unavailable at launch, a valid cached session is used without forcing re-authentication
+- **NFR16:** An OTA update check failure is silent — it must not block app launch or display an error
+- **NFR17:** Any external service (Supabase, Google Sign-In, Alexa Skill, LLM API, future Google Drive/Calendar) must be accessed exclusively through its repository interface module — business logic may not call external services directly
+- **NFR18:** The Alexa Skill backend endpoint must respond to Alexa within 3 seconds to avoid Alexa timeout errors (V2)
+- **NFR19:** AI categorization (LLM call) must complete within 2 seconds; if exceeded, the item is assigned to "Other" category and the user is not blocked (V2)
+- **NFR20:** Alexa Skill endpoint must authenticate requests using a household-level API key — unauthenticated requests are rejected (V2)
+- **NFR21:** LLM API costs for AI categorization must remain under €1/month at family-scale usage (V2)
 
 ### UX Principles
 
-- **NFR26:** The app must not present an onboarding wizard or guided setup flow on first launch. All configuration (profiles, categories, tags, templates, user management) is performed through Settings at the user's own pace. The app is usable immediately after sign-in.
-- **NFR27:** Leftover expiry date calculations and visual flagging must evaluate correctly using device-local time, including when the device is offline
-- **NFR28:** Shopping list category reclassifications by an admin must persist permanently — the system must not re-categorize an item that has been manually reclassified (V2)
+- **NFR22:** The app must not present an onboarding wizard or guided setup flow on first launch. All configuration (profiles, categories, tags, templates, user management) is performed through Settings at the user's own pace. The app is usable immediately after sign-in.
+- **NFR23:** Leftover expiry date calculations and visual flagging must evaluate correctly using device-local time
+- **NFR24:** Shopping list category reclassifications by an admin must persist permanently — the system must not re-categorize an item that has been manually reclassified (V2)
+- **NFR25:** Meal plan week view must load and render the full 7-day grid within 500ms when navigating between weeks (V3)
+- **NFR26:** Meal plan default configuration changes must apply to all future unedited weeks without requiring manual propagation (V3)

@@ -1,6 +1,6 @@
 # generated: 2026-03-25
-# last_updated: 2026-03-31
-# project: FamilyHub-v2.0
+# last_updated: 2026-04-02
+# project: FamilyHub-v3.0
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
@@ -35,11 +35,12 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-25
-last_updated: 2026-03-31
-project: FamilyHub-v2.0
+last_updated: 2026-04-02
+project: FamilyHub-v3.0
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
+
 
 development_status:
   # ─── Epic 0: Project Foundation ───────────────────────────────────────────
@@ -62,8 +63,8 @@ development_status:
   epic-2: done
   2-1-vacation-crud-and-lifecycle: done
   2-2-vacation-pinning-and-navigation: done
-  2-3-booking-task-timeline: review
-  2-4-document-check-tasks-per-participant: review
+  2-3-booking-task-timeline: done
+  2-4-document-check-tasks-per-participant: done
   epic-2-retrospective: optional
 
   # ─── Epic 3: Packing List — Core, UX & Sync ──────────────────────────────
@@ -99,10 +100,43 @@ development_status:
   epic-6-retrospective: optional
 
   # ─── Epic 7: Shopping — Living List, Alexa Skill & AI Categorization (V2) ─
-  epic-7: in-progress
-  7-1-shopping-data-layer-categories-and-repository: review
-  7-2-shopping-list-screen-living-list-and-category-grouping: review
-  7-3-ai-categorization-service: review
-  7-4-alexa-skill-and-edge-function-backend: review
-  7-5-dashboard-shopping-widget: review
+  epic-7: done
+  7-1-shopping-data-layer-categories-and-repository: done
+  7-2-shopping-list-screen-living-list-and-category-grouping: done
+  7-3-ai-categorization-service: done
+  7-4-alexa-skill-and-edge-function-backend: done
+  7-5-dashboard-shopping-widget: done
   epic-7-retrospective: optional
+
+  # ─── Epic 8: Weekly Meal Plan Core (V3) ─────────────────────────────────
+  epic-8: done
+  8-1-view-weekly-meal-plan-grid: done
+  8-2-create-edit-delete-meals: done
+  8-3-meal-types-and-details: done
+  epic-8-retrospective: optional
+
+  # ─── Epic 9: Meal Plan Configuration (V3) ───────────────────────────────
+  epic-9: done
+  9-1-configure-default-participants: done
+  9-2-mark-slots-dont-plan: done
+  epic-9-retrospective: optional
+
+  # ─── Epic 10: Participant Overrides & Slot Exceptions (V3) ──────────────
+  epic-10: done
+  10-1-override-participants-for-meal: done
+  10-2-enable-skipped-slot: done
+  10-3-disable-active-slot: done
+  epic-10-retrospective: optional
+
+  # ─── Epic 11: Leftovers Linking (V3) ────────────────────────────────────
+  epic-11: done
+  11-1-link-meal-slot-to-leftovers: done
+  11-2-adjust-leftovers-plan: done
+  epic-11-retrospective: optional
+
+  # ─── Epic 12: Meal Plan Dashboard Widget (V3) ──────────────────────────
+  epic-12: done
+  12-1-display-next-upcoming-meal: done
+  12-2-warning-no-meal-planned: done
+  12-3-planning-reminder-next-week: done
+  epic-12-retrospective: optional
