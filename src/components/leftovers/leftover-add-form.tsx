@@ -14,12 +14,21 @@ import {
   DEFAULT_EXPIRY_DAYS,
   DEFAULT_TOTAL_DOSES,
 } from "../../constants/leftover-defaults";
+import type { LeftoverType } from "../../types/leftover.types";
+
+const TYPE_OPTIONS: { value: LeftoverType; label: string }[] = [
+  { value: "meal", label: "Refeição" },
+  { value: "main", label: "Principal" },
+  { value: "soup", label: "Sopa" },
+  { value: "side", label: "Acompanhamento" },
+];
 
 interface LeftoverAddFormProps {
   visible: boolean;
   onClose: () => void;
   onSave: (data: {
     name: string;
+    type: LeftoverType;
     totalDoses: number;
     expiryDays: number;
   }) => Promise<void>;
@@ -31,6 +40,7 @@ export function LeftoverAddForm({
   onSave,
 }: LeftoverAddFormProps) {
   const [name, setName] = useState("");
+  const [type, setType] = useState<LeftoverType>("meal");
   const [doses, setDoses] = useState(String(DEFAULT_TOTAL_DOSES));
   const [expiryDays, setExpiryDays] = useState(String(DEFAULT_EXPIRY_DAYS));
   const [isSaving, setIsSaving] = useState(false);
@@ -40,6 +50,7 @@ export function LeftoverAddForm({
 
   function resetForm() {
     setName("");
+    setType("meal");
     setDoses(String(DEFAULT_TOTAL_DOSES));
     setExpiryDays(String(DEFAULT_EXPIRY_DAYS));
     setNameError("");
@@ -79,6 +90,7 @@ export function LeftoverAddForm({
     try {
       await onSave({
         name: trimmedName,
+        type,
         totalDoses: parsedDoses,
         expiryDays: parsedExpiry,
       });
@@ -122,6 +134,22 @@ export function LeftoverAddForm({
             editable={!isSaving}
           />
           {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
+
+          <Text style={s.label}>Tipo</Text>
+          <View style={s.chipRow}>
+            {TYPE_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[s.chip, type === opt.value && s.chipSelected]}
+                onPress={() => setType(opt.value)}
+                disabled={isSaving}
+              >
+                <Text style={[s.chipText, type === opt.value && s.chipTextSelected]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <Text style={s.label}>Doses *</Text>
           <TextInput
@@ -216,6 +244,31 @@ const s = StyleSheet.create({
     fontSize: 12,
     marginTop: -12,
     marginBottom: 12,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
+  },
+  chipSelected: {
+    backgroundColor: "#B5451B",
+    borderColor: "#B5451B",
+  },
+  chipText: {
+    fontSize: 13,
+    color: "#555555",
+  },
+  chipTextSelected: {
+    color: "#FFFFFF",
   },
   buttons: {
     flexDirection: "row",

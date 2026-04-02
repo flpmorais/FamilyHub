@@ -100,6 +100,7 @@ export default function LeftoversScreen() {
 
   async function handleAdd(data: {
     name: string;
+    type: import("../../../types/leftover.types").LeftoverType;
     totalDoses: number;
     expiryDays: number;
   }) {
@@ -108,6 +109,7 @@ export default function LeftoversScreen() {
       await leftoverRepo.create({
         familyId,
         name: data.name,
+        type: data.type,
         totalDoses: data.totalDoses,
         expiryDays: data.expiryDays,
       });
@@ -144,6 +146,7 @@ export default function LeftoversScreen() {
     id: string,
     data: {
       name?: string;
+      type?: import("../../../types/leftover.types").LeftoverType;
       totalDoses?: number;
       expiryDate?: string;
       dosesEaten?: number;

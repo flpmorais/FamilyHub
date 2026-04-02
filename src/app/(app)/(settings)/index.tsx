@@ -1,10 +1,9 @@
-import { useCallback, useContext, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { useAuthStore } from '../../../stores/auth.store';
-import { RepositoryContext } from '../../../repositories/repository.context';
 import { PageHeader } from '../../../components/page-header';
 import type { Family } from '../../../types/profile.types';
 
@@ -25,27 +24,13 @@ const VACATION_ITEMS = [
   { label: 'Categorias', icon: 'shape', route: '/(app)/(settings)/categories' },
 ] as const;
 
-export default function SettingsHubScreen() {
-  const { userAccount, setUserAccount } = useAuthStore();
-  const repositories = useContext(RepositoryContext);
-  const [family, setFamily] = useState<Family | null>(null);
+const SHOPPING_ITEMS = [
+  { label: 'Categorias de Compras', icon: 'cart', route: '/(app)/(settings)/shopping-categories' },
+] as const;
 
-  function handleLogout() {
-    Alert.alert('Terminar sessão', 'Tens a certeza que queres sair?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await repositories!.auth.signOut();
-          } finally {
-            setUserAccount(null);
-          }
-        },
-      },
-    ]);
-  }
+export default function SettingsHubScreen() {
+  const { userAccount } = useAuthStore();
+  const [family, setFamily] = useState<Family | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -104,13 +89,17 @@ export default function SettingsHubScreen() {
           </TouchableOpacity>
         ))}
 
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Conta</Text>
-        <TouchableOpacity style={s.row} onPress={handleLogout}>
-          <View style={s.iconWrap}>
-            <Icon source="logout" size={22} color="#D32F2F" />
-          </View>
-          <Text style={[s.label, { color: '#D32F2F' }]}>Terminar sessão</Text>
-        </TouchableOpacity>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Compras</Text>
+        {SHOPPING_ITEMS.map((item) => (
+          <TouchableOpacity key={item.route} style={s.row} onPress={() => router.push(item.route as any)}>
+            <View style={s.iconWrap}>
+              <Icon source={item.icon} size={22} color="#B5451B" />
+            </View>
+            <Text style={s.label}>{item.label}</Text>
+            <Icon source="chevron-right" size={20} color="#CCCCCC" />
+          </TouchableOpacity>
+        ))}
+
       </View>
     </ScrollView>
   );

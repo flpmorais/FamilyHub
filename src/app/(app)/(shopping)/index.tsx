@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Snackbar } from "react-native-paper";
+import { useFocusEffect } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
 import { useAuthStore } from "../../../stores/auth.store";
 import {
@@ -57,14 +58,14 @@ function buildSections(
       data: (grouped.get(c.id) ?? []).sort(sortByTicked),
     }));
 
-  // Add orphaned items (null/invalid categoryId) under "Other"
+  // Add orphaned items (null/invalid categoryId) under "Outros"
   if (orphaned.length > 0) {
-    const otherSection = sections.find((s) => s.title === "Other");
+    const otherSection = sections.find((s) => s.title === OTHER_CATEGORY_NAME);
     if (otherSection) {
       otherSection.data = [...otherSection.data, ...orphaned].sort(sortByTicked);
     } else {
       sections.push({
-        title: "Other",
+        title: OTHER_CATEGORY_NAME,
         categoryId: "",
         data: orphaned.sort(sortByTicked),
       });
@@ -108,13 +109,15 @@ export default function ShoppingScreen() {
     }
   }, [shoppingRepo, categoryRepo, familyId]);
 
-  useEffect(() => {
-    void reload();
-    if (familyId) {
-      supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
-        .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
-    }
-  }, [reload, familyId]);
+  useFocusEffect(
+    useCallback(() => {
+      void reload();
+      if (familyId) {
+        supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
+          .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
+      }
+    }, [reload, familyId])
+  );
 
   function showSuccess(msg: string) {
     setSnackbarColor("#388E3C");
@@ -142,8 +145,8 @@ export default function ShoppingScreen() {
         return { status: "duplicate_ticked" as const, itemId: existing.id };
       }
 
-      // AI classification for new items (FR68)
-      const categoryNames = categories.map((c) => c.name);
+      // AI classification for new items (FR68) — only active categories
+      const categoryNames = categories.filter((c) => c.active).map((c) => c.name);
       const result = await classificationRepo.classifyItem(data.name, categoryNames);
       const matchedCat = categories.find((c) => c.name === result.category);
       const categoryId = matchedCat?.id

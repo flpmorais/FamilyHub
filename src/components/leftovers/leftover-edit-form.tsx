@@ -15,8 +15,15 @@ import {
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import type { Leftover } from "../../types/leftover.types";
+import type { Leftover, LeftoverType } from "../../types/leftover.types";
 import { toISODate } from "../../utils/date.utils";
+
+const TYPE_OPTIONS: { value: LeftoverType; label: string }[] = [
+  { value: "meal", label: "Refeição" },
+  { value: "main", label: "Principal" },
+  { value: "soup", label: "Sopa" },
+  { value: "side", label: "Acompanhamento" },
+];
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("pt-PT", {
@@ -34,6 +41,7 @@ interface LeftoverEditFormProps {
     id: string,
     data: {
       name?: string;
+      type?: LeftoverType;
       totalDoses?: number;
       expiryDate?: string;
       dosesEaten?: number;
@@ -51,6 +59,7 @@ export function LeftoverEditForm({
   onDelete,
 }: LeftoverEditFormProps) {
   const [name, setName] = useState("");
+  const [type, setType] = useState<LeftoverType>("meal");
   const [totalDoses, setTotalDoses] = useState("");
   const [expiryDate, setExpiryDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -65,6 +74,7 @@ export function LeftoverEditForm({
   useEffect(() => {
     if (item) {
       setName(item.name);
+      setType(item.type ?? "meal");
       setTotalDoses(String(item.totalDoses));
       setExpiryDate(new Date(item.expiryDate));
       setShowDatePicker(false);
@@ -137,6 +147,7 @@ export function LeftoverEditForm({
     try {
       await onSave(item!.id, {
         name: trimmedName,
+        type,
         totalDoses: parsedDoses,
         expiryDate: expiryDate.toISOString(),
         dosesEaten: parsedEaten,
@@ -192,6 +203,22 @@ export function LeftoverEditForm({
               editable={!isSaving}
             />
             {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
+
+            <Text style={s.label}>Tipo</Text>
+            <View style={s.chipRow}>
+              {TYPE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[s.chip, type === opt.value && s.chipSelected]}
+                  onPress={() => setType(opt.value)}
+                  disabled={isSaving}
+                >
+                  <Text style={[s.chipText, type === opt.value && s.chipTextSelected]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <Text style={s.label}>Doses totais *</Text>
             <TextInput
@@ -346,6 +373,31 @@ const s = StyleSheet.create({
   dateBtnText: {
     fontSize: 15,
     color: "#1A1A1A",
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
+  },
+  chipSelected: {
+    backgroundColor: "#B5451B",
+    borderColor: "#B5451B",
+  },
+  chipText: {
+    fontSize: 13,
+    color: "#555555",
+  },
+  chipTextSelected: {
+    color: "#FFFFFF",
   },
   buttons: {
     flexDirection: "row",

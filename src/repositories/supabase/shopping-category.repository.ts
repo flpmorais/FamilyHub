@@ -13,6 +13,7 @@ function mapShoppingCategory(row: any): ShoppingCategory {
     id: row.id,
     familyId: row.family_id,
     name: row.name,
+    active: Boolean(row.active),
     sortOrder: Number(row.sort_order),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -112,5 +113,42 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
         `Erro ao eliminar categoria: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
+  }
+
+  async setActive(id: string, active: boolean): Promise<void> {
+    const { error } = await this.client
+      .from('shopping_categories')
+      .update({ active, updated_at: now() })
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  async reorder(id: string, sortOrder: number): Promise<void> {
+    const { error } = await this.client
+      .from('shopping_categories')
+      .update({ sort_order: sortOrder, updated_at: now() })
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  async batchReorder(items: { id: string; sortOrder: number }[]): Promise<void> {
+    await Promise.all(
+      items.map(({ id, sortOrder }) =>
+        this.client
+          .from('shopping_categories')
+          .update({ sort_order: sortOrder, updated_at: now() })
+          .eq('id', id)
+      )
+    );
+  }
+
+  async countItemsUsingCategory(categoryId: string): Promise<number> {
+    const { count, error } = await this.client
+      .from('shopping_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('category_id', categoryId)
+      .eq('is_ticked', false);
+    if (error) throw error;
+    return count ?? 0;
   }
 }

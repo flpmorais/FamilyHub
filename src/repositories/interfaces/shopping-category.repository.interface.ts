@@ -5,4 +5,8 @@ export interface IShoppingCategoryRepository {
   create(data: CreateShoppingCategoryInput): Promise<ShoppingCategory>;
   edit(id: string, data: UpdateShoppingCategoryInput): Promise<ShoppingCategory>;
   delete(id: string): Promise<void>;
+  setActive(id: string, active: boolean): Promise<void>;
+  reorder(id: string, sortOrder: number): Promise<void>;
+  batchReorder(items: { id: string; sortOrder: number }[]): Promise<void>;
+  countItemsUsingCategory(categoryId: string): Promise<number>;
 }

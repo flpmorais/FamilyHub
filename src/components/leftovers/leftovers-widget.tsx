@@ -8,23 +8,10 @@ interface LeftoversWidgetProps {
   onPress: () => void;
 }
 
-function formatExpiryRelative(days: number): string {
-  if (days < 0) return "expirou";
-  if (days === 0) return "expira hoje";
-  if (days === 1) return "expira amanhã";
-  return `expira em ${days} dias`;
-}
-
 export function LeftoversWidget({ items, onPress }: LeftoversWidgetProps) {
-  const activeMeals = items.length;
-  const totalActiveDoses = items.reduce(
-    (sum, l) => sum + (l.totalDoses - l.dosesEaten - l.dosesThrownOut),
-    0,
-  );
-  const nearest = items.length > 0 ? items[0] : null;
-  const nearestDays = nearest ? daysUntilExpiry(nearest.expiryDate) : 0;
-  const expiredCount = items.filter((l) => daysUntilExpiry(l.expiryDate) < 0).length;
-  const expiresTodayCount = items.filter((l) => daysUntilExpiry(l.expiryDate) === 0).length;
+  const expired = items.filter((l) => daysUntilExpiry(l.expiryDate) < 0);
+  const expiresToday = items.filter((l) => daysUntilExpiry(l.expiryDate) === 0);
+  const expiresTomorrow = items.filter((l) => daysUntilExpiry(l.expiryDate) === 1);
 
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
@@ -32,38 +19,37 @@ export function LeftoversWidget({ items, onPress }: LeftoversWidgetProps) {
         <Icon source="fridge-outline" size={18} color="#B5451B" />
         <Text style={s.title}>Restos</Text>
       </View>
-      {activeMeals === 0 ? (
-        <Text style={s.emptyText}>Frigorífico vazio</Text>
+      {items.length === 0 ? (
+        <View style={s.statusRow}>
+          <Icon source="check-circle" size={14} color="#388E3C" />
+          <Text style={s.emptyText}>Sem restos</Text>
+        </View>
       ) : (
         <>
-          <Text style={s.summary}>
-            {activeMeals} {activeMeals === 1 ? "refeição" : "refeições"} ·{" "}
-            {totalActiveDoses} {totalActiveDoses === 1 ? "dose" : "doses"}
-          </Text>
-          {expiredCount > 0 && (
-            <View style={s.alertRow}>
+          <View style={s.contentRow}>
+            <Text style={s.itemList} numberOfLines={2}>
+              {items.map((l) => l.name).join(", ")}
+            </Text>
+            <Text style={s.arrow}>→</Text>
+          </View>
+          {expired.map((l) => (
+            <View key={`exp-${l.id}`} style={s.statusRow}>
               <Icon source="alert-circle" size={14} color="#D32F2F" />
-              <Text style={s.alertExpired}>
-                {expiredCount} {expiredCount === 1 ? "item expirado" : "itens expirados"}
-              </Text>
+              <Text style={s.alertExpired}>{l.name} expirou</Text>
             </View>
-          )}
-          {expiresTodayCount > 0 && (
-            <View style={s.alertRow}>
+          ))}
+          {expiresToday.map((l) => (
+            <View key={`today-${l.id}`} style={s.statusRow}>
               <Icon source="alert-circle" size={14} color="#F59300" />
-              <Text style={s.alertWarning}>
-                {expiresTodayCount} {expiresTodayCount === 1 ? "item expira hoje" : "itens expiram hoje"}
-              </Text>
+              <Text style={s.alertWarning}>{l.name} expira hoje</Text>
             </View>
-          )}
-          {nearest && expiredCount === 0 && expiresTodayCount === 0 && (
-            <View style={s.expiryRow}>
-              <Text style={s.expiryText} numberOfLines={1}>
-                {nearest.name} {formatExpiryRelative(nearestDays)}
-              </Text>
-              <Text style={s.arrow}>→</Text>
+          ))}
+          {expiresTomorrow.map((l) => (
+            <View key={`tmrw-${l.id}`} style={s.statusRow}>
+              <Icon source="alert-circle" size={14} color="#F59300" />
+              <Text style={s.alertWarning}>{l.name} expira amanhã</Text>
             </View>
-          )}
+          ))}
         </>
       )}
     </TouchableOpacity>
@@ -91,30 +77,32 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
   emptyText: {
     fontSize: 14,
-    color: "#888888",
-  },
-  summary: {
-    fontSize: 16,
+    color: "#388E3C",
     fontWeight: "600",
-    color: "#1A1A1A",
-    marginBottom: 4,
   },
-  expiryRow: {
+  contentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  expiryText: {
-    fontSize: 13,
-    color: "#555555",
+  itemList: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1A1A1A",
     flex: 1,
   },
-  alertRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  arrow: {
+    fontSize: 16,
+    color: "#B5451B",
+    marginLeft: 8,
   },
   alertExpired: {
     fontSize: 13,
@@ -125,10 +113,5 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: "#F59300",
     fontWeight: "600",
-  },
-  arrow: {
-    fontSize: 16,
-    color: "#B5451B",
-    marginLeft: 8,
   },
 });

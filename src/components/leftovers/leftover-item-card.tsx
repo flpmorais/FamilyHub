@@ -1,7 +1,14 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Icon } from "react-native-paper";
-import type { Leftover } from "../../types/leftover.types";
+import type { Leftover, LeftoverType } from "../../types/leftover.types";
 import { daysUntilExpiry } from "../../utils/date.utils";
+
+const TYPE_LABEL: Record<LeftoverType, string> = {
+  meal: "Refeição",
+  main: "Principal",
+  soup: "Sopa",
+  side: "Acompanhamento",
+};
 
 interface LeftoverItemCardProps {
   item: Leftover;
@@ -64,6 +71,7 @@ export function LeftoverItemCard({
 
       {isActive ? (
         <>
+          <Text style={s.typeText}>{TYPE_LABEL[item.type ?? "meal"]}</Text>
           <Text style={s.dosesText}>
             {remaining} {remaining === 1 ? "dose restante" : "doses restantes"}
           </Text>
@@ -160,6 +168,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
+  },
+  typeText: {
+    fontSize: 12,
+    color: "#888888",
+    marginBottom: 4,
   },
   dosesText: {
     fontSize: 14,

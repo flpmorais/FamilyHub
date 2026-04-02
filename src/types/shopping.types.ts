@@ -2,6 +2,7 @@ export interface ShoppingCategory {
   id: string;
   familyId: string;
   name: string;
+  active: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +41,7 @@ export interface CreateShoppingCategoryInput {
 export interface UpdateShoppingCategoryInput {
   name?: string;
   sortOrder?: number;
+  active?: boolean;
 }
 
 export interface ShoppingWidgetData {

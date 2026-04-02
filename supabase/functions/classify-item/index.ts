@@ -8,7 +8,7 @@ const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const TIMEOUT_MS = 2000;
-const FALLBACK_CATEGORY = "Other";
+const FALLBACK_CATEGORY = "Outros";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,12 +111,12 @@ Reply with ONLY a JSON object (no markdown, no backticks):
 {"name": "<item name in Portuguese, without quantity>", "quantity": <quantity string in Portuguese, or null if none>, "category": "<best category from the list>"}
 
 Examples:
-- "milk" → {"name": "leite", "quantity": null, "category": "Dairy"}
-- "3 packs of milk" → {"name": "leite", "quantity": "3 pacotes", "category": "Dairy"}
-- "olive oil" → {"name": "azeite", "quantity": null, "category": "Pantry"}
-- "half a kilo of rice" → {"name": "arroz", "quantity": "meio quilo", "category": "Pantry"}
-- "leite" → {"name": "leite", "quantity": null, "category": "Dairy"}
-- "3 pacotes de leite" → {"name": "leite", "quantity": "3 pacotes", "category": "Dairy"}`;
+- "milk" → {"name": "leite", "quantity": null, "category": "Lacticínios"}
+- "3 packs of milk" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios"}
+- "olive oil" → {"name": "azeite", "quantity": null, "category": "Despensa"}
+- "half a kilo of rice" → {"name": "arroz", "quantity": "meio quilo", "category": "Despensa"}
+- "leite" → {"name": "leite", "quantity": null, "category": "Lacticínios"}
+- "3 pacotes de leite" → {"name": "leite", "quantity": "3 pacotes", "category": "Lacticínios"}`;
 
     // Call selected provider
     let rawText: string;
