@@ -27,6 +27,7 @@ const ANIMATION_DURATION = 250;
 
 const MENU_ITEMS = [
   { label: 'Início', icon: 'home', route: '/(app)/(home)' },
+  { label: 'Refeições', icon: 'silverware-fork-knife', route: '/(app)/(meal-plan)' },
   { label: 'Compras', icon: 'cart-outline', route: '/(app)/(shopping)' },
   { label: 'Restos', icon: 'fridge-outline', route: '/(app)/(leftovers)' },
   { label: 'Viagens', icon: 'airplane', route: '/(app)/(vacations)' },

@@ -75,15 +75,8 @@ export default function AppLayout() {
         <Tabs.Screen
           name="(vacations)"
           options={{
-            title: 'Viagens',
-            tabBarIcon: ({ color, size }) => <Icon source="airplane" size={size} color={color} />,
+            href: null,
           }}
-          listeners={({ navigation }) => ({
-            tabPress: (e) => {
-              e.preventDefault();
-              navigation.navigate('(vacations)', { screen: 'index' });
-            },
-          })}
         />
         <Tabs.Screen
           name="(settings)"
