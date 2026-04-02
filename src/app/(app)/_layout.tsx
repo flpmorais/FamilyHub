@@ -68,6 +68,19 @@ export default function AppLayout() {
         })}
       />
       <Tabs.Screen
+        name="(meal-plan)"
+        options={{
+          title: 'Refeições',
+          tabBarIcon: ({ color, size }) => <Icon source="silverware-fork-knife" size={size} color={color} />,
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('(meal-plan)', { screen: 'index' });
+          },
+        })}
+      />
+      <Tabs.Screen
         name="(settings)"
         options={{
           title: 'Definições',

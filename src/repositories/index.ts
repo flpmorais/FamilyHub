@@ -10,6 +10,7 @@ export type { ILeftoverRepository } from './interfaces/leftover.repository.inter
 export type { IShoppingRepository } from './interfaces/shopping.repository.interface';
 export type { IShoppingCategoryRepository } from './interfaces/shopping-category.repository.interface';
 export type { IClassificationRepository } from './interfaces/classification.repository.interface';
+export type { IMealPlanRepository } from './interfaces/meal-plan.repository.interface';
 // Context provider and hook
 export { RepositoryProvider, RepositoryContext } from './repository.context';
 export type { RepositoryContextValue } from './repository.context';

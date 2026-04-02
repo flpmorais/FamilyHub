@@ -7,12 +7,15 @@ import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { DashboardVacationWidget } from '../../../components/dashboard-vacation-widget';
 import { LeftoversWidget } from '../../../components/leftovers';
 import { ShoppingWidget } from '../../../components/shopping';
+import { MealPlanWidget, getNextMeal, getNextActiveEmptySlot } from '../../../components/meal-plan';
 import { PageHeader } from '../../../components/page-header';
+import { getMonday, addWeeks } from '../../../stores/meal-plan.store';
 import { sortVacations } from '../../../utils/vacation.utils';
 import type { Vacation, VacationLifecycle, BookingTask } from '../../../types/vacation.types';
 import type { PackingItem } from '../../../types/packing.types';
 import type { Leftover } from '../../../types/leftover.types';
-import type { Family } from '../../../types/profile.types';
+import type { MealEntry, MealSlot, MealPlanSlotConfig } from '../../../types/meal-plan.types';
+import type { Family, Profile } from '../../../types/profile.types';
 
 interface DashboardEntry {
   vacation: Vacation;
@@ -25,11 +28,17 @@ export default function DashboardScreen() {
   const packingItemRepository = useRepository('packingItem');
   const leftoverRepo = useRepository('leftover');
   const shoppingRepo = useRepository('shopping');
+  const mealPlanRepo = useRepository('mealPlan');
+  const profileRepo = useRepository('profile');
   const { userAccount } = useAuthStore();
   const [entries, setEntries] = useState<DashboardEntry[]>([]);
   const [activeLeftovers, setActiveLeftovers] = useState<Leftover[]>([]);
   const [shoppingCount, setShoppingCount] = useState(0);
   const [family, setFamily] = useState<Family | null>(null);
+  const [nextMeal, setNextMeal] = useState<MealEntry | null>(null);
+  const [nextMealProfiles, setNextMealProfiles] = useState<string[]>([]);
+  const [emptySlot, setEmptySlot] = useState<{ dayOfWeek: number; mealSlot: MealSlot } | null>(null);
+  const [showPlanningReminder, setShowPlanningReminder] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,6 +46,7 @@ export default function DashboardScreen() {
       void loadPinned();
       void loadLeftovers();
       void loadShoppingCount();
+      void loadNextMeal();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -94,6 +104,46 @@ export default function DashboardScreen() {
     }
   }
 
+  async function loadNextMeal() {
+    if (!userAccount?.familyId) return;
+    try {
+      const now = new Date();
+      const weekStart = getMonday(now);
+      const [weekEntries, configs, profiles] = await Promise.all([
+        mealPlanRepo.getWeek(userAccount.familyId, weekStart),
+        mealPlanRepo.getConfig(userAccount.familyId),
+        profileRepo.getProfilesByFamily(userAccount.familyId),
+      ]);
+
+      // Next meal with entry (12-1)
+      const meal = getNextMeal(weekEntries, configs, now);
+      setNextMeal(meal);
+      if (meal) {
+        const names = meal.participants
+          .map((id) => profiles.find((p: Profile) => p.id === id)?.displayName ?? '')
+          .filter(Boolean);
+        setNextMealProfiles(names);
+      } else {
+        setNextMealProfiles([]);
+      }
+
+      // Next active empty slot warning (12-2)
+      setEmptySlot(getNextActiveEmptySlot(weekEntries, configs, now));
+
+      // Sunday planning reminder (12-3)
+      if (now.getDay() === 0) {
+        const nextWeekStart = addWeeks(weekStart, 1);
+        const nextWeekEntries = await mealPlanRepo.getWeek(userAccount.familyId, nextWeekStart);
+        const plannedMeals = nextWeekEntries.filter((e) => !e.isSlotSkipped);
+        setShowPlanningReminder(plannedMeals.length === 0);
+      } else {
+        setShowPlanningReminder(false);
+      }
+    } catch {
+      // Silently fail on dashboard
+    }
+  }
+
   async function handleLifecycleChange(vacationId: string, lc: VacationLifecycle) {
     try {
       await vacationRepository.updateVacation(vacationId, { lifecycle: lc });
@@ -136,6 +186,16 @@ export default function DashboardScreen() {
             ))}
           </View>
         )}
+
+        <View style={styles.widgetSection}>
+          <MealPlanWidget
+            nextMeal={nextMeal}
+            nextMealProfiles={nextMealProfiles}
+            emptySlot={emptySlot}
+            showPlanningReminder={showPlanningReminder}
+            onPress={() => router.push('/(app)/(meal-plan)')}
+          />
+        </View>
 
         <View style={styles.widgetSection}>
           <LeftoversWidget
