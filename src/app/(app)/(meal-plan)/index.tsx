@@ -1,16 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { IconButton, ActivityIndicator, Icon } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useMealPlanStore, getMonday } from '../../../stores/meal-plan.store';
 import { MealAddForm, MealEditForm } from '../../../components/meal-plan';
+import { PageHeader } from '../../../components/page-header';
+import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
 import type { MealEntry, MealSlot, MealType, MealPlanSlotConfig } from '../../../types/meal-plan.types';
 import type { Profile } from '../../../types/profile.types';
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DAY_FULL_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const MEAL_SLOTS: MealSlot[] = ['lunch', 'dinner'];
 const SLOT_LABELS: Record<MealSlot, string> = { lunch: 'Almoço', dinner: 'Jantar' };
 
@@ -29,10 +32,11 @@ function formatWeekLabel(weekStart: string): string {
   return `${startStr} – ${endStr}`;
 }
 
-function getDayDate(weekStart: string, dayOfWeek: number): string {
+function formatDayCardLabel(weekStart: string, dayOfWeek: number): string {
   const d = parseLocalDate(weekStart);
   d.setDate(d.getDate() + (dayOfWeek - 1));
-  return d.getDate().toString();
+  const dateStr = d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+  return `${DAY_FULL_LABELS[dayOfWeek - 1]}, ${dateStr}`;
 }
 
 function isToday(weekStart: string, dayOfWeek: number): boolean {
@@ -66,6 +70,21 @@ export default function MealPlanScreen() {
   const [addSlot, setAddSlot] = useState<SlotContext | null>(null);
   const [editMeal, setEditMeal] = useState<MealEntry | null>(null);
   const [linkableMeals, setLinkableMeals] = useState<MealEntry[]>([]);
+  const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
+  const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const thisWeekStart = getMonday(new Date());
+    if (currentWeekStart === thisWeekStart) {
+      const today = new Date();
+      const todayDow = today.getDay() === 0 ? 7 : today.getDay();
+      const collapsed = new Set<number>();
+      for (let d = 1; d < todayDow; d++) collapsed.add(d);
+      setCollapsedDays(collapsed);
+    } else {
+      setCollapsedDays(new Set());
+    }
+  }, [currentWeekStart]);
 
   const loadWeek = useCallback(async () => {
     if (!userAccount?.familyId) {
@@ -78,7 +97,7 @@ export default function MealPlanScreen() {
     try {
       const [data, homeCookedMeals] = await Promise.all([
         mealPlanRepo.getWeek(userAccount.familyId, currentWeekStart),
-        mealPlanRepo.getRecentHomeCookedMeals(userAccount.familyId, currentWeekStart),
+        mealPlanRepo.getRecentLinkableMeals(userAccount.familyId, currentWeekStart, 1),
       ]);
       setEntries(data);
       setLinkableMeals(homeCookedMeals);
@@ -95,9 +114,10 @@ export default function MealPlanScreen() {
 
   useEffect(() => {
     if (!userAccount?.familyId) return;
+    const familyId = userAccount.familyId;
     Promise.all([
-      profileRepo.getProfilesByFamily(userAccount.familyId),
-      mealPlanRepo.getConfig(userAccount.familyId),
+      profileRepo.getProfilesByFamily(familyId),
+      mealPlanRepo.getConfig(familyId),
     ]).then(([profileList, configs]) => {
       setProfiles(profileList);
       setProfileIds(profileList.map((p) => p.id));
@@ -105,6 +125,8 @@ export default function MealPlanScreen() {
     }).catch((err: unknown) => {
       logger.error('MealPlanScreen', 'Erro ao carregar perfis/configuração', err);
     });
+    supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
+      .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
   }, [profileRepo, mealPlanRepo, userAccount?.familyId]);
 
   function isSlotSkippedByConfig(dayOfWeek: number, mealSlot: MealSlot): boolean {
@@ -118,8 +140,13 @@ export default function MealPlanScreen() {
     return profileIds; // fallback: all profiles when no config row exists
   }
 
-  async function handleAddMeal(name: string, mealType: MealType, detail: string | null, linkedMealId: string | null) {
+  async function handleAddMeal(name: string, mealType: MealType, linkedMealId: string | null, participants: string[]) {
     if (!userAccount?.familyId || !addSlot) return;
+    if (participants.length === 0) {
+      await mealPlanRepo.skipSlot(userAccount.familyId, currentWeekStart, addSlot.dayOfWeek, addSlot.mealSlot);
+      await loadWeek();
+      return;
+    }
     await mealPlanRepo.create({
       familyId: userAccount.familyId,
       weekStart: currentWeekStart,
@@ -127,15 +154,14 @@ export default function MealPlanScreen() {
       mealSlot: addSlot.mealSlot,
       name,
       mealType,
-      detail: detail ?? undefined,
       linkedMealId: linkedMealId ?? undefined,
-      participants: getDefaultParticipants(addSlot.dayOfWeek, addSlot.mealSlot),
+      participants,
     });
     await loadWeek();
   }
 
-  async function handleEditMeal(id: string, name: string, mealType: MealType, detail: string | null, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) {
-    await mealPlanRepo.update(id, { name, mealType, detail, participants, isSlotOverridden, linkedMealId });
+  async function handleEditMeal(id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) {
+    await mealPlanRepo.update(id, { name, mealType, participants, isSlotOverridden, linkedMealId });
     await loadWeek();
   }
 
@@ -161,36 +187,14 @@ export default function MealPlanScreen() {
     if (entry && !entry.isSlotSkipped) {
       setEditMeal(entry);
     } else if (entry && entry.isSlotSkipped) {
-      Alert.alert(
-        'Reativar horário',
-        'Quer reativar este horário para esta semana?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Reativar',
-            onPress: async () => {
-              await mealPlanRepo.delete(entry.id);
-              await loadWeek();
-            },
-          },
-        ]
-      );
-    } else if (!entry && isSlotSkippedByConfig(dayOfWeek, slot)) {
-      Alert.alert(
-        'Ativar horário',
-        'Este horário está marcado como saltar. Quer ativá-lo para esta semana?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Ativar',
-            onPress: () => {
-              if (profileIds.length === 0) return;
-              setAddSlot({ dayOfWeek, mealSlot: slot });
-            },
-          },
-        ]
-      );
-    } else if (!entry) {
+      // Delete the skip entry, then open add form
+      mealPlanRepo.delete(entry.id).then(() => {
+        loadWeek();
+        if (profileIds.length === 0) return;
+        setAddSlot({ dayOfWeek, mealSlot: slot });
+      });
+    } else {
+      // Empty slot or config-skipped — open add form directly
       if (profileIds.length === 0) return;
       setAddSlot({ dayOfWeek, mealSlot: slot });
     }
@@ -200,6 +204,15 @@ export default function MealPlanScreen() {
     return entries.find((e) => e.dayOfWeek === dayOfWeek && e.mealSlot === slot);
   };
 
+  function toggleDayCollapse(day: number) {
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  }
+
   function onWeekPickerChange(_: DateTimePickerEvent, date?: Date) {
     setShowWeekPicker(Platform.OS === 'ios');
     if (date) {
@@ -207,9 +220,76 @@ export default function MealPlanScreen() {
     }
   }
 
+  function renderSlotRow(day: number, slot: MealSlot) {
+    const entry = getEntry(day, slot);
+    const skippedByEntry = entry?.isSlotSkipped;
+    const skippedByConfig = !entry && isSlotSkippedByConfig(day, slot);
+    const skipped = skippedByEntry || skippedByConfig;
+
+    return (
+      <TouchableOpacity
+        key={`${day}-${slot}`}
+        style={[styles.slotRow, skipped && styles.slotRowSkipped]}
+        onPress={() => handleSlotPress(day, slot)}
+        activeOpacity={0.6}
+      >
+        <Text style={[styles.slotLabel, skipped && styles.slotLabelSkipped]}>{SLOT_LABELS[slot]}</Text>
+        <View style={styles.slotContent}>
+          {entry && !skippedByEntry ? (
+            <>
+              <View style={styles.mealInfo}>
+                <View style={styles.mealNameRow}>
+                  {entry.mealType === 'leftovers' && (
+                    <Icon source="recycle-variant" size={14} color="#888" />
+                  )}
+                  {entry.mealType === 'eating_out' && (
+                    <Icon source="store" size={14} color="#888" />
+                  )}
+                  {entry.mealType === 'takeaway' && (
+                    <Icon source="food-takeout-box" size={14} color="#888" />
+                  )}
+                  <Text style={styles.mealName} numberOfLines={1}>{entry.name}</Text>
+                  {entry.isSlotOverridden && (
+                    <Icon source="account-edit" size={12} color="#B5451B" />
+                  )}
+                </View>
+              </View>
+              {entry.participants.length > 0 && (
+                <View style={styles.avatarRow}>
+                  {entry.participants.slice(0, 4).map((pid, idx) => {
+                    const p = profiles.find((pr) => pr.id === pid);
+                    if (!p) return null;
+                    return (
+                      <View key={pid} style={[styles.avatarCircle, idx > 0 && styles.avatarOverlap]}>
+                        {p.avatarUrl ? (
+                          <Image source={{ uri: p.avatarUrl }} style={styles.avatarImage} />
+                        ) : (
+                          <Text style={styles.avatarInitial}>{p.displayName[0]?.toUpperCase() ?? '?'}</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          ) : skipped ? (
+            <Text style={styles.skippedText}>Saltar</Text>
+          ) : (
+            <View style={styles.emptySlot}>
+              <Icon source="plus" size={16} color="#CCC" />
+              <Text style={styles.emptyText}>Adicionar</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Week navigation header */}
+      <PageHeader title="Refeições" familyBannerUri={familyBannerUrl} />
+
+      {/* Week navigation */}
       <View style={styles.navHeader}>
         <IconButton icon="chevron-left" size={24} onPress={goToPreviousWeek} />
         <TouchableOpacity onPress={goToCurrentWeek} style={styles.weekLabelContainer}>
@@ -232,89 +312,35 @@ export default function MealPlanScreen() {
           <ActivityIndicator size="large" />
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gridScroll}>
-          <View style={styles.grid}>
-            {/* Day headers */}
-            <View style={styles.headerRow}>
-              <View style={styles.slotLabelCell} />
-              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                <View
-                  key={day}
-                  style={[styles.dayHeader, isToday(currentWeekStart, day) && styles.todayHeader]}
+        <ScrollView style={styles.dayList} contentContainerStyle={styles.dayListContent}>
+          {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+            const today = isToday(currentWeekStart, day);
+            const collapsed = collapsedDays.has(day);
+            return (
+              <View key={day} style={[styles.dayCard, today && styles.dayCardToday]}>
+                <TouchableOpacity
+                  style={[styles.dayCardHeader, today && styles.dayCardHeaderToday]}
+                  onPress={() => toggleDayCollapse(day)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.dayLabel, isToday(currentWeekStart, day) && styles.todayLabel]}>
-                    {DAY_LABELS[day - 1]}
+                  <Text style={[styles.dayCardTitle, today && styles.dayCardTitleToday]}>
+                    {formatDayCardLabel(currentWeekStart, day)}
                   </Text>
-                  <Text style={[styles.dayDate, isToday(currentWeekStart, day) && styles.todayLabel]}>
-                    {getDayDate(currentWeekStart, day)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Meal rows */}
-            {MEAL_SLOTS.map((slot) => (
-              <View key={slot} style={styles.mealRow}>
-                <View style={styles.slotLabelCell}>
-                  <Text style={styles.slotLabel}>{SLOT_LABELS[slot]}</Text>
-                </View>
-                {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-                  const entry = getEntry(day, slot);
-                  const skippedByEntry = entry?.isSlotSkipped;
-                  const skippedByConfig = !entry && isSlotSkippedByConfig(day, slot);
-                  const skipped = skippedByEntry || skippedByConfig;
-                  return (
-                    <TouchableOpacity
-                      key={`${day}-${slot}`}
-                      style={[
-                        styles.mealCell,
-                        skipped && styles.skippedCell,
-                        isToday(currentWeekStart, day) && styles.todayCell,
-                      ]}
-                      onPress={() => handleSlotPress(day, slot)}
-                      activeOpacity={0.6}
-                    >
-                      {entry && !skippedByEntry ? (
-                        <View style={styles.mealCellContent}>
-                          {entry.mealType === 'leftovers' ? (
-                            <>
-                              <Icon source="recycle-variant" size={12} color="#888" />
-                              <Text style={styles.mealDetail} numberOfLines={1}>Restos</Text>
-                              <Text style={styles.mealName} numberOfLines={1}>
-                                {entry.name}
-                              </Text>
-                            </>
-                          ) : (
-                            <>
-                              <Text style={styles.mealName} numberOfLines={entry.detail ? 1 : 2}>
-                                {entry.name}
-                              </Text>
-                              {entry.mealType === 'eating_out' && (
-                                <Icon source="store" size={12} color="#888" />
-                              )}
-                              {entry.mealType === 'takeaway' && (
-                                <Icon source="food-takeout-box" size={12} color="#888" />
-                              )}
-                            </>
-                          )}
-                          {entry.isSlotOverridden && (
-                            <Icon source="account-edit" size={10} color="#B5451B" />
-                          )}
-                          {entry.detail ? (
-                            <Text style={styles.mealDetail} numberOfLines={1}>{entry.detail}</Text>
-                          ) : null}
-                        </View>
-                      ) : skipped ? (
-                        <Text style={styles.skippedText}>—</Text>
-                      ) : (
-                        <Text style={styles.emptyText}>+</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                  <View style={styles.dayCardHeaderRight}>
+                    {today && <Text style={styles.todayBadge}>Hoje</Text>}
+                    <Icon source={collapsed ? 'chevron-down' : 'chevron-up'} size={20} color={today ? '#B5451B' : '#888'} />
+                  </View>
+                </TouchableOpacity>
+                {!collapsed && (
+                  <>
+                    {renderSlotRow(day, 'lunch')}
+                    <View style={styles.slotDivider} />
+                    {renderSlotRow(day, 'dinner')}
+                  </>
+                )}
               </View>
-            ))}
-          </View>
+            );
+          })}
         </ScrollView>
       )}
 
@@ -323,6 +349,8 @@ export default function MealPlanScreen() {
         dayLabel={addSlot ? DAY_LABELS[addSlot.dayOfWeek - 1] : ''}
         slotLabel={addSlot ? SLOT_LABELS[addSlot.mealSlot] : ''}
         linkableMeals={linkableMeals}
+        profiles={profiles}
+        defaultParticipants={addSlot ? getDefaultParticipants(addSlot.dayOfWeek, addSlot.mealSlot) : []}
         onClose={() => setAddSlot(null)}
         onSave={handleAddMeal}
       />
@@ -345,14 +373,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',
-    paddingTop: 48,
   },
   navHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
-    paddingBottom: 8,
+    paddingBottom: 4,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
   weekLabelContainer: {
     flex: 1,
@@ -368,94 +398,144 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gridScroll: {
+  dayList: {
     flex: 1,
   },
-  grid: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
+  dayListContent: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  headerRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  slotLabelCell: {
-    width: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayHeader: {
-    width: 80,
-    alignItems: 'center',
-    paddingVertical: 6,
-    marginHorizontal: 2,
-    borderRadius: 8,
-  },
-  todayHeader: {
-    backgroundColor: '#B5451B',
-  },
-  dayLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-  },
-  dayDate: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
-  },
-  todayLabel: {
-    color: '#FFF',
-  },
-  mealRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  slotLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#888',
-  },
-  mealCell: {
-    width: 80,
-    height: 56,
-    marginHorizontal: 2,
-    borderRadius: 8,
+  dayCard: {
     backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
+    borderColor: '#E8E8E8',
+    overflow: 'hidden',
   },
-  todayCell: {
+  dayCardToday: {
     borderColor: '#B5451B',
     borderWidth: 2,
   },
-  skippedCell: {
-    backgroundColor: '#F0F0F0',
-    borderColor: '#E8E8E8',
-  },
-  mealCellContent: {
+  dayCardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFF8F5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  mealName: {
-    fontSize: 11,
+  dayCardHeaderToday: {
+    backgroundColor: '#FFF0EB',
+  },
+  dayCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#333',
-    textAlign: 'center',
   },
-  mealDetail: {
-    fontSize: 9,
-    color: '#999',
-    textAlign: 'center',
+  dayCardTitleToday: {
+    color: '#B5451B',
   },
-  skippedText: {
-    fontSize: 14,
+  dayCardHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  todayBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
+    backgroundColor: '#B5451B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  slotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 48,
+  },
+  slotRowSkipped: {
+    backgroundColor: '#F8F8F8',
+  },
+  slotLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#888',
+    width: 60,
+  },
+  slotLabelSkipped: {
     color: '#CCC',
   },
+  slotContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  slotDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginHorizontal: 16,
+  },
+  mealInfo: {
+    flex: 1,
+  },
+  mealNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  mealName: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1,
+  },
+  skippedText: {
+    fontSize: 13,
+    color: '#CCC',
+    fontStyle: 'italic',
+  },
+  emptySlot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   emptyText: {
-    fontSize: 18,
-    color: '#DDD',
+    fontSize: 13,
+    color: '#CCC',
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  avatarCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#B5451B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+    overflow: 'hidden',
+  },
+  avatarOverlap: {
+    marginLeft: -6,
+  },
+  avatarImage: {
+    width: 24,
+    height: 24,
+  },
+  avatarInitial: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

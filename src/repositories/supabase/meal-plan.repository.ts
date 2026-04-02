@@ -25,7 +25,6 @@ function mapMealEntry(row: any): MealEntry {
     mealSlot: row.meal_slot as MealSlot,
     name: row.name,
     mealType: row.meal_type as MealType,
-    detail: row.detail ?? null,
     linkedMealId: row.linked_meal_id ?? null,
     participants: row.participants ?? [],
     isSlotOverridden: Boolean(row.is_slot_overridden),
@@ -69,7 +68,6 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
         meal_slot: input.mealSlot,
         name: input.name,
         meal_type: input.mealType ?? 'home_cooked',
-        detail: input.detail ?? null,
         linked_meal_id: input.linkedMealId ?? null,
         participants: input.participants,
         created_at: ts,
@@ -90,7 +88,6 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
     if (input.name !== undefined) updateData.name = input.name;
     if (input.mealType !== undefined) updateData.meal_type = input.mealType;
-    if (input.detail !== undefined) updateData.detail = input.detail;
     if (input.participants !== undefined) updateData.participants = input.participants;
     if (input.linkedMealId !== undefined) updateData.linked_meal_id = input.linkedMealId;
     if (input.isSlotOverridden !== undefined) updateData.is_slot_overridden = input.isSlotOverridden;
@@ -156,7 +153,7 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
     return mapMealEntry(data);
   }
 
-  async getRecentHomeCookedMeals(familyId: string, currentWeekStart: string, weeksBack = 2): Promise<MealEntry[]> {
+  async getRecentLinkableMeals(familyId: string, currentWeekStart: string, weeksBack = 2): Promise<MealEntry[]> {
     const startDate = parseLocalDate(currentWeekStart);
     startDate.setDate(startDate.getDate() - weeksBack * 7);
     const fromWeek = formatDateToString(startDate);
@@ -165,7 +162,7 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
       .from('meal_entries')
       .select('*')
       .eq('family_id', familyId)
-      .eq('meal_type', 'home_cooked')
+      .in('meal_type', ['home_cooked', 'takeaway'])
       .eq('is_slot_skipped', false)
       .gte('week_start', fromWeek)
       .lte('week_start', currentWeekStart)
@@ -173,7 +170,7 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
       .order('day_of_week', { ascending: false });
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao carregar refeições caseiras recentes', error);
+      logger.error('MealPlanRepository', 'Erro ao carregar refeições recentes', error);
       throw error;
     }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { LinkedMealPicker } from './linked-meal-picker';
+import { ParticipantToggle } from './participant-toggle';
 import type { MealEntry, MealType } from '../../types/meal-plan.types';
+import type { Profile } from '../../types/profile.types';
 
 const MEAL_TYPE_OPTIONS: { value: MealType; label: string; disabled?: boolean }[] = [
   { value: 'home_cooked', label: 'Caseira' },
@@ -27,41 +29,51 @@ interface MealAddFormProps {
   dayLabel: string;
   slotLabel: string;
   linkableMeals: MealEntry[];
+  profiles: Profile[];
+  defaultParticipants: string[];
   onClose: () => void;
-  onSave: (name: string, mealType: MealType, detail: string | null, linkedMealId: string | null) => Promise<void>;
+  onSave: (name: string, mealType: MealType, linkedMealId: string | null, participants: string[]) => Promise<void>;
 }
 
-export function MealAddForm({ visible, dayLabel, slotLabel, linkableMeals, onClose, onSave }: MealAddFormProps) {
+export function MealAddForm({ visible, dayLabel, slotLabel, linkableMeals, profiles, defaultParticipants, onClose, onSave }: MealAddFormProps) {
   const [name, setName] = useState('');
   const [mealType, setMealType] = useState<MealType>('home_cooked');
-  const [detail, setDetail] = useState('');
   const [linkedMealId, setLinkedMealId] = useState<string | null>(null);
   const [linkedMealName, setLinkedMealName] = useState('');
   const [showMealPicker, setShowMealPicker] = useState(false);
   const [nameError, setNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [participants, setParticipants] = useState<string[]>([]);
 
-  const showDetail = mealType === 'eating_out' || mealType === 'takeaway';
+  useEffect(() => {
+    if (visible) {
+      setParticipants(defaultParticipants);
+    }
+  }, [visible, defaultParticipants]);
+
   const isLeftovers = mealType === 'leftovers';
 
   function resetForm() {
     setName('');
     setMealType('home_cooked');
-    setDetail('');
     setLinkedMealId(null);
     setLinkedMealName('');
+    setParticipants([]);
     setNameError('');
   }
 
   function handleTypeChange(type: MealType) {
     setMealType(type);
-    if (type !== 'eating_out' && type !== 'takeaway') {
-      setDetail('');
-    }
     if (type !== 'leftovers') {
       setLinkedMealId(null);
       setLinkedMealName('');
     }
+  }
+
+  function toggleParticipant(profileId: string) {
+    setParticipants((prev) =>
+      prev.includes(profileId) ? prev.filter((id) => id !== profileId) : [...prev, profileId]
+    );
   }
 
   function handleLinkedMealSelect(meal: MealEntry) {
@@ -85,7 +97,7 @@ export function MealAddForm({ visible, dayLabel, slotLabel, linkableMeals, onClo
     }
     setIsSaving(true);
     try {
-      await onSave(trimmed, mealType, showDetail && detail.trim() ? detail.trim() : null, isLeftovers ? linkedMealId : null);
+      await onSave(trimmed, mealType, isLeftovers ? linkedMealId : null, participants);
       resetForm();
       onClose();
     } catch {
@@ -146,20 +158,6 @@ export function MealAddForm({ visible, dayLabel, slotLabel, linkableMeals, onClo
           />
           {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
 
-          {showDetail && (
-            <>
-              <Text style={[styles.label, { marginTop: 16 }]}>
-                {mealType === 'eating_out' ? 'Restaurante (opcional)' : 'Encomenda (opcional)'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={detail}
-                onChangeText={setDetail}
-                placeholder={mealType === 'eating_out' ? 'Ex: Cervejaria Ramiro' : 'Ex: Sushi do Noori'}
-              />
-            </>
-          )}
-
           {isLeftovers && (
             <>
               <Text style={[styles.label, { marginTop: 16 }]}>Refeição de origem</Text>
@@ -176,11 +174,19 @@ export function MealAddForm({ visible, dayLabel, slotLabel, linkableMeals, onClo
             </>
           )}
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.cancelButton} onPress={handleClose} disabled={isSaving}>
+          <Text style={[styles.label, { marginTop: 16 }]}>Participantes</Text>
+          <ParticipantToggle
+            profiles={profiles}
+            selectedIds={participants}
+            onToggle={toggleParticipant}
+            disabled={isSaving}
+          />
+
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={isSaving}>
               <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isSaving}>
+            <TouchableOpacity style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} onPress={handleSave} disabled={isSaving}>
               {isSaving ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
@@ -279,33 +285,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  buttonRow: {
+  btnRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 24,
     gap: 12,
+    marginTop: 16,
   },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  cancelBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 8,
-  },
-  cancelText: {
-    fontSize: 15,
-    color: '#888',
-  },
-  saveButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    backgroundColor: '#B5451B',
-    minWidth: 90,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
     alignItems: 'center',
   },
+  cancelText: {
+    color: '#1A1A1A',
+    fontSize: 16,
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: '#B5451B',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
+  },
   saveText: {
-    fontSize: 15,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
-    color: '#FFF',
   },
   linkedMealButton: {
     borderWidth: 1,

@@ -134,9 +134,6 @@ export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlan
             {typeIcon && <Icon source={typeIcon} size={16} color="#888" />}
             <Text style={s.mealName} numberOfLines={1}>{nextMeal.name}</Text>
           </View>
-          {nextMeal.detail && (
-            <Text style={s.mealDetail} numberOfLines={1}>{nextMeal.detail}</Text>
-          )}
           {nextMealProfiles.length > 0 && (
             <View style={s.participantsRow}>
               <Icon source="account-group" size={14} color="#888" />
@@ -212,11 +209,6 @@ const s = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
     flex: 1,
-  },
-  mealDetail: {
-    fontSize: 13,
-    color: '#555555',
-    marginTop: 2,
   },
   participantsRow: {
     flexDirection: 'row',

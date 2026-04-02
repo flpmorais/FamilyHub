@@ -9,9 +9,10 @@ import {
   Modal,
 } from 'react-native';
 import { Icon } from 'react-native-paper';
-import { router } from 'expo-router';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
+import { useFamily } from '../../../hooks/use-family';
+import { PageHeader } from '../../../components/page-header';
 import { logger } from '../../../utils/logger';
 import type { Profile } from '../../../types/profile.types';
 import type { MealSlot, MealPlanSlotConfig } from '../../../types/meal-plan.types';
@@ -30,6 +31,7 @@ export default function MealPlanConfigScreen() {
   const mealPlanRepo = useRepository('mealPlan');
   const profileRepo = useRepository('profile');
   const { userAccount } = useAuthStore();
+  const family = useFamily();
 
   const [configs, setConfigs] = useState<ConfigMap>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -68,8 +70,9 @@ export default function MealPlanConfigScreen() {
 
   function getSlotProfileNames(day: number, slot: MealSlot): string {
     const config = getSlotConfig(day, slot);
-    if (!config || config.participants.length === 0) return 'Todos';
-    if (config.isSkip) return 'Saltar';
+    if (!config || config.isSkip) return 'Saltar';
+    if (config.participants.length === 0) return 'Saltar';
+    if (config.participants.length === profiles.length) return 'Todos';
     const names = config.participants
       .map((id) => profiles.find((p) => p.id === id)?.displayName ?? '?')
       .join(', ');
@@ -87,12 +90,13 @@ export default function MealPlanConfigScreen() {
     if (!userAccount?.familyId) return;
     const config = getSlotConfig(day, slot);
     const newIsSkip = !(config?.isSkip ?? false);
+    const newParticipants = newIsSkip ? [] : profiles.map((p) => p.id);
     try {
       const result = await mealPlanRepo.upsertConfig(
         userAccount.familyId,
         day,
         slot,
-        config?.participants ?? profiles.map((p) => p.id),
+        newParticipants,
         newIsSkip
       );
       setConfigs((prev) => ({ ...prev, [configKey(day, slot)]: result }));
@@ -107,16 +111,21 @@ export default function MealPlanConfigScreen() {
     );
   }
 
+  function toggleAllParticipants() {
+    const allSelected = pickerParticipants.length === profiles.length;
+    setPickerParticipants(allSelected ? [] : profiles.map((p) => p.id));
+  }
+
   async function savePicker() {
     if (!pickerSlot || !userAccount?.familyId) return;
     try {
-      const config = getSlotConfig(pickerSlot.day, pickerSlot.slot);
+      const isSkip = pickerParticipants.length === 0;
       const result = await mealPlanRepo.upsertConfig(
         userAccount.familyId,
         pickerSlot.day,
         pickerSlot.slot,
         pickerParticipants,
-        config?.isSkip ?? false
+        isSkip
       );
       setConfigs((prev) => ({
         ...prev,
@@ -138,18 +147,9 @@ export default function MealPlanConfigScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon source="arrow-left" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Configuração de Refeições</Text>
-      </View>
+      <PageHeader title="Configuração de Refeições" showBack familyBannerUri={family?.bannerUrl} />
 
-      <ScrollView style={styles.scroll}>
-        <Text style={styles.description}>
-          Defina quem come em cada refeição por defeito. Estas definições são aplicadas automaticamente ao planear novas semanas.
-        </Text>
-
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {MEAL_SLOTS.map((slot) => (
           <View key={slot}>
             <Text style={styles.sectionTitle}>{SLOT_LABELS[slot]}</Text>
@@ -169,7 +169,7 @@ export default function MealPlanConfigScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => toggleSkip(day, slot)} style={styles.skipButton}>
-                    <Icon source={isSkip ? 'eye-off' : 'eye'} size={20} color={isSkip ? '#BBB' : '#888'} />
+                    <Icon source={isSkip ? 'close-circle' : 'check-circle'} size={20} color={isSkip ? '#BBB' : '#4CAF50'} />
                   </TouchableOpacity>
                 </View>
               );
@@ -186,6 +186,12 @@ export default function MealPlanConfigScreen() {
               {pickerSlot ? `${DAY_LABELS[pickerSlot.day - 1]} — ${SLOT_LABELS[pickerSlot.slot]}` : ''}
             </Text>
             <Text style={styles.pickerSubtitle}>Quem come nesta refeição?</Text>
+
+            <TouchableOpacity onPress={toggleAllParticipants} style={styles.selectAllButton}>
+              <Text style={styles.selectAllText}>
+                {pickerParticipants.length === profiles.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+              </Text>
+            </TouchableOpacity>
 
             {profiles.map((profile) => {
               const selected = pickerParticipants.includes(profile.id);
@@ -230,33 +236,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 48,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-  },
   scroll: {
     flex: 1,
-    padding: 16,
   },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    lineHeight: 20,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 80,
   },
   sectionTitle: {
     fontSize: 16,
@@ -323,6 +309,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginBottom: 20,
+  },
+  selectAllButton: {
+    marginBottom: 12,
+  },
+  selectAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#B5451B',
   },
   profileRow: {
     flexDirection: 'row',

@@ -9,7 +9,6 @@ export interface MealEntry {
   mealSlot: MealSlot;
   name: string;
   mealType: MealType;
-  detail: string | null;
   linkedMealId: string | null;
   participants: string[];
   isSlotOverridden: boolean;
@@ -25,7 +24,6 @@ export interface CreateMealEntryInput {
   mealSlot: MealSlot;
   name: string;
   mealType?: MealType;
-  detail?: string;
   linkedMealId?: string;
   participants: string[];
 }
@@ -33,7 +31,6 @@ export interface CreateMealEntryInput {
 export interface UpdateMealEntryInput {
   name?: string;
   mealType?: MealType;
-  detail?: string | null;
   participants?: string[];
   linkedMealId?: string | null;
   isSlotOverridden?: boolean;

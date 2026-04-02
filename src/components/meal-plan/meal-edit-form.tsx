@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { LinkedMealPicker } from './linked-meal-picker';
+import { ParticipantToggle } from './participant-toggle';
 import type { MealEntry, MealSlot, MealType } from '../../types/meal-plan.types';
 import type { Profile } from '../../types/profile.types';
 
@@ -33,7 +34,7 @@ interface MealEditFormProps {
   profiles: Profile[];
   linkableMeals: MealEntry[];
   onClose: () => void;
-  onSave: (id: string, name: string, mealType: MealType, detail: string | null, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) => Promise<void>;
+  onSave: (id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onSkip: (id: string) => Promise<void>;
 }
@@ -41,24 +42,20 @@ interface MealEditFormProps {
 export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, onSave, onDelete, onSkip }: MealEditFormProps) {
   const [name, setName] = useState('');
   const [mealType, setMealType] = useState<MealType>('home_cooked');
-  const [detail, setDetail] = useState('');
   const [linkedMealId, setLinkedMealId] = useState<string | null>(null);
   const [linkedMealName, setLinkedMealName] = useState('');
   const [linkedMealMeta, setLinkedMealMeta] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [nameError, setNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showParticipantPicker, setShowParticipantPicker] = useState(false);
   const [showMealPicker, setShowMealPicker] = useState(false);
 
-  const showDetail = mealType === 'eating_out' || mealType === 'takeaway';
   const isLeftovers = mealType === 'leftovers';
 
   useEffect(() => {
     if (meal) {
       setName(meal.name);
       setMealType(meal.mealType);
-      setDetail(meal.detail ?? '');
       setLinkedMealId(meal.linkedMealId);
       // Resolve linked meal name and date from linkable meals list
       if (meal.linkedMealId) {
@@ -82,9 +79,6 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
 
   function handleTypeChange(type: MealType) {
     setMealType(type);
-    if (type !== 'eating_out' && type !== 'takeaway') {
-      setDetail('');
-    }
     if (type !== 'leftovers') {
       setLinkedMealId(null);
       setLinkedMealName('');
@@ -126,12 +120,6 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
     );
   }
 
-  function getParticipantNames(): string[] {
-    return participants
-      .map((id) => profiles.find((p) => p.id === id)?.displayName ?? '?')
-      .filter(Boolean);
-  }
-
   async function handleSave() {
     if (!meal) return;
     const trimmed = name.trim();
@@ -145,6 +133,11 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
     }
     setIsSaving(true);
     try {
+      if (participants.length === 0) {
+        await onSkip(meal.id);
+        onClose();
+        return;
+      }
       const sorted1 = [...participants].sort();
       const sorted2 = [...meal.participants].sort();
       const participantsChanged = sorted1.length !== sorted2.length || sorted1.some((id, i) => id !== sorted2[i]);
@@ -154,7 +147,6 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
         meal.id,
         trimmed,
         mealType,
-        showDetail && detail.trim() ? detail.trim() : null,
         participants,
         isOverridden,
         isLeftovers ? linkedMealId : null
@@ -262,20 +254,6 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
           />
           {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
 
-          {showDetail && (
-            <>
-              <Text style={[styles.label, { marginTop: 16 }]}>
-                {mealType === 'eating_out' ? 'Restaurante (opcional)' : 'Encomenda (opcional)'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={detail}
-                onChangeText={setDetail}
-                placeholder={mealType === 'eating_out' ? 'Ex: Cervejaria Ramiro' : 'Ex: Sushi do Noori'}
-              />
-            </>
-          )}
-
           {isLeftovers && (
             <>
               <Text style={[styles.label, { marginTop: 16 }]}>Refeição de origem</Text>
@@ -302,70 +280,33 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
           )}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Participantes</Text>
-          <View style={styles.participantRow}>
-            {getParticipantNames().map((pName, i) => (
-              <View key={i} style={styles.participantChip}>
-                <Text style={styles.participantChipText}>{pName}</Text>
-              </View>
-            ))}
-            <TouchableOpacity onPress={() => setShowParticipantPicker(true)} style={styles.editParticipantsButton}>
-              <Icon source="account-edit" size={20} color="#888" />
-            </TouchableOpacity>
-          </View>
+          <ParticipantToggle
+            profiles={profiles}
+            selectedIds={participants}
+            onToggle={toggleParticipant}
+            disabled={isSaving}
+          />
 
-          <View style={styles.buttonRow}>
-            <View style={styles.leftButtons}>
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDeletePress} disabled={isSaving}>
-                <Text style={styles.deleteText}>Apagar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.skipButton} onPress={handleSkipPress} disabled={isSaving}>
-                <Text style={styles.skipText}>Saltar</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rightButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={isSaving}>
-                <Text style={styles.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={styles.saveText}>Guardar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+          <View style={styles.btnRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={isSaving}>
+              <Text style={styles.cancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteBtn} onPress={handleDeletePress} disabled={isSaving}>
+              <Text style={styles.deleteText}>Apagar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.skipBtn} onPress={handleSkipPress} disabled={isSaving}>
+              <Text style={styles.skipText}>Saltar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} onPress={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.saveText}>Guardar</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
-
-      {/* Participant Picker Modal */}
-      <Modal visible={showParticipantPicker} animationType="fade" transparent onRequestClose={() => setShowParticipantPicker(false)}>
-        <View style={styles.pickerOverlay}>
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerTitle}>Quem come nesta refeição?</Text>
-            {profiles.map((profile) => {
-              const selected = participants.includes(profile.id);
-              return (
-                <TouchableOpacity
-                  key={profile.id}
-                  style={styles.profileRow}
-                  onPress={() => toggleParticipant(profile.id)}
-                >
-                  <Icon
-                    source={selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                    size={24}
-                    color={selected ? '#B5451B' : '#CCC'}
-                  />
-                  <Text style={styles.profileName}>{profile.displayName}</Text>
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity style={styles.pickerDone} onPress={() => setShowParticipantPicker(false)}>
-              <Text style={styles.pickerDoneText}>Concluído</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       <LinkedMealPicker
         visible={showMealPicker}
@@ -450,120 +391,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  participantRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-  },
-  participantChip: {
-    backgroundColor: '#F0F0F0',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  participantChipText: {
-    fontSize: 12,
-    color: '#555',
-  },
-  editParticipantsButton: {
-    padding: 4,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  leftButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  deleteButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  deleteText: {
-    fontSize: 15,
-    color: '#D32F2F',
-    fontWeight: '600',
-  },
-  skipButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  skipText: {
-    fontSize: 15,
-    color: '#888',
-    fontWeight: '600',
-  },
-  rightButtons: {
+  btnRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 16,
   },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  cancelBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    alignItems: 'center',
   },
   cancelText: {
-    fontSize: 15,
-    color: '#888',
+    color: '#1A1A1A',
+    fontSize: 16,
   },
-  saveButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
+  deleteBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#B5451B',
-    minWidth: 90,
+    borderWidth: 1,
+    borderColor: '#D32F2F',
     alignItems: 'center',
+  },
+  deleteText: {
+    color: '#D32F2F',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  skipBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#888',
+    alignItems: 'center',
+  },
+  skipText: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: '#B5451B',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
   },
   saveText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  pickerOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 32,
-  },
-  pickerContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 24,
-  },
-  pickerTitle: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 16,
-  },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 12,
-  },
-  profileName: {
-    fontSize: 16,
-    color: '#333',
-  },
-  pickerDone: {
-    alignSelf: 'flex-end',
-    marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    backgroundColor: '#B5451B',
-    borderRadius: 8,
-  },
-  pickerDoneText: {
-    fontSize: 15,
     fontWeight: '600',
-    color: '#FFF',
   },
   linkedMealButton: {
     borderWidth: 1,
