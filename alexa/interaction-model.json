@@ -35,8 +35,8 @@
             "remove {item} from the list",
             "take {item} off the list",
             "cross off {item}",
+            "cross {item}",
             "I already bought {item}",
-            "got {item}",
             "delete {item}"
           ]
         },
@@ -83,6 +83,62 @@
             "change quantity of {input}",
             "update quantity of {input}",
             "quantity of {input}"
+          ]
+        },
+        {
+          "name": "AddLeftover",
+          "slots": [
+            {
+              "name": "input",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add leftover {input}",
+            "add leftover {input} to the list",
+            "leftover {input}",
+            "save leftover {input}",
+            "store leftover {input}",
+            "we have leftover {input}",
+            "new leftover {input}",
+            "leftover of {input}"
+          ]
+        },
+        {
+          "name": "EatLeftover",
+          "slots": [
+            {
+              "name": "input",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "I ate leftover {input}",
+            "I've eaten leftover {input}",
+            "ate leftover {input}",
+            "eaten leftover {input}",
+            "I had leftover {input}",
+            "we ate leftover {input}",
+            "we had leftover {input}",
+            "mark leftover {input} as eaten"
+          ]
+        },
+        {
+          "name": "ThrowOutLeftover",
+          "slots": [
+            {
+              "name": "input",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "throw out leftover {input}",
+            "threw out leftover {input}",
+            "toss leftover {input}",
+            "discard leftover {input}",
+            "throw away leftover {input}",
+            "bin leftover {input}",
+            "toss out leftover {input}"
           ]
         },
         {

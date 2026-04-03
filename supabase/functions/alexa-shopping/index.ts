@@ -5,7 +5,9 @@ const ALEXA_API_KEY = Deno.env.get("ALEXA_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CLASSIFY_URL = `${SUPABASE_URL}/functions/v1/classify-item`;
+const CLASSIFY_LEFTOVER_URL = `${SUPABASE_URL}/functions/v1/classify-leftover`;
 const DEV_SYNC_URL = Deno.env.get("DEV_SYNC_URL") ?? "";
+const DEV_SYNC_LEFTOVERS_URL = Deno.env.get("DEV_SYNC_LEFTOVERS_URL") ?? "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -15,6 +17,23 @@ async function mirrorToDev(payload: Record<string, unknown>) {
   if (!DEV_SYNC_URL) return;
   try {
     await fetch(DEV_SYNC_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": ALEXA_API_KEY,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {
+    // Best-effort — don't fail prod if dev is down
+  }
+}
+
+async function mirrorLeftoverToDev(payload: Record<string, unknown>) {
+  if (!DEV_SYNC_LEFTOVERS_URL) return;
+  try {
+    await fetch(DEV_SYNC_LEFTOVERS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -125,6 +144,60 @@ async function classifyItem(
   } catch {
     return { category: "Outros", parsedName: itemName, quantityNote: null, isUrgent: false };
   }
+}
+
+// ── Leftover helpers ────────────────────────────────────────────────────────
+
+interface LeftoverClassifyResult {
+  name: string;
+  type: string;
+  doses: number | null;
+  expiryDays: number | null;
+}
+
+async function classifyLeftover(input: string): Promise<LeftoverClassifyResult> {
+  try {
+    const res = await fetch(CLASSIFY_LEFTOVER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ input }),
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!res.ok) return { name: input, type: "meal", doses: null, expiryDays: null };
+    const data = await res.json();
+    return {
+      name: data?.name || input,
+      type: data?.type || "meal",
+      doses: data?.doses ?? null,
+      expiryDays: data?.expiryDays ?? null,
+    };
+  } catch {
+    return { name: input, type: "meal", doses: null, expiryDays: null };
+  }
+}
+
+async function findLeftoverByName(
+  familyId: string,
+  name: string,
+): Promise<{
+  id: string;
+  total_doses: number;
+  doses_eaten: number;
+  doses_thrown_out: number;
+} | null> {
+  const { data, error } = await supabase
+    .from("leftovers")
+    .select("id, total_doses, doses_eaten, doses_thrown_out")
+    .eq("family_id", familyId)
+    .eq("status", "active")
+    .ilike("name", name)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 // ── Intent handlers ─────────────────────────────────────────────────────────
@@ -272,6 +345,104 @@ async function handleSetQuantity(rawInput: string): Promise<Response> {
   return alexaResponse(`Updated the quantity.`);
 }
 
+// ── Leftover intent handlers ────────────────────────────────────────────────
+
+async function handleAddLeftover(rawInput: string): Promise<Response> {
+  const familyId = await getFamilyId();
+  const { name, type, doses, expiryDays } = await classifyLeftover(rawInput);
+
+  const totalDoses = doses ?? 2;
+  const days = expiryDays ?? 4;
+  const ts = new Date().toISOString();
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate() + days);
+
+  await supabase.from("leftovers").insert({
+    family_id: familyId,
+    name,
+    type: type ?? "meal",
+    total_doses: totalDoses,
+    doses_eaten: 0,
+    doses_thrown_out: 0,
+    expiry_days: days,
+    date_added: ts,
+    expiry_date: expiry.toISOString(),
+    status: "active",
+    created_at: ts,
+    updated_at: ts,
+  });
+
+  mirrorLeftoverToDev({ action: "add", name, type, totalDoses, expiryDays: days });
+  return alexaResponse(
+    `Added ${rawInput} to leftovers. ${totalDoses} doses, ${days} days.`,
+  );
+}
+
+async function handleEatLeftover(rawInput: string): Promise<Response> {
+  const familyId = await getFamilyId();
+  const { name, doses } = await classifyLeftover(rawInput);
+
+  const item = await findLeftoverByName(familyId, name);
+  if (!item) {
+    return alexaResponse(`I couldn't find ${rawInput} in your leftovers.`);
+  }
+
+  const remaining = item.total_doses - item.doses_eaten - item.doses_thrown_out;
+  const ts = new Date().toISOString();
+
+  if (doses === null) {
+    // Eat all remaining
+    await supabase
+      .from("leftovers")
+      .update({
+        doses_eaten: item.total_doses - item.doses_thrown_out,
+        status: "closed",
+        updated_at: ts,
+      })
+      .eq("id", item.id);
+
+    mirrorLeftoverToDev({ action: "eat_all", name });
+    return alexaResponse(`Marked all ${rawInput} as eaten.`);
+  }
+
+  // Eat N doses (capped at remaining)
+  const toEat = Math.min(doses, remaining);
+  const newEaten = item.doses_eaten + toEat;
+  const newStatus =
+    newEaten + item.doses_thrown_out >= item.total_doses ? "closed" : "active";
+
+  await supabase
+    .from("leftovers")
+    .update({ doses_eaten: newEaten, status: newStatus, updated_at: ts })
+    .eq("id", item.id);
+
+  mirrorLeftoverToDev({ action: "eat", name, doses: toEat });
+  return alexaResponse(`Marked ${toEat} doses of ${rawInput} as eaten.`);
+}
+
+async function handleThrowOutLeftover(rawInput: string): Promise<Response> {
+  const familyId = await getFamilyId();
+  const { name } = await classifyLeftover(rawInput);
+
+  const item = await findLeftoverByName(familyId, name);
+  if (!item) {
+    return alexaResponse(`I couldn't find ${rawInput} in your leftovers.`);
+  }
+
+  const ts = new Date().toISOString();
+  await supabase
+    .from("leftovers")
+    .update({
+      doses_thrown_out: item.total_doses - item.doses_eaten,
+      status: "closed",
+      updated_at: ts,
+    })
+    .eq("id", item.id);
+
+  mirrorLeftoverToDev({ action: "throw_out", name });
+  return alexaResponse(`Threw out ${rawInput}.`);
+}
+
 // ── Main handler ────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -291,7 +462,7 @@ serve(async (req: Request) => {
 
     if (requestType === "LaunchRequest") {
       return alexaResponse(
-        "Hi! You can add, remove, or check items on the shopping list.",
+        "Hi! You can manage your shopping list or leftovers.",
         false,
       );
     }
@@ -338,9 +509,30 @@ serve(async (req: Request) => {
         return await handleSetQuantity(input);
       }
 
+      case "AddLeftover": {
+        const input = slots.input?.value;
+        if (!input)
+          return alexaResponse("I didn't catch the item. Try again.");
+        return await handleAddLeftover(input);
+      }
+
+      case "EatLeftover": {
+        const input = slots.input?.value;
+        if (!input)
+          return alexaResponse("I didn't catch the item. Try again.");
+        return await handleEatLeftover(input);
+      }
+
+      case "ThrowOutLeftover": {
+        const input = slots.input?.value;
+        if (!input)
+          return alexaResponse("I didn't catch the item. Try again.");
+        return await handleThrowOutLeftover(input);
+      }
+
       case "AMAZON.HelpIntent":
         return alexaResponse(
-          "Say add and the item name, remove and the item name, or ask if something is on the list.",
+          "For shopping, say add, remove, or check an item. For leftovers, say add to leftovers, I ate, or throw out.",
           false,
         );
 
@@ -350,7 +542,7 @@ serve(async (req: Request) => {
 
       case "AMAZON.FallbackIntent":
         return alexaResponse(
-          "I didn't catch that. You can add, remove, or check items.",
+          "I didn't catch that. You can manage your shopping list or leftovers.",
           false,
         );
 
