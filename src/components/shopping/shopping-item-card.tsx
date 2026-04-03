@@ -42,26 +42,24 @@ export function ShoppingItemCard({
           ) : null}
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={s.rightZone}
-        onPress={() => onToggleUrgent(item)}
-        activeOpacity={0.7}
-      >
-        <View
-          style={[
-            s.tag,
-            item.isTicked
-              ? s.tagTicked
-              : item.isUrgent
-                ? s.tagUrgente
-                : s.tagComprar,
-          ]}
+      {!item.isTicked && (
+        <TouchableOpacity
+          style={s.rightZone}
+          onPress={() => onToggleUrgent(item)}
+          activeOpacity={0.7}
         >
-          <Text style={s.tagText}>
-            {item.isUrgent ? "urgente" : "comprar"}
-          </Text>
-        </View>
-      </TouchableOpacity>
+          <View
+            style={[
+              s.tag,
+              item.isUrgent ? s.tagUrgente : s.tagComprar,
+            ]}
+          >
+            <Text style={s.tagText}>
+              {item.isUrgent ? "urgente" : "comprar"}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -138,9 +136,6 @@ const s = StyleSheet.create({
   },
   tagUrgente: {
     backgroundColor: "#D32F2F",
-  },
-  tagTicked: {
-    backgroundColor: "#CCCCCC",
   },
   tagText: {
     color: "#FFFFFF",

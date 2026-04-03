@@ -34,6 +34,7 @@ export default function DashboardScreen() {
   const [entries, setEntries] = useState<DashboardEntry[]>([]);
   const [activeLeftovers, setActiveLeftovers] = useState<Leftover[]>([]);
   const [shoppingCount, setShoppingCount] = useState(0);
+  const [urgentCount, setUrgentCount] = useState(0);
   const [family, setFamily] = useState<Family | null>(null);
   const [nextMeal, setNextMeal] = useState<MealEntry | null>(null);
   const [nextMealProfiles, setNextMealProfiles] = useState<string[]>([]);
@@ -98,7 +99,9 @@ export default function DashboardScreen() {
     if (!userAccount?.familyId) return;
     try {
       const items = await shoppingRepo.getItems(userAccount.familyId);
-      setShoppingCount(items.filter((i) => !i.isTicked).length);
+      const unticked = items.filter((i) => !i.isTicked);
+      setShoppingCount(unticked.length);
+      setUrgentCount(unticked.filter((i) => i.isUrgent).length);
     } catch {
       // Silently fail on dashboard
     }
@@ -207,6 +210,7 @@ export default function DashboardScreen() {
         <View style={styles.widgetSection}>
           <ShoppingWidget
             itemCount={shoppingCount}
+            urgentCount={urgentCount}
             onPress={() => router.push('/(app)/(shopping)')}
           />
         </View>

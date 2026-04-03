@@ -36,7 +36,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="(meal-plan)"
           options={{
-            title: 'Refeições',
+            title: 'Ementa',
             tabBarIcon: ({ color, size }) => <Icon source="silverware-fork-knife" size={size} color={color} />,
           }}
           listeners={({ navigation }) => ({

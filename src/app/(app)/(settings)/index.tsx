@@ -12,7 +12,7 @@ const FAMILY_ITEMS = [
 ] as const;
 
 const MEAL_PLAN_ITEMS = [
-  { label: 'Refeições', icon: 'silverware-fork-knife', route: '/(app)/(settings)/meal-plan-config' },
+  { label: 'Ementa Semanal', icon: 'silverware-fork-knife', route: '/(app)/(settings)/meal-plan-config' },
 ] as const;
 
 const VACATION_ITEMS = [
@@ -67,7 +67,7 @@ export default function SettingsHubScreen() {
           </TouchableOpacity>
         ))}
 
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Refeições</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Ementa Semanal</Text>
         {MEAL_PLAN_ITEMS.map((item) => (
           <TouchableOpacity key={item.route} style={s.row} onPress={() => router.push(item.route as any)}>
             <View style={s.iconWrap}>

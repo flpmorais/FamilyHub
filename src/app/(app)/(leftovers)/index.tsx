@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Snackbar } from "react-native-paper";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
 import { useAuthStore } from "../../../stores/auth.store";
 import { useLeftoversStore } from "../../../stores/leftovers.store";
@@ -55,13 +55,15 @@ export default function LeftoversScreen() {
     }
   }, [leftoverRepo, familyId, setPaginationCursor]);
 
-  useEffect(() => {
-    void reloadFromStart();
-    if (familyId) {
-      supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
-        .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
-    }
-  }, [reloadFromStart, familyId]);
+  useFocusEffect(
+    useCallback(() => {
+      void reloadFromStart();
+      if (familyId) {
+        supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
+          .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
+      }
+    }, [reloadFromStart, familyId]),
+  );
 
   async function loadMore() {
     if (!hasMore || loadingMoreRef.current || !familyId) return;

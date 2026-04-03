@@ -75,17 +75,23 @@ export function LeftoverItemCard({
           ) : (
             <Text style={s.closedBadge}>Fechado</Text>
           )}
-          <Text style={s.dateLabel}>exp:{shortDate(item.expiryDate)}</Text>
-          <Text style={s.dateLabel}>add:{shortDate(item.dateAdded)}</Text>
         </View>
       </View>
 
       {isActive ? (
         <>
-          <Text style={s.typeText}>{TYPE_LABEL[item.type ?? "meal"]}</Text>
-          <Text style={s.dosesText}>
-            {remaining} {remaining === 1 ? "dose restante" : "doses restantes"}
-          </Text>
+          <View style={s.infoRow}>
+            <View style={s.infoLeft}>
+              <Text style={s.typeText}>{TYPE_LABEL[item.type ?? "meal"]}</Text>
+              <Text style={s.dosesText}>
+                {remaining} {remaining === 1 ? "dose restante" : "doses restantes"}
+              </Text>
+            </View>
+            <View style={s.infoRight}>
+              <Text style={s.dateLabel}>exp:{shortDate(item.expiryDate)}</Text>
+              <Text style={s.dateLabel}>add:{shortDate(item.dateAdded)}</Text>
+            </View>
+          </View>
           <View style={s.actions}>
             <TouchableOpacity
               style={s.eatenBtn}
@@ -99,11 +105,17 @@ export function LeftoverItemCard({
           </View>
         </>
       ) : (
-        <Text style={s.closedInfo}>
-          {item.dosesEaten} {item.dosesEaten === 1 ? "comida" : "comidas"} ·{" "}
-          {item.dosesThrownOut}{" "}
-          {item.dosesThrownOut === 1 ? "deitada fora" : "deitadas fora"}
-        </Text>
+        <View style={s.infoRow}>
+          <Text style={s.closedInfo}>
+            {item.dosesEaten} {item.dosesEaten === 1 ? "comida" : "comidas"} ·{" "}
+            {item.dosesThrownOut}{" "}
+            {item.dosesThrownOut === 1 ? "deitada fora" : "deitadas fora"}
+          </Text>
+          <View style={s.infoRight}>
+            <Text style={s.dateLabel}>exp:{shortDate(item.expiryDate)}</Text>
+            <Text style={s.dateLabel}>add:{shortDate(item.dateAdded)}</Text>
+          </View>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -184,6 +196,18 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  infoLeft: {
+    flex: 1,
+  },
+  infoRight: {
+    alignItems: "flex-end",
+  },
   typeText: {
     fontSize: 12,
     color: "#888888",
@@ -192,7 +216,6 @@ const s = StyleSheet.create({
   dosesText: {
     fontSize: 14,
     color: "#555555",
-    marginBottom: 12,
   },
   actions: {
     flexDirection: "row",

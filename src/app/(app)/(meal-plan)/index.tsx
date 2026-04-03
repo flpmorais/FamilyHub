@@ -333,7 +333,7 @@ export default function MealPlanScreen() {
 
   return (
     <View style={styles.container}>
-      <PageHeader title="Refeições" familyBannerUri={familyBannerUrl} />
+      <PageHeader title="Ementa Semanal" familyBannerUri={familyBannerUrl} />
 
       {/* Week navigation */}
       <View style={styles.navHeader}>

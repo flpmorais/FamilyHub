@@ -3,10 +3,11 @@ import { Icon } from "react-native-paper";
 
 interface ShoppingWidgetProps {
   itemCount: number;
+  urgentCount: number;
   onPress: () => void;
 }
 
-export function ShoppingWidget({ itemCount, onPress }: ShoppingWidgetProps) {
+export function ShoppingWidget({ itemCount, urgentCount, onPress }: ShoppingWidgetProps) {
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
       <View style={s.titleRow}>
@@ -16,12 +17,22 @@ export function ShoppingWidget({ itemCount, onPress }: ShoppingWidgetProps) {
       {itemCount === 0 ? (
         <Text style={s.emptyText}>Lista vazia</Text>
       ) : (
-        <View style={s.contentRow}>
-          <Text style={s.count}>
-            {itemCount} {itemCount === 1 ? "item" : "itens"}
-          </Text>
-          <Text style={s.arrow}>→</Text>
-        </View>
+        <>
+          <View style={s.contentRow}>
+            <Text style={s.count}>
+              {itemCount} {itemCount === 1 ? "item" : "itens"}
+            </Text>
+            <Text style={s.arrow}>→</Text>
+          </View>
+          {urgentCount > 0 && (
+            <View style={s.statusRow}>
+              <Icon source="alert-circle" size={14} color="#D32F2F" />
+              <Text style={s.alertUrgent}>
+                {urgentCount} {urgentCount === 1 ? "item urgente" : "itens urgentes"}
+              </Text>
+            </View>
+          )}
+        </>
       )}
     </TouchableOpacity>
   );
@@ -58,7 +69,7 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   count: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#1A1A1A",
   },
@@ -66,5 +77,16 @@ const s = StyleSheet.create({
     fontSize: 16,
     color: "#B5451B",
     marginLeft: 8,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  alertUrgent: {
+    fontSize: 13,
+    color: "#D32F2F",
+    fontWeight: "600",
   },
 });

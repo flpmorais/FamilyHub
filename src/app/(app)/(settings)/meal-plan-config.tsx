@@ -147,7 +147,7 @@ export default function MealPlanConfigScreen() {
 
   return (
     <View style={styles.container}>
-      <PageHeader title="Configuração de Refeições" showBack familyBannerUri={family?.bannerUrl} />
+      <PageHeader title="Configuração de Ementa Semanal" showBack familyBannerUri={family?.bannerUrl} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {MEAL_SLOTS.map((slot) => (

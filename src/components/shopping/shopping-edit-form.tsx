@@ -155,27 +155,31 @@ export function ShoppingEditForm({
               editable={!isSaving}
             />
 
-            <Text style={s.label}>Prioridade</Text>
-            <View style={s.priorityRow}>
-              <TouchableOpacity
-                style={[s.priorityChip, !isUrgent && s.priorityChipComprar]}
-                onPress={() => setIsUrgent(false)}
-                disabled={isSaving}
-              >
-                <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
-                  Comprar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.priorityChip, isUrgent && s.priorityChipUrgente]}
-                onPress={() => setIsUrgent(true)}
-                disabled={isSaving}
-              >
-                <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
-                  Urgente
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {!item!.isTicked && (
+              <>
+                <Text style={s.label}>Prioridade</Text>
+                <View style={s.priorityRow}>
+                  <TouchableOpacity
+                    style={[s.priorityChip, !isUrgent && s.priorityChipComprar]}
+                    onPress={() => setIsUrgent(false)}
+                    disabled={isSaving}
+                  >
+                    <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
+                      Comprar
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.priorityChip, isUrgent && s.priorityChipUrgente]}
+                    onPress={() => setIsUrgent(true)}
+                    disabled={isSaving}
+                  >
+                    <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
+                      Urgente
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             <View style={s.buttons}>
               <TouchableOpacity
