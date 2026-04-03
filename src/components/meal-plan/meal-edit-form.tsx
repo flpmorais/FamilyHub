@@ -12,7 +12,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { Icon } from 'react-native-paper';
+import { Icon, IconButton } from 'react-native-paper';
 import { LinkedMealPicker } from './linked-meal-picker';
 import { ParticipantToggle } from './participant-toggle';
 import type { MealEntry, MealSlot, MealType } from '../../types/meal-plan.types';
@@ -37,9 +37,10 @@ interface MealEditFormProps {
   onSave: (id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onSkip: (id: string) => Promise<void>;
+  onAddAsLeftover?: (mealName: string) => void;
 }
 
-export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, onSave, onDelete, onSkip }: MealEditFormProps) {
+export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, onSave, onDelete, onSkip, onAddAsLeftover }: MealEditFormProps) {
   const [name, setName] = useState('');
   const [mealType, setMealType] = useState<MealType>('home_cooked');
   const [linkedMealId, setLinkedMealId] = useState<string | null>(null);
@@ -215,7 +216,18 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.container}>
-          <Text style={styles.title}>Editar refeição</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>Editar refeição</Text>
+            {onAddAsLeftover && mealType === 'home_cooked' && (
+              <IconButton
+                icon="recycle-variant"
+                size={22}
+                iconColor="#B5451B"
+                style={styles.leftoverBtn}
+                onPress={() => onAddAsLeftover(name)}
+              />
+            )}
+          </View>
 
           <Text style={styles.label}>Tipo</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
@@ -331,11 +343,19 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 20,
+  },
+  leftoverBtn: {
+    margin: 0,
   },
   label: {
     fontSize: 14,

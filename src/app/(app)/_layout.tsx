@@ -63,7 +63,7 @@ export default function AppLayout() {
           name="(leftovers)"
           options={{
             title: 'Restos',
-            tabBarIcon: ({ color, size }) => <Icon source="fridge-outline" size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => <Icon source="recycle-variant" size={size} color={color} />,
           }}
           listeners={({ navigation }) => ({
             tabPress: (e) => {

@@ -1,16 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
-import { IconButton, ActivityIndicator, Icon } from 'react-native-paper';
+import { IconButton, ActivityIndicator, Icon, Snackbar } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useMealPlanStore, getMonday } from '../../../stores/meal-plan.store';
 import { MealAddForm, MealEditForm } from '../../../components/meal-plan';
+import { LeftoverFromMealForm } from '../../../components/leftovers';
 import { PageHeader } from '../../../components/page-header';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
 import type { MealEntry, MealSlot, MealType, MealPlanSlotConfig } from '../../../types/meal-plan.types';
 import type { Profile } from '../../../types/profile.types';
+import type { LeftoverType } from '../../../types/leftover.types';
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const DAY_FULL_LABELS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -57,6 +59,7 @@ interface SlotContext {
 
 export default function MealPlanScreen() {
   const mealPlanRepo = useRepository('mealPlan');
+  const leftoverRepo = useRepository('leftover');
   const profileRepo = useRepository('profile');
   const { userAccount } = useAuthStore();
   const { currentWeekStart, setCurrentWeekStart, goToNextWeek, goToPreviousWeek, goToCurrentWeek } = useMealPlanStore();
@@ -72,6 +75,12 @@ export default function MealPlanScreen() {
   const [linkableMeals, setLinkableMeals] = useState<MealEntry[]>([]);
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
+  const [leftoverMealName, setLeftoverMealName] = useState('');
+  const [leftoverFormVisible, setLeftoverFormVisible] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState('');
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarColor, setSnackbarColor] = useState('#388E3C');
+  const [infoSnackbarVisible, setInfoSnackbarVisible] = useState(false);
 
   useEffect(() => {
     const thisWeekStart = getMonday(new Date());
@@ -200,6 +209,42 @@ export default function MealPlanScreen() {
     }
   }
 
+  function handleSlotLongPress(dayOfWeek: number, slot: MealSlot) {
+    const entry = getEntry(dayOfWeek, slot);
+    if (entry && !entry.isSlotSkipped && entry.mealType === 'home_cooked') {
+      setLeftoverMealName(entry.name);
+      setLeftoverFormVisible(true);
+    }
+  }
+
+  function handleAddAsLeftover(mealName: string) {
+    setEditMeal(null);
+    setLeftoverMealName(mealName);
+    setLeftoverFormVisible(true);
+    setInfoSnackbarVisible(true);
+  }
+
+  async function handleLeftoverSave(data: { name: string; type: LeftoverType; totalDoses: number; expiryDays: number }) {
+    if (!userAccount?.familyId) return;
+    try {
+      await leftoverRepo.create({
+        familyId: userAccount.familyId,
+        name: data.name,
+        type: data.type,
+        totalDoses: data.totalDoses,
+        expiryDays: data.expiryDays,
+      });
+      setSnackbarColor('#388E3C');
+      setSnackbarMsg('Resto adicionado');
+      setSnackbarVisible(true);
+    } catch (err) {
+      logger.error('MealPlanScreen', 'add leftover failed', err);
+      setSnackbarColor('#D32F2F');
+      setSnackbarMsg('Erro ao adicionar resto');
+      setSnackbarVisible(true);
+    }
+  }
+
   const getEntry = (dayOfWeek: number, slot: MealSlot): MealEntry | undefined => {
     return entries.find((e) => e.dayOfWeek === dayOfWeek && e.mealSlot === slot);
   };
@@ -231,6 +276,7 @@ export default function MealPlanScreen() {
         key={`${day}-${slot}`}
         style={[styles.slotRow, skipped && styles.slotRowSkipped]}
         onPress={() => handleSlotPress(day, slot)}
+        onLongPress={() => handleSlotLongPress(day, slot)}
         activeOpacity={0.6}
       >
         <Text style={[styles.slotLabel, skipped && styles.slotLabelSkipped]}>{SLOT_LABELS[slot]}</Text>
@@ -364,7 +410,35 @@ export default function MealPlanScreen() {
         onSave={handleEditMeal}
         onDelete={handleDeleteMeal}
         onSkip={handleSkipMeal}
+        onAddAsLeftover={handleAddAsLeftover}
       />
+
+      <LeftoverFromMealForm
+        visible={leftoverFormVisible}
+        mealName={leftoverMealName}
+        onClose={() => setLeftoverFormVisible(false)}
+        onSave={handleLeftoverSave}
+      />
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={2000}
+        style={styles.snackbar}
+        theme={{ colors: { inverseSurface: snackbarColor, inverseOnSurface: '#FFFFFF' } }}
+      >
+        {snackbarMsg}
+      </Snackbar>
+
+      <Snackbar
+        visible={infoSnackbarVisible}
+        onDismiss={() => setInfoSnackbarVisible(false)}
+        duration={3000}
+        style={styles.infoSnackbar}
+        theme={{ colors: { inverseSurface: '#1976D2', inverseOnSurface: '#FFFFFF' } }}
+      >
+        Dica: também pode usar toque longo para adicionar restos
+      </Snackbar>
     </View>
   );
 }
@@ -537,5 +611,13 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 10,
     fontWeight: '700',
+  },
+  snackbar: {
+    position: 'absolute',
+    top: 48,
+  },
+  infoSnackbar: {
+    position: 'absolute',
+    top: 48,
   },
 });
