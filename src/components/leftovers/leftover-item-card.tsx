@@ -3,6 +3,13 @@ import { Icon } from "react-native-paper";
 import type { Leftover, LeftoverType } from "../../types/leftover.types";
 import { daysUntilExpiry } from "../../utils/date.utils";
 
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}`;
+}
+
 const TYPE_LABEL: Record<LeftoverType, string> = {
   meal: "Refeição",
   main: "Principal",
@@ -50,23 +57,27 @@ export function LeftoverItemCard({
         <Text style={[s.name, !isActive && s.nameClosed]} numberOfLines={1}>
           {item.name}
         </Text>
-        {isActive ? (
-          isExpired ? (
-            <View style={s.badgeRow}>
-              <Icon source="alert-circle" size={14} color="#D32F2F" />
-              <Text style={[s.expiryBadge, s.expiryExpired]}>Expirado</Text>
-            </View>
-          ) : isExpiresToday ? (
-            <View style={s.badgeRow}>
-              <Icon source="alert-circle" size={14} color="#F59300" />
-              <Text style={[s.expiryBadge, s.expiryWarning]}>Expira hoje</Text>
-            </View>
+        <View style={s.headerRight}>
+          {isActive ? (
+            isExpired ? (
+              <View style={s.badgeRow}>
+                <Icon source="alert-circle" size={14} color="#D32F2F" />
+                <Text style={[s.expiryBadge, s.expiryExpired]}>Expirado</Text>
+              </View>
+            ) : isExpiresToday ? (
+              <View style={s.badgeRow}>
+                <Icon source="alert-circle" size={14} color="#F59300" />
+                <Text style={[s.expiryBadge, s.expiryWarning]}>Expira hoje</Text>
+              </View>
+            ) : (
+              <Text style={s.expiryBadge}>{days}d</Text>
+            )
           ) : (
-            <Text style={s.expiryBadge}>{days}d</Text>
-          )
-        ) : (
-          <Text style={s.closedBadge}>Fechado</Text>
-        )}
+            <Text style={s.closedBadge}>Fechado</Text>
+          )}
+          <Text style={s.dateLabel}>exp:{shortDate(item.expiryDate)}</Text>
+          <Text style={s.dateLabel}>add:{shortDate(item.dateAdded)}</Text>
+        </View>
       </View>
 
       {isActive ? (
@@ -125,8 +136,12 @@ const s = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 4,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+    gap: 2,
   },
   name: {
     fontSize: 16,
@@ -211,5 +226,10 @@ const s = StyleSheet.create({
   closedInfo: {
     fontSize: 13,
     color: "#888888",
+  },
+  dateLabel: {
+    fontSize: 11,
+    color: "#888888",
+    textAlign: "right",
   },
 });

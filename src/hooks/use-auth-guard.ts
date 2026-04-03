@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/auth.store';
 export function useAuthGuard(): void {
   const { userAccount, isLoading } = useAuthStore();
   useEffect(() => {
-    if (!isLoading && userAccount === null) {
+    if (!isLoading && (userAccount === null || !userAccount.profileId)) {
       router.replace('/(auth)/sign-in');
     }
   }, [userAccount, isLoading]);

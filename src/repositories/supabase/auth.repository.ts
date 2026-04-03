@@ -100,20 +100,49 @@ export class SupabaseAuthRepository implements IAuthRepository {
       return null;
     }
 
-    // Check if linked profile is inactive → force logout
-    if (accountRow.profile_id) {
-      const { data: profileRow } = await this.client
-        .from('profiles')
-        .select('status')
-        .eq('id', accountRow.profile_id)
-        .single();
+    // If profile_id is null, attempt to re-link via provision_user_account RPC
+    if (!accountRow.profile_id) {
+      logger.warn('Auth', 'getCurrentSession: profile_id is NULL, attempting re-link');
 
-      if (profileRow?.status === 'inactive') {
-        logger.warn('Auth', 'getCurrentSession: profile inactive, blocking access', {
-          profileId: accountRow.profile_id,
+      const user = sessionData.session.user;
+      const displayName =
+        (user.user_metadata?.['name'] as string | undefined) ??
+        (user.user_metadata?.['full_name'] as string | undefined) ??
+        null;
+
+      const { data: accountRows, error: rpcError } = await this.client.rpc(
+        'provision_user_account',
+        {
+          p_google_id: (user.user_metadata?.['sub'] as string | undefined) ?? user.id,
+          p_email: user.email ?? '',
+          p_display_name: displayName,
+        },
+      );
+
+      if (rpcError || !accountRows || accountRows.length === 0) {
+        logger.error('Auth', 'getCurrentSession: re-link failed, signing out', {
+          rpcError: rpcError?.message,
         });
+        await this.signOut();
         return null;
       }
+
+      logger.info('Auth', 'getCurrentSession: re-link OK', accountRows[0]);
+      return this.mapRowToUserAccount(accountRows[0]);
+    }
+
+    // Check if linked profile is inactive → force logout
+    const { data: profileRow } = await this.client
+      .from('profiles')
+      .select('status')
+      .eq('id', accountRow.profile_id)
+      .single();
+
+    if (profileRow?.status === 'inactive') {
+      logger.warn('Auth', 'getCurrentSession: profile inactive, blocking access', {
+        profileId: accountRow.profile_id,
+      });
+      return null;
     }
 
     logger.info('Auth', 'getCurrentSession OK', { userId: accountRow.id });
