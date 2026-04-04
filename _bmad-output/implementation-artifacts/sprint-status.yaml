@@ -1,6 +1,6 @@
 # generated: 2026-03-25
-# last_updated: 2026-04-02
-# project: FamilyHub-v3.0
+# last_updated: 2026-04-03
+# project: FamilyHub-v4.0
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
@@ -35,8 +35,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-25
-last_updated: 2026-04-02
-project: FamilyHub-v3.0
+last_updated: 2026-04-03
+project: FamilyHub-v4.0
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -140,3 +140,30 @@ development_status:
   12-2-warning-no-meal-planned: done
   12-3-planning-reminder-next-week: done
   epic-12-retrospective: optional
+
+  # ─── Epic 13: Language Learning — Data Layer & Pi Connection (V4) ──────
+  epic-13: in-progress
+  13-1-language-learning-foundation-migration-repositories-store-and-route-shell: in-progress
+  13-2-websocket-service-and-connection-status: done
+  13-3-session-lifecycle-start-resume-end-and-status: done
+  epic-13-retrospective: optional
+
+  # ─── Epic 14: Language Learning — Onboarding & Skill Selection (V4) ────
+  epic-14: backlog
+  14-1-claude-oauth-onboarding-via-webview: backlog
+  14-2-first-launch-setup-gate-and-learning-profile: backlog
+  14-3-skill-selection-screen-with-resume: backlog
+  epic-14-retrospective: optional
+
+  # ─── Epic 15: Language Learning — TTS Playback & Terminal Display (V4) ─
+  epic-15: backlog
+  15-1-tts-queue-with-double-speak-pattern: backlog
+  15-2-terminal-display-greek-text-alongside-audio: backlog
+  15-3-skill-complete-signal-handling: backlog
+  epic-15-retrospective: optional
+
+  # ─── Epic 16: Language Learning — Voice Input (V4) ─────────────────────
+  epic-16: backlog
+  16-1-mic-button-and-speech-to-text-capture: backlog
+  16-2-transcript-delivery-to-terminal: backlog
+  epic-16-retrospective: optional

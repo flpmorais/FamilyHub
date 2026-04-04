@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4']
+stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4', 'step-e-01-discovery-5', 'step-e-02-review-5', 'step-e-03-edit-5']
 classification:
   projectType: 'mobile_app'
   domain: 'general'
@@ -13,7 +13,7 @@ briefCount: 1
 brainstormingCount: 1
 researchCount: 0
 projectDocsCount: 0
-lastEdited: '2026-04-01-b'
+lastEdited: '2026-04-02'
 editHistory:
   - date: '2026-03-27'
     changes: 'V2 Leftovers module expansion — added user journey, full functional requirements, success criteria, product scope, phased development, offline scope, NFR'
@@ -23,6 +23,8 @@ editHistory:
     changes: 'Version rebrand — split V5 (Recipes+Meal Planning) into V3 Meal Plan and V4 Recipes. Finances V3→V5, Maid V4→V6, Intelligence V6+→V7+. Maid salary integration moved from Finances to Maid. Shopping list generation from meal plan moved to V4 Recipes. Removed offline-first entirely (cancelled, never implemented). Removed Journey 3 (offline), offline FRs (FR37-38 old, FR57 old, FR83-85 old), offline NFRs (NFR4 old cache, NFR13-14 old queue, NFR19 old Supabase unreachable). Renumbered all FRs (88 total→88 total) and NFRs (28→24). Added V3/V4 dependency risk.'
   - date: '2026-04-01'
     changes: 'V3 Meal Plan full expansion — added Journey 8 (weekly meal planning), V3 success criteria signal, expanded Product Scope and Phase 3 descriptions. Replaced 2 placeholder FRs (FR81-82) with 19 detailed FRs (FR81-FR99): meal plan configuration (3), core CRUD (8), participant management (3), leftovers integration (2), dashboard widget (3). Renumbered future module FRs to FR100-FR105. Added 2 NFRs (NFR25 week view load, NFR26 default config propagation). Total FRs: 105. Total NFRs: 26.'
+  - date: '2026-04-02'
+    changes: 'V4 Language Learning (Greek) — replaced V4 Recipes with Language Learning module. Version rebrand: Recipes V4→V5, Finances V5→V6, Maid V6→V7, Intelligence V7+→V8+. Added Journey 9 (Greek learning with voice via Pi + WebSocket + TTS/STT). Replaced 2 Recipes placeholder FRs (FR100-FR101) with 14 Language Learning FRs (FR100-FR113): session service (4), WebSocket + TTS (3), voice input (2), skill system (2), onboarding (2), learning profiles (1). Added 4 NFRs (NFR27-NFR30: session service response, WebSocket TTS latency, STT transcription time, TTS double-speak timing). Updated Executive Summary, Success Criteria, Product Scope, Device Permissions, Phased Development, Risk Mitigation. Added 2 FRs from validation (FR114 connection status, FR115 skill-complete signal). Renumbered future module FRs to FR116-FR121. Total FRs: 121. Total NFRs: 30.'
 ---
 
 # Product Requirements Document - FamilyHub
@@ -36,13 +38,13 @@ FamilyHub is a personal family management mobile app built by Filipe Morais excl
 
 The app is built for a specific household structure: two symmetric admin users (the couple), two child profiles that will eventually become accounts, and a scoped employee user (the maid). It consolidates vacation planning, shopping, leftovers tracking, household finances, maid billing, recipes, and meal planning into a single integrated system — built in Portuguese, with no generic defaults, and no design compromises for a hypothetical broader audience.
 
-V1 shipped Vacation and Leftovers together — both modules are in active family use. Remaining modules are delivered incrementally across five versions (V2 Shopping → V6 Maid), each shipping one complete, usable module. AI features and background jobs are explicitly post-V6. The backend runs on Supabase (free tier). Every external service is accessed through a swappable repository pattern interface. The app is distributed as a private APK — no app store involved.
+V1 shipped Vacation and Leftovers together — both modules are in active family use. Remaining modules are delivered incrementally across six versions (V2 Shopping → V7 Maid), each shipping one complete, usable module. AI features and background jobs are explicitly post-V7. The backend runs on Supabase (free tier). Every external service is accessed through a swappable repository pattern interface. The app is distributed as a private APK — no app store involved.
 
 ### What Makes This Special
 
 **One family, perfectly served.** No market fit to validate, no onboarding funnel, no generic defaults. Every design decision — budget category names, shopping list sections, UI language, the maid's purpose-built experience, private spending envelopes for each spouse — reflects the exact reality of this household.
 
-**Modules that integrate meaningfully.** Vacation status adjusts household budget proportionally. Maid salary auto-posts as a household expense. Recipes generate a deduplicated shopping list from the meal plan. Leftovers surface in meal planning before expiry. Shopping list integrates with meal planning and recipes. The system behaves as a coherent whole, not a collection of features.
+**Modules that integrate meaningfully.** Vacation status adjusts household budget proportionally. Maid salary auto-posts as a household expense. Recipes generate a deduplicated shopping list from the meal plan. Leftovers surface in meal planning before expiry. Shopping list integrates with meal planning and recipes. Language learning bridges Claude Code on a Raspberry Pi with the mobile app — Greek phrases spoken aloud on the phone via WebSocket, voice responses captured via STT. The system behaves as a coherent whole, not a collection of features.
 
 **Built by the person who lives the problem.** The builder's prior OutSystems app validated the vacation module concept but was constrained by licensing. FamilyHub is the unconstrained successor — full-stack, properly architected, designed to grow with the family over years.
 
@@ -80,6 +82,9 @@ Within one month of V2 shipping, both admins use the shared shopping list for ev
 **V3 signal — meal plan used every week.**
 Within one month of V3 shipping, both admins use the weekly meal plan consistently. The plan is prepared before the week starts, adjusted as reality changes, and the family stops asking "what are we eating tonight?" The subjective test: does the family eat better and waste less because meals are planned?
 
+**V4 signal — Greek learning sessions used regularly with voice.**
+Within one month of V4 shipping, both admins use the language learning module for Greek practice at least twice per week. Voice playback works reliably — phrases spoken aloud on the phone without manual intervention. At least one admin uses the mic for voice input regularly. The subjective test: is Greek improving faster with audio reinforcement than with text-only learning?
+
 **Ongoing signal — modules used without friction.**
 Each module in active use should feel like a shortcut, not an obligation. The moment any module becomes a chore, that module has failed its design goal.
 
@@ -105,6 +110,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | No leftover spoilage | Leftovers consistently logged and acted on before expiry — thrown-out doses trend downward over first 3 months of use | ✅ Shipped (V1) |
 | Shopping friction eliminated | Shopping list used every supermarket visit | V2 (next) |
 | Meal planning adopted | Meal plan prepared weekly, adjusted in real-time, "what's for dinner?" eliminated | V3 (planned) |
+| Greek learning with voice | Both admins use language learning with voice playback at least twice per week | V4 (planned) |
 | Version gate reached | Each module in daily use before next version begins | V1 gate passed |
 
 ---
@@ -116,10 +122,11 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | V1 | Vacation & Leftovers | Packing lists, booking tasks, templates; fridge inventory with dose tracking, per-item expiry, eaten/thrown-out counters, dashboard widget, full list with infinite scroll | ✅ Shipped |
 | V2 | Shopping | Living shared list (tick/untick), Alexa Skill voice input, AI categorization (cheap LLM), category-grouped display, real-time sync, dashboard widget (open item count) | Next |
 | V3 | Meal Plan | 7-day week grid (lunch + dinner), configurable default participants per slot, meal types (home-cooked, eating out, takeaway, leftovers), per-meal participant overrides, slot skip/enable overrides, leftovers linking to previous meals, dashboard widget (next meal + planning reminders) | Planned |
-| V4 | Recipes | Import, search, scaling, organisation, deduplicated shopping list generation from meal plan | Planned |
-| V5 | Finances | Budgets, envelopes, expense tracking | Planned |
-| V6 | Maid | Hours logging, billing, payment register, PDF payslips, maid salary as household expense | Planned |
-| V7+ | Intelligence | AI features, push notifications, Google Drive/Calendar, child accounts | Vision |
+| V4 | Language Learning (Greek) | Greek learning via Claude Code on Raspberry Pi, WebSocket voice bridge to phone, TTS playback (el-GR, double-speak), STT voice input as keyboard replacement, Pi-side session service (start/resume/end), skill system (/learn, /review, /vocab, /writing, /speaking, /reading, /progress), per-user isolation (separate Linux users on Pi), Claude OAuth onboarding via in-app WebView, Tailscale connectivity | Planned |
+| V5 | Recipes | Import, search, scaling, organisation, deduplicated shopping list generation from meal plan | Planned |
+| V6 | Finances | Budgets, envelopes, expense tracking | Planned |
+| V7 | Maid | Hours logging, billing, payment register, PDF payslips, maid salary as household expense | Planned |
+| V8+ | Intelligence | AI features, push notifications, Google Drive/Calendar, child accounts | Vision |
 
 See **Project Scoping & Phased Development** for full V1 capability list and phased roadmap.
 
@@ -267,6 +274,36 @@ The following Sunday, Filipe hasn't opened the meal plan yet. The widget reads: 
 
 ---
 
+### Journey 9: Filipe & Angela — Greek Learning with Voice (Language Learning, V4)
+
+Filipe opens FamilyHub and taps the Language Learning module for the first time. The app checks Supabase for a setup-complete flag — none found. No skill menu is shown. The app calls `POST /session/start?userId=filipe&skill=setup` on the Pi's session service (reachable via Tailscale). The service starts a tmux session under Filipe's Linux user, launches Claude Code with `/setup`, and returns success. The app connects `ws://pi:3001?userId=filipe` and displays the terminal output.
+
+Claude runs `/setup` — collecting Filipe's learning profile: goals (read, write, and speak Greek), current level (beginner), preferred session length. Filipe types his answers in the terminal. When setup completes, Claude sends a "setup complete" signal via WebSocket. The app stores the flag in Supabase and the full skill menu unlocks.
+
+Filipe sees the skill selection screen: **Learn** (default, highlighted), Review, Vocab, Writing, Speaking, Reading, Progress. He taps Learn. The app calls `POST /session/start?userId=filipe&skill=learn`. The Pi service spins up a tmux session, launches Claude with `/learn`. The terminal appears — the lesson begins.
+
+Claude prints an exercise in the terminal and calls `speak-greek.sh filipe "Καλημέρα" "Με λένε"`. The phone receives two strings via WebSocket. It speaks "Καλημέρα", pauses, speaks "Καλημέρα" again, pauses, then speaks "Με λένε", pauses, speaks "Με λένε" again. Filipe reads the exercise on the terminal, hears the new vocabulary twice each on his phone.
+
+He types his answer in the terminal. Claude evaluates it — incorrect. Claude prints the correction and calls `speak-greek.sh filipe "Με λένε Φίλιππε"`. The phone speaks the correct answer twice. Filipe tries again, this time correctly. Claude calls `speak-greek.sh filipe "Με λένε Φίλιππε"` — the correct answer spoken twice regardless of whether he got it right or wrong.
+
+Next exercise. Claude introduces a new phrase, prints it in the terminal, and calls `speak-greek.sh filipe "Πώς σε λένε;"`. Instead of typing, Filipe taps the mic button on his phone. He speaks his answer in Greek. Android's speech-to-text transcribes it and the app sends the transcript directly to the terminal as text input — no enter key needed. Claude receives plain text and evaluates it exactly as if Filipe had typed it. Claude is unaware of which input method was used.
+
+Mid-lesson, Filipe decides he wants vocabulary drills. He navigates to the skill menu and taps Vocab. The app calls `POST /session/start?userId=filipe&skill=vocab`. The Pi service kills the existing `/learn` tmux session and starts a fresh Claude session with `/vocab`. Switching skills always starts fresh.
+
+After fifteen minutes of flashcards, Claude sends a "skill complete" signal. The app closes the session and returns Filipe to the skill selection screen.
+
+The next evening, Angela opens Language Learning. No setup-complete flag for her. The app shows "Connect your account". She taps it. The app triggers `claude login` on the Pi under Angela's Linux user, captures the OAuth URL, and opens it in an in-app WebView. She sees a standard login screen — no terminal, no Pi visible. She signs in. One-time authentication done.
+
+The app auto-starts `/setup`. Claude collects Angela's profile: speaking only — no reading, no writing. Setup completes, flag stored, skill menu unlocks.
+
+Angela taps Learn. Her session is completely isolated — separate Linux user, separate Claude credentials, separate history. The terminal is visible but Angela focuses on the audio. Claude prints exercises and calls `speak-greek.sh angela "Γεια σου"`. She hears it twice. She taps the mic, speaks her answer, the transcript goes to the terminal. For Angela, the mic is how she interacts — she rarely touches the keyboard.
+
+The next morning, Filipe opens the app on the bus. `GET /session/status?userId=filipe` returns an active tmux session for `/learn` from last night — he closed the app mid-lesson. Learn is highlighted with a "Resume" badge. He taps Learn and sees "Resume" or "New Session". He taps Resume — `POST /session/resume?userId=filipe`. The tmux session reattaches, WebSocket reconnects. He picks up mid-lesson through his earbuds. If he'd selected a different skill, the old session would have been killed.
+
+**Capabilities revealed:** Pi-side session service over HTTP (start/resume/end/status with skill parameter), per-user WebSocket routing (userId-based, zero cross-talk), terminal display of Claude session output, first-launch /setup gating (onboarding before any other skill), setup-complete flag in Supabase, skill selection screen (learn/review/vocab/writing/speaking/reading/progress), one session at a time per user (switching kills existing), resume only within same skill, tmux-based session persistence (survives app close), Claude OAuth onboarding via in-app WebView (one-time per user, non-technical), TTS playback via WebSocket (el-GR, each phrase spoken twice with pause, multiple phrases in sequence), mic button as keyboard replacement (STT transcript sent as terminal text input, no enter key, Claude unaware of input method), speak command triggered by Claude after presenting exercises (new vocabulary + Greek questions) and after evaluating answers (correct answer always spoken), Tailscale connectivity (no public IP), connection status visibility, separate Linux users per person on Pi (complete isolation).
+
+---
+
 ### Journey Requirements Summary
 
 | Journey | Module | Capabilities Required |
@@ -279,17 +316,18 @@ The following Sunday, Filipe hasn't opened the meal plan yet. The widget reads: 
 | 6. Alexa voice input (V2) | V2 Shopping | Alexa Skill (add/remove/query/set quantity), AI categorization (cheap LLM) for unknown items, untick for known items, category reclassification, free-text quantity |
 | 7. Supermarket shopping (V2) | V2 Shopping | Living list (tick/untick, no lifecycle), category-grouped display, real-time sync, ticked items greyed, carry-over, dashboard widget (open item count) |
 | 8. Weekly meal planning (V3) | V3 Meal Plan | 7-day week grid (lunch + dinner), configurable default participants, meal types (home-cooked, eating out, takeaway, leftovers), leftovers linking, participant overrides, slot skip/enable overrides, dashboard widget (next meal + planning reminder), real-time sync |
+| 9. Greek learning with voice (V4) | V4 Language Learning | Pi-side session service (start/resume/end/status with skill parameter), per-user WebSocket routing, terminal display, /setup gating, setup-complete flag in Supabase, skill selection (learn/review/vocab/writing/speaking/reading/progress), one session at a time, resume within same skill, tmux persistence, Claude OAuth onboarding via WebView, TTS double-speak (el-GR), mic as keyboard replacement (STT → terminal text), speak command on exercises and answers, Tailscale connectivity, per-user Linux isolation on Pi |
 
 ---
 
 ## Domain-Specific Requirements
 
-### Data Privacy Between Users (V5+)
+### Data Privacy Between Users (V6+)
 
 FamilyHub enforces intra-household privacy boundaries as first-class data model constraints — not UI-layer restrictions:
 
-- **Private spending envelopes (V5):** Each admin's personal budget category is a data black box to the other admin. The dashboard shows "Personal — Filipe: 80% spent" without line items. Neither spouse can read the other's personal transactions. Enforced at the data model level, not the display layer.
-- **Maid billing isolation (V6):** Each maid account sees only her own billing history. Historical records from prior maids are visible only to admins, isolated by account period. A new maid cannot access any prior maid's data.
+- **Private spending envelopes (V6):** Each admin's personal budget category is a data black box to the other admin. The dashboard shows "Personal — Filipe: 80% spent" without line items. Neither spouse can read the other's personal transactions. Enforced at the data model level, not the display layer.
+- **Maid billing isolation (V7):** Each maid account sees only her own billing history. Historical records from prior maids are visible only to admins, isolated by account period. A new maid cannot access any prior maid's data.
 - **Child profiles:** Aurora and Isabel exist as profiles but have no account credentials. Their data is accessible to admins only until they have their own accounts.
 
 ### GDPR Considerations (Portugal / EU)
@@ -348,19 +386,19 @@ Permissions scoped strictly to what is needed per version:
 |---|---|---|
 | `INTERNET` | V1 | Supabase sync, Google Sign-In |
 | `CAMERA` | V2+ (optional) | Profile photo capture |
-| `RECORD_AUDIO` | V2 (nice-to-have) | In-app voice entry for shopping list items (deprioritised — Alexa is primary voice channel) |
-| `CAMERA` (extended) | V7+ | Receipt OCR, recipe photo scanning |
-| `POST_NOTIFICATIONS` | V7+ | Push notification delivery |
+| `RECORD_AUDIO` | V4 | Speech-to-text voice input for language learning exercises (mic as keyboard replacement) |
+| `CAMERA` (extended) | V8+ | Receipt OCR, recipe photo scanning |
+| `POST_NOTIFICATIONS` | V8+ | Push notification delivery |
 
 V1 requires only `INTERNET` — minimal permission surface.
 
 ### Push Notification Strategy
 
-Push notifications are explicitly **out of scope for V1–V6**.
+Push notifications are explicitly **out of scope for V1–V7**.
 
-- V1–V6: In-app alerts only (e.g., leftover expiry banners in V1, booking task urgency indicators in V1 dashboard widget)
-- V7+: Background jobs and push notifications added as a dedicated platform capability once core modules are stable
-- No notification permission requested until V7+
+- V1–V7: In-app alerts only (e.g., leftover expiry banners in V1, booking task urgency indicators in V1 dashboard widget)
+- V8+: Background jobs and push notifications added as a dedicated platform capability once core modules are stable
+- No notification permission requested until V8+
 
 ### Store Compliance & Distribution
 
@@ -422,13 +460,15 @@ No app store compliance requirements apply.
 
 **V3 — Meal Plan:** 7-day week grid with lunch and dinner slots. Configurable default participants per slot (which profiles eat at which day+meal). Slots can be marked "don't plan" by default (e.g., Thursday lunch — everyone eats at work). Four meal types: home-cooked (free text), eating out (with optional restaurant detail), takeaway (with optional order detail), leftovers (linked to a previous home-cooked meal in the plan). Per-meal participant overrides — add/remove profiles, enable skipped slots (public holidays), disable active slots (change of plans). Dashboard widget shows next upcoming meal; warns if no meal set or if next week is unplanned. Foundation for recipe-driven shopping list generation in V4.
 
-**V4 — Recipes:** Import, search, scaling, and organisation. Generates a deduplicated shopping list from the weekly meal plan. Requires V3 Meal Plan as prerequisite.
+**V4 — Language Learning (Greek):** Greek learning via Claude Code running on a Raspberry Pi, bridged to the mobile app via WebSocket over Tailscale. A Pi-side session service manages session lifecycle (start/resume/end/status) via HTTP. Claude Code runs learning skills (/learn, /review, /vocab, /writing, /speaking, /reading, /progress) inside tmux sessions — one per user, one at a time. Claude calls `speak-greek.sh` to send Greek text to the phone via WebSocket; the phone speaks each phrase aloud twice via TTS (el-GR). Users interact via the terminal — typing answers on the keyboard or tapping a mic button on the phone (STT transcribes speech and sends it as terminal text input; Claude is unaware of input method). First launch gates on `/setup` (learning profile onboarding) before unlocking the skill menu. Claude OAuth authentication is handled via in-app WebView (one-time, non-technical). Each admin is a separate Linux user on the Pi — complete session and credential isolation. No dependency on V3 Meal Plan.
 
-**V5 — Finances:** Budgets, expense tracking, private spending envelopes per admin (RLS-enforced).
+**V5 — Recipes:** Import, search, scaling, and organisation. Generates a deduplicated shopping list from the weekly meal plan. Requires V3 Meal Plan as prerequisite.
 
-**V6 — Maid:** Hours logging, billing, payment register, PDF payslips. Maid salary auto-posts as a household expense (integrates with V5 Finances).
+**V6 — Finances:** Budgets, expense tracking, private spending envelopes per admin (RLS-enforced).
 
-### Vision — V7+: Intelligence Layer
+**V7 — Maid:** Hours logging, billing, payment register, PDF payslips. Maid salary auto-posts as a household expense (integrates with V6 Finances).
+
+### Vision — V8+: Intelligence Layer
 
 AI features (receipt OCR, recipe URL/video/photo import), push notifications, background jobs, Google Drive vault, Google Calendar deadline sync. Child accounts (Aurora, Isabel) also deferred here.
 
@@ -446,7 +486,10 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 
 **Resource Risks:**
 - *Scope creep (solo developer).* Mitigation: strict version gates. Nothing from V3+ is added to V2, even if implementation seems easy. The gate is behavioural, not feature-based.
-- *V3/V4 dependency chain.* Meal Plan (V3) must ship before Recipes (V4) can generate shopping lists from it. If V3 stalls, V4 is blocked. Mitigation: V3 scope is deliberately narrow (planning/scheduling only) to minimise delay risk.
+- *Tailscale dependency (V4).* Language learning requires the phone to reach the Pi over Tailscale. If Tailscale is down or the Pi is unreachable, the module is unusable. Mitigation: Tailscale is highly reliable for personal use (free tier, up to 100 devices). Pi runs headless with auto-start. App shows clear connection status so the user knows immediately if the Pi is unreachable.
+- *Greek TTS quality (V4).* expo-speech el-GR voice quality varies by Android device and OS version. Some devices may lack a Greek TTS voice entirely. Mitigation: test on both admins' devices before shipping. Fallback: install Google TTS engine (free) which includes high-quality Greek voices.
+- *Pi availability (V4).* Raspberry Pi must be powered on and running the session service and WebSocket server (via pm2). Power outage or SD card failure kills all sessions. Mitigation: pm2 auto-restarts services on boot. tmux sessions survive service restarts. SD card backup strategy recommended.
+- *V4/V5 independence.* V4 Language Learning has no dependency on V3 Meal Plan — unlike the previous V4 Recipes. V5 Recipes still depends on V3.
 - *Supabase free tier limits.* Mitigation: family-scale traffic is negligible. Free tier monitored; paid upgrade is a defined fallback (low cost, no architecture change needed).
 
 ---
@@ -516,11 +559,11 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **FR38:** System resolves concurrent Admin edit conflicts using last-write-wins without presenting conflict dialogs to the user
 - **FR39:** System checks for a newer app version on launch and notifies the user non-blockingly if an update is available
 
-### Data Privacy (V5+)
+### Data Privacy (V6+)
 
-- **FR40:** System ensures that one Admin's private spending envelope transactions are never visible to any other user — enforced at the data layer, not the display layer (V5)
-- **FR41:** System partitions Maid account data such that a new Maid account cannot access any prior Maid's records (V6)
-- **FR42:** System enforces all privacy boundaries through database-level access control policies, not application-level filtering (V5+)
+- **FR40:** System ensures that one Admin's private spending envelope transactions are never visible to any other user — enforced at the data layer, not the display layer (V6)
+- **FR41:** System partitions Maid account data such that a new Maid account cannot access any prior Maid's records (V7)
+- **FR42:** System enforces all privacy boundaries through database-level access control policies, not application-level filtering (V6+)
 
 ### Leftovers Management (V1)
 
@@ -613,14 +656,51 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **FR98:** If the next upcoming meal slot has no meal set and the slot is not marked as skipped, the widget displays a warning indicating no meal is planned
 - **FR99:** If it is the last day of the current planned week (Sunday) and the following week has no meals planned, the widget displays a planning reminder
 
-### Future Module Capabilities (V4–V6)
+### Language Learning — Session Service (V4)
 
-- **FR100:** Admin can import, search, scale, and organise recipes (V4)
-- **FR101:** Admin can generate a deduplicated shopping list from the weekly meal plan based on recipe ingredients (V4)
-- **FR102:** Admin can record household income and expenses against budget categories and envelopes (V5)
-- **FR103:** Maid can log daily work hours with a single-tap interaction (V6)
-- **FR104:** Admin can generate a billing statement and payslip for the Maid for any period (V6)
-- **FR105:** Maid salary auto-posts as a household expense in the Finances module (V6)
+- **FR100:** App can start a new learning session on the Pi by calling the session service with a userId and skill parameter — the service creates a tmux session under the user's Linux account, launches Claude Code with the specified skill, and returns success (V4)
+- **FR101:** App can resume an existing tmux session for a user by calling the session service — the service reattaches to the tmux session and returns success (V4)
+- **FR102:** App can end an active session by calling the session service — the service terminates the tmux session and returns success (V4)
+- **FR103:** App can query session status for a user — the service returns whether a tmux session exists and which skill is running (V4)
+
+### Language Learning — WebSocket & TTS (V4)
+
+- **FR104:** App connects to the Pi's WebSocket server with a userId parameter and receives only messages routed to that user — zero cross-talk between users (V4)
+- **FR105:** When the app receives Greek text via WebSocket, it speaks each phrase aloud twice via TTS (el-GR) with a pause between repetitions; multiple phrases received in a single message are spoken in sequence (V4)
+- **FR106:** App displays received Greek text on screen alongside TTS playback so the user can read while listening (V4)
+
+### Language Learning — Voice Input (V4)
+
+- **FR107:** App provides a mic button that captures spoken Greek via Android's built-in speech-to-text (el-GR locale), transcribes it, and sends the transcript to the terminal session as text input — no enter key required (V4)
+- **FR108:** Claude receives voice-originated text input identically to keyboard-originated text input — the input method is invisible to Claude (V4)
+
+### Language Learning — Skill System (V4)
+
+- **FR109:** App presents a skill selection screen with available learning skills: Learn (default), Review, Vocab, Writing, Speaking, Reading, Progress — each starts a new session with the corresponding skill parameter (V4)
+- **FR110:** Only one session per user is active at any time — selecting a different skill kills the existing session and starts a fresh one; resume is only offered within the same skill (V4)
+
+### Language Learning — Onboarding (V4)
+
+- **FR111:** On first launch, the app checks Supabase for a setup-complete flag for the user; if absent, the app auto-starts a session with the `/setup` skill — no other skills are available until setup completes (V4)
+- **FR112:** For users who have not authenticated Claude on the Pi, the app triggers `claude login` via the session service, captures the OAuth URL, and opens it in an in-app WebView — the user sees a standard login screen with no terminal or SSH visible; one-time setup per user (V4)
+
+### Language Learning — Learning Profiles (V4)
+
+- **FR113:** Each admin's learning profile (goals, preferred input method, level) is stored per-user and determines the app's input mode — keyboard+mic for read/write/speak learners, mic-only for speak-only learners (V4)
+
+### Language Learning — Connection & Signals (V4)
+
+- **FR114:** App displays connection status to the Pi — connected, disconnected, or reconnecting — so the user knows immediately if the Pi is unreachable (V4)
+- **FR115:** When Claude sends a skill-complete signal via WebSocket, the app automatically calls the session end endpoint and returns the user to the skill selection screen (V4)
+
+### Future Module Capabilities (V5–V7)
+
+- **FR116:** Admin can import, search, scale, and organise recipes (V5)
+- **FR117:** Admin can generate a deduplicated shopping list from the weekly meal plan based on recipe ingredients (V5)
+- **FR118:** Admin can record household income and expenses against budget categories and envelopes (V6)
+- **FR119:** Maid can log daily work hours with a single-tap interaction (V7)
+- **FR120:** Admin can generate a billing statement and payslip for the Maid for any period (V7)
+- **FR121:** Maid salary auto-posts as a household expense in the Finances module (V7)
 
 ---
 
@@ -639,8 +719,8 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **NFR6:** All data at rest is encrypted by the backend provider's default encryption
 - **NFR7:** Authentication is handled exclusively through Google Sign-In — no passwords are stored by FamilyHub
 - **NFR8:** Session tokens are stored in secure, platform-provided credential storage — never in plaintext or shared storage
-- **NFR9:** One Admin's private spending envelope transactions must not appear in any shared database query, API response, or sync payload — enforced at the database access control layer, not the application layer (V5)
-- **NFR10:** A Maid user account must be incapable of reading any records belonging to a prior Maid account — enforced at the database access control layer (V6)
+- **NFR9:** One Admin's private spending envelope transactions must not appear in any shared database query, API response, or sync payload — enforced at the database access control layer, not the application layer (V6)
+- **NFR10:** A Maid user account must be incapable of reading any records belonging to a prior Maid account — enforced at the database access control layer (V7)
 - **NFR11:** FamilyHub stores only the Google user ID and email from Google Sign-In — no additional personal data from Google is retained
 
 ### Reliability & Data Integrity
@@ -666,3 +746,10 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **NFR24:** Shopping list category reclassifications by an admin must persist permanently — the system must not re-categorize an item that has been manually reclassified (V2)
 - **NFR25:** Meal plan week view must load and render the full 7-day grid within 500ms when navigating between weeks (V3)
 - **NFR26:** Meal plan default configuration changes must apply to all future unedited weeks without requiring manual propagation (V3)
+
+### Language Learning (V4)
+
+- **NFR27:** Session service endpoints (start/resume/end/status) must respond within 5 seconds — session start includes tmux creation and Claude launch (V4)
+- **NFR28:** Greek text received via WebSocket must begin TTS playback within 500ms of message arrival on the phone (V4)
+- **NFR29:** Android STT transcription must complete and send the transcript to the terminal within 2 seconds of the user finishing speech (V4)
+- **NFR30:** TTS double-speak must play each phrase twice with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases, matching the Pi-side `speak-greek.sh` timing (V4)
