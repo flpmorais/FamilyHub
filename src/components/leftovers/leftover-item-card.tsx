@@ -88,8 +88,8 @@ export function LeftoverItemCard({
               </Text>
             </View>
             <View style={s.infoRight}>
-              <Text style={s.dateLabel}>exp:{shortDate(item.expiryDate)}</Text>
-              <Text style={s.dateLabel}>add:{shortDate(item.dateAdded)}</Text>
+              <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
+              <Text style={s.dateLabel}>exp: {shortDate(item.expiryDate)}</Text>
             </View>
           </View>
           <View style={s.actions}>
@@ -112,8 +112,8 @@ export function LeftoverItemCard({
             {item.dosesThrownOut === 1 ? "deitada fora" : "deitadas fora"}
           </Text>
           <View style={s.infoRight}>
-            <Text style={s.dateLabel}>exp:{shortDate(item.expiryDate)}</Text>
-            <Text style={s.dateLabel}>add:{shortDate(item.dateAdded)}</Text>
+            <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
+            <Text style={s.dateLabel}>exp: {shortDate(item.expiryDate)}</Text>
           </View>
         </View>
       )}

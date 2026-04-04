@@ -125,41 +125,42 @@ export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlan
         <Text style={s.title}>Refeições</Text>
       </View>
 
-      {!nextMeal ? (
-        <Text style={s.emptyText}>Sem refeições planeadas</Text>
-      ) : (
-        <>
-          <Text style={s.slotContext}>{slotContext}</Text>
-          <View style={s.mealRow}>
-            {typeIcon && <Icon source={typeIcon} size={16} color="#888" />}
-            <Text style={s.mealName} numberOfLines={1}>{nextMeal.name}</Text>
-          </View>
-          {nextMealProfiles.length > 0 && (
-            <View style={s.participantsRow}>
-              <Icon source="account-group" size={14} color="#888" />
-              <Text style={s.participantsText} numberOfLines={1}>
-                {nextMealProfiles.join(', ')}
-              </Text>
+      <View style={s.contentRow}>
+        <View style={{flex: 1}}>
+          {!nextMeal ? (
+            <Text style={s.emptyText}>Sem refeições planeadas</Text>
+          ) : (
+            <>
+              <Text style={s.slotContext}>{slotContext}</Text>
+              <View style={s.mealRow}>
+                {typeIcon && <Icon source={typeIcon} size={16} color="#888" />}
+                <Text style={s.mealName} numberOfLines={1}>{nextMeal.name}</Text>
+              </View>
+              {nextMealProfiles.length > 0 && (
+                <View style={s.participantsRow}>
+                  <Icon source="account-group" size={14} color="#888" />
+                  <Text style={s.participantsText} numberOfLines={1}>
+                    {nextMealProfiles.join(', ')}
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+
+          {emptySlot && (
+            <View style={s.alertRow}>
+              <Icon source="alert-circle" size={14} color="#F59300" />
+              <Text style={s.alertWarning}>Sem refeição para {emptySlotLabel}</Text>
             </View>
           )}
-        </>
-      )}
 
-      {emptySlot && (
-        <View style={s.alertRow}>
-          <Icon source="alert-circle" size={14} color="#F59300" />
-          <Text style={s.alertWarning}>Sem refeição para {emptySlotLabel}</Text>
+          {showPlanningReminder && (
+            <View style={s.alertRow}>
+              <Icon source="calendar-alert" size={14} color="#1976D2" />
+              <Text style={s.alertInfo}>Sem refeições planeadas para a próxima semana</Text>
+            </View>
+          )}
         </View>
-      )}
-
-      {showPlanningReminder && (
-        <View style={s.alertRow}>
-          <Icon source="calendar-alert" size={14} color="#1976D2" />
-          <Text style={s.alertInfo}>Sem refeições planeadas para a próxima semana</Text>
-        </View>
-      )}
-
-      <View style={s.arrowRow}>
         <Text style={s.arrow}>→</Text>
       </View>
     </TouchableOpacity>
@@ -237,12 +238,14 @@ const s = StyleSheet.create({
     color: '#1976D2',
     fontWeight: '600',
   },
-  arrowRow: {
+  contentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginTop: 4,
   },
   arrow: {
     fontSize: 16,
     color: '#B5451B',
+    marginLeft: 8,
   },
 });
