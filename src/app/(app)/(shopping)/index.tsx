@@ -51,7 +51,11 @@ function buildSections(
 
   const sections = categories
     .filter((c) => grouped.has(c.id))
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .sort((a, b) => {
+      const aHasUnchecked = grouped.get(a.id)?.some((i) => !i.isTicked) ? 0 : 1;
+      const bHasUnchecked = grouped.get(b.id)?.some((i) => !i.isTicked) ? 0 : 1;
+      return aHasUnchecked - bHasUnchecked || a.sortOrder - b.sortOrder;
+    })
     .map((c) => ({
       title: c.name,
       categoryId: c.id,

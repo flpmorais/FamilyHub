@@ -81,16 +81,14 @@ export function LeftoverItemCard({
       {isActive ? (
         <>
           <View style={s.infoRow}>
-            <View style={s.infoLeft}>
-              <Text style={s.typeText}>{TYPE_LABEL[item.type ?? "meal"]}</Text>
-              <Text style={s.dosesText}>
-                {remaining} {remaining === 1 ? "dose restante" : "doses restantes"}
-              </Text>
-            </View>
-            <View style={s.infoRight}>
-              <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
-              <Text style={s.dateLabel}>exp: {shortDate(item.expiryDate)}</Text>
-            </View>
+            <Text style={s.typeText}>{TYPE_LABEL[item.type ?? "meal"]}</Text>
+            <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
+          </View>
+          <View style={[s.infoRow, { marginBottom: 12 }]}>
+            <Text style={s.dosesText}>
+              {remaining} {remaining === 1 ? "dose restante" : "doses restantes"}
+            </Text>
+            <Text style={s.dateLabel}>exp: {shortDate(item.expiryDate)}</Text>
           </View>
           <View style={s.actions}>
             <TouchableOpacity
@@ -105,17 +103,20 @@ export function LeftoverItemCard({
           </View>
         </>
       ) : (
-        <View style={s.infoRow}>
-          <Text style={s.closedInfo}>
-            {item.dosesEaten} {item.dosesEaten === 1 ? "comida" : "comidas"} ·{" "}
-            {item.dosesThrownOut}{" "}
-            {item.dosesThrownOut === 1 ? "deitada fora" : "deitadas fora"}
-          </Text>
-          <View style={s.infoRight}>
+        <>
+          <View style={s.infoRow}>
+            <Text style={s.closedInfo}>
+              {item.dosesEaten} {item.dosesEaten === 1 ? "comida" : "comidas"} ·{" "}
+              {item.dosesThrownOut}{" "}
+              {item.dosesThrownOut === 1 ? "deitada fora" : "deitadas fora"}
+            </Text>
             <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
+          </View>
+          <View style={s.infoRow}>
+            <View />
             <Text style={s.dateLabel}>exp: {shortDate(item.expiryDate)}</Text>
           </View>
-        </View>
+        </>
       )}
     </TouchableOpacity>
   );
@@ -199,19 +200,12 @@ const s = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  infoLeft: {
-    flex: 1,
-  },
-  infoRight: {
-    alignItems: "flex-end",
+    alignItems: "center",
+    marginBottom: 4,
   },
   typeText: {
     fontSize: 12,
     color: "#888888",
-    marginBottom: 4,
   },
   dosesText: {
     fontSize: 14,
