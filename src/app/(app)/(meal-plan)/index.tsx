@@ -2,15 +2,18 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { IconButton, ActivityIndicator, Icon, Snackbar } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { router } from 'expo-router';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useMealPlanStore, getMonday } from '../../../stores/meal-plan.store';
 import { MealAddForm, MealEditForm } from '../../../components/meal-plan';
 import { LeftoverFromMealForm } from '../../../components/leftovers';
 import { PageHeader } from '../../../components/page-header';
+import { generateShoppingList } from '../../../services/shopping-list-generator.service';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
-import type { MealEntry, MealSlot, MealType, MealPlanSlotConfig } from '../../../types/meal-plan.types';
+import type { MealEntry, MealEntryLinkedRecipe, MealSlot, MealType, MealPlanSlotConfig } from '../../../types/meal-plan.types';
+import type { RecipeWithDetails } from '../../../types/recipe.types';
 import type { Profile } from '../../../types/profile.types';
 import type { LeftoverType } from '../../../types/leftover.types';
 
@@ -59,6 +62,7 @@ interface SlotContext {
 
 export default function MealPlanScreen() {
   const mealPlanRepo = useRepository('mealPlan');
+  const recipeRepo = useRepository('recipe');
   const leftoverRepo = useRepository('leftover');
   const profileRepo = useRepository('profile');
   const { userAccount } = useAuthStore();
@@ -77,6 +81,8 @@ export default function MealPlanScreen() {
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
   const [leftoverMealName, setLeftoverMealName] = useState('');
   const [leftoverFormVisible, setLeftoverFormVisible] = useState(false);
+  const [linkedRecipesMap, setLinkedRecipesMap] = useState<Map<string, MealEntryLinkedRecipe[]>>(new Map());
+  const [isGenerating, setIsGenerating] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarColor, setSnackbarColor] = useState('#388E3C');
@@ -110,6 +116,22 @@ export default function MealPlanScreen() {
       ]);
       setEntries(data);
       setLinkableMeals(homeCookedMeals);
+      // Load linked recipes for all entries
+      const entryIds = data.filter((e) => !e.isSlotSkipped).map((e) => e.id);
+      if (entryIds.length > 0) {
+        const linkedMap = new Map<string, MealEntryLinkedRecipe[]>();
+        await Promise.all(
+          entryIds.map(async (eid) => {
+            try {
+              const links = await mealPlanRepo.getLinkedRecipes(eid);
+              if (links.length > 0) linkedMap.set(eid, links);
+            } catch { /* skip */ }
+          }),
+        );
+        setLinkedRecipesMap(linkedMap);
+      } else {
+        setLinkedRecipesMap(new Map());
+      }
     } catch (err) {
       logger.error('MealPlanScreen', 'Erro ao carregar plano de refeições', err);
     } finally {
@@ -217,6 +239,55 @@ export default function MealPlanScreen() {
     }
   }
 
+  async function handleGenerateShoppingList() {
+    if (linkedRecipesMap.size === 0) {
+      setSnackbarColor('#D32F2F');
+      setSnackbarMsg('Não existem receitas associadas para gerar a lista');
+      setSnackbarVisible(true);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Collect all linked recipes across all entries
+      const allLinks: MealEntryLinkedRecipe[] = [];
+      for (const links of linkedRecipesMap.values()) {
+        allLinks.push(...links);
+      }
+
+      // Load unique recipe details
+      const uniqueRecipeIds = [...new Set(allLinks.map((l) => l.recipeId))];
+      const details = new Map<string, RecipeWithDetails>();
+      await Promise.all(
+        uniqueRecipeIds.map(async (recipeId) => {
+          const recipe = await recipeRepo.getById(recipeId);
+          if (recipe) details.set(recipeId, recipe);
+        }),
+      );
+
+      const items = generateShoppingList(allLinks, details);
+
+      if (items.length === 0) {
+        setSnackbarColor('#D32F2F');
+        setSnackbarMsg('Nenhum ingrediente encontrado nas receitas associadas');
+        setSnackbarVisible(true);
+        return;
+      }
+
+      router.push({
+        pathname: '/(app)/(recipes)/shopping-list-review',
+        params: { itemsJson: JSON.stringify(items) },
+      } as any);
+    } catch (err) {
+      logger.error('MealPlanScreen', 'generate shopping list failed', err);
+      setSnackbarColor('#D32F2F');
+      setSnackbarMsg('Erro ao gerar a lista de compras');
+      setSnackbarVisible(true);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   function handleAddAsLeftover(mealName: string) {
     setEditMeal(null);
     setLeftoverMealName(mealName);
@@ -299,6 +370,15 @@ export default function MealPlanScreen() {
                     <Icon source="account-edit" size={12} color="#B5451B" />
                   )}
                 </View>
+                {linkedRecipesMap.has(entry.id) && (
+                  <View style={styles.linkedRecipeChips}>
+                    {linkedRecipesMap.get(entry.id)!.map((lr) => (
+                      <View key={lr.id} style={styles.linkedRecipeChip}>
+                        <Text style={styles.linkedRecipeChipText} numberOfLines={1}>{lr.recipeName}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
               {entry.participants.length > 0 && (
                 <View style={styles.avatarRow}>
@@ -343,6 +423,17 @@ export default function MealPlanScreen() {
         </TouchableOpacity>
         <IconButton icon="chevron-right" size={24} onPress={goToNextWeek} />
         <IconButton icon="calendar" size={22} onPress={() => setShowWeekPicker(true)} />
+        <TouchableOpacity
+          style={[styles.generateBtn, isGenerating && styles.generateBtnDisabled]}
+          onPress={handleGenerateShoppingList}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Icon source="cart-plus" size={18} color="#FFFFFF" />
+          )}
+        </TouchableOpacity>
       </View>
       {showWeekPicker && (
         <DateTimePicker
@@ -447,6 +538,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',
+  },
+  generateBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#B5451B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  generateBtnDisabled: {
+    opacity: 0.5,
   },
   navHeader: {
     flexDirection: 'row',
@@ -563,6 +666,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  linkedRecipeChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+  },
+  linkedRecipeChip: {
+    backgroundColor: '#F0E6E0',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  linkedRecipeChipText: {
+    fontSize: 10,
+    color: '#B5451B',
+    fontWeight: '600',
   },
   mealName: {
     fontSize: 15,

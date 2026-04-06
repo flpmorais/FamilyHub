@@ -17,6 +17,10 @@ import { SupabaseShoppingCategoryRepository } from './supabase/shopping-category
 import { SupabaseClassificationRepository } from './supabase/classification.repository';
 import { SupabaseBagTemplateRepository } from './supabase/bag-template.repository';
 import { SupabaseMealPlanRepository } from './supabase/meal-plan.repository';
+import { SupabaseRecipeRepository } from './supabase/recipe.repository';
+import { SupabaseRecipeCategoryRepository } from './supabase/recipe-category.repository';
+import { SupabaseRecipeTagRepository } from './supabase/recipe-tag.repository';
+import { SupabaseRecipeImportRepository } from './supabase/recipe-import.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -35,6 +39,10 @@ import type { IShoppingCategoryRepository } from './interfaces/shopping-category
 import type { IClassificationRepository } from './interfaces/classification.repository.interface';
 import type { IBagTemplateRepository } from './interfaces/bag-template.repository.interface';
 import type { IMealPlanRepository } from './interfaces/meal-plan.repository.interface';
+import type { IRecipeRepository } from './interfaces/recipe.repository.interface';
+import type { IRecipeCategoryRepository } from './interfaces/recipe-category.repository.interface';
+import type { IRecipeTagRepository } from './interfaces/recipe-tag.repository.interface';
+import type { IRecipeImportRepository } from './interfaces/recipe-import.repository.interface';
 
 export interface RepositoryContextValue {
   auth: IAuthRepository;
@@ -54,6 +62,10 @@ export interface RepositoryContextValue {
   classification: IClassificationRepository;
   bagTemplate: IBagTemplateRepository;
   mealPlan: IMealPlanRepository;
+  recipe: IRecipeRepository;
+  recipeCategory: IRecipeCategoryRepository;
+  recipeTag: IRecipeTagRepository;
+  recipeImport: IRecipeImportRepository;
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -78,6 +90,10 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       classification: new SupabaseClassificationRepository(supabaseClient),
       bagTemplate: new SupabaseBagTemplateRepository(supabaseClient),
       mealPlan: new SupabaseMealPlanRepository(supabaseClient),
+      recipe: new SupabaseRecipeRepository(supabaseClient),
+      recipeCategory: new SupabaseRecipeCategoryRepository(supabaseClient),
+      recipeTag: new SupabaseRecipeTagRepository(supabaseClient),
+      recipeImport: new SupabaseRecipeImportRepository(supabaseClient),
     }),
     []
   );

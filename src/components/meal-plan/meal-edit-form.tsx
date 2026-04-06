@@ -14,8 +14,11 @@ import {
 } from 'react-native';
 import { Icon, IconButton } from 'react-native-paper';
 import { LinkedMealPicker } from './linked-meal-picker';
+import { LinkedRecipesSection } from './linked-recipes-section';
 import { ParticipantToggle } from './participant-toggle';
-import type { MealEntry, MealSlot, MealType } from '../../types/meal-plan.types';
+import { useRepository } from '../../hooks/use-repository';
+import { logger } from '../../utils/logger';
+import type { MealEntry, MealEntryLinkedRecipe, MealSlot, MealType } from '../../types/meal-plan.types';
 import type { Profile } from '../../types/profile.types';
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -41,7 +44,9 @@ interface MealEditFormProps {
 }
 
 export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, onSave, onDelete, onSkip, onAddAsLeftover }: MealEditFormProps) {
+  const mealPlanRepo = useRepository('mealPlan');
   const [name, setName] = useState('');
+  const [linkedRecipes, setLinkedRecipes] = useState<MealEntryLinkedRecipe[]>([]);
   const [mealType, setMealType] = useState<MealType>('home_cooked');
   const [linkedMealId, setLinkedMealId] = useState<string | null>(null);
   const [linkedMealName, setLinkedMealName] = useState('');
@@ -75,7 +80,12 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
       }
       setParticipants(meal.participants);
       setNameError('');
+      // Load linked recipes
+      mealPlanRepo.getLinkedRecipes(meal.id).then(setLinkedRecipes).catch((err) => {
+        logger.error('MealEditForm', 'load linked recipes failed', err);
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meal, linkableMeals]);
 
   function handleTypeChange(type: MealType) {
@@ -289,6 +299,16 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
                 </TouchableOpacity>
               )}
             </>
+          )}
+
+          {mealType === 'home_cooked' && meal && (
+            <LinkedRecipesSection
+              mealEntryId={meal.id}
+              linkedRecipes={linkedRecipes}
+              onChanged={() => {
+                mealPlanRepo.getLinkedRecipes(meal.id).then(setLinkedRecipes).catch(() => {});
+              }}
+            />
           )}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Participantes</Text>

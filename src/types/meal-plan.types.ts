@@ -42,6 +42,16 @@ export interface MealPlanWeek {
   entries: MealEntry[];
 }
 
+export interface MealEntryLinkedRecipe {
+  id: string;
+  mealEntryId: string;
+  recipeId: string;
+  recipeName: string;
+  recipeType: string;
+  servingsOverride: number;
+  sortOrder: number;
+}
+
 export interface MealPlanSlotConfig {
   id: string;
   familyId: string;

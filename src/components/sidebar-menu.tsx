@@ -30,6 +30,7 @@ const MENU_ITEMS = [
   { label: 'Ementa Semanal', icon: 'silverware-fork-knife', route: '/(app)/(meal-plan)' },
   { label: 'Compras', icon: 'cart-outline', route: '/(app)/(shopping)' },
   { label: 'Restos', icon: 'recycle-variant', route: '/(app)/(leftovers)' },
+  { label: 'Receitas', icon: 'book-open-variant', route: '/(app)/(recipes)' },
   { label: 'Viagens', icon: 'airplane', route: '/(app)/(vacations)' },
   { label: 'Definições', icon: 'cog', route: '/(app)/(settings)' },
 ] as const;

@@ -15,6 +15,11 @@ const MEAL_PLAN_ITEMS = [
   { label: 'Ementa Semanal', icon: 'silverware-fork-knife', route: '/(app)/(settings)/meal-plan-config' },
 ] as const;
 
+const RECIPE_ITEMS = [
+  { label: 'Categorias de Receitas', icon: 'shape', route: '/(app)/(settings)/recipe-categories' },
+  { label: 'Etiquetas de Receitas', icon: 'tag', route: '/(app)/(settings)/recipe-tags' },
+] as const;
+
 const VACATION_ITEMS = [
   { label: 'Modelos de Items', icon: 'content-copy', route: '/(app)/(settings)/templates' },
   { label: 'Modelos de Malas', icon: 'bag-suitcase', route: '/(app)/(settings)/bag-templates' },
@@ -69,6 +74,17 @@ export default function SettingsHubScreen() {
 
         <Text style={[s.sectionTitle, { marginTop: 24 }]}>Ementa Semanal</Text>
         {MEAL_PLAN_ITEMS.map((item) => (
+          <TouchableOpacity key={item.route} style={s.row} onPress={() => router.push(item.route as any)}>
+            <View style={s.iconWrap}>
+              <Icon source={item.icon} size={22} color="#B5451B" />
+            </View>
+            <Text style={s.label}>{item.label}</Text>
+            <Icon source="chevron-right" size={20} color="#CCCCCC" />
+          </TouchableOpacity>
+        ))}
+
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>Receitas</Text>
+        {RECIPE_ITEMS.map((item) => (
           <TouchableOpacity key={item.route} style={s.row} onPress={() => router.push(item.route as any)}>
             <View style={s.iconWrap}>
               <Icon source={item.icon} size={22} color="#B5451B" />

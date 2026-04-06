@@ -1,4 +1,4 @@
-import { MealEntry, CreateMealEntryInput, UpdateMealEntryInput, MealPlanSlotConfig, MealSlot } from '../../types/meal-plan.types';
+import { MealEntry, MealEntryLinkedRecipe, CreateMealEntryInput, UpdateMealEntryInput, MealPlanSlotConfig, MealSlot } from '../../types/meal-plan.types';
 
 export interface IMealPlanRepository {
   getWeek(familyId: string, weekStart: string): Promise<MealEntry[]>;
@@ -9,4 +9,8 @@ export interface IMealPlanRepository {
   getRecentLinkableMeals(familyId: string, currentWeekStart: string, weeksBack?: number): Promise<MealEntry[]>;
   getConfig(familyId: string): Promise<MealPlanSlotConfig[]>;
   upsertConfig(familyId: string, dayOfWeek: number, mealSlot: MealSlot, participants: string[], isSkip: boolean): Promise<MealPlanSlotConfig>;
+  linkRecipe(mealEntryId: string, recipeId: string, servingsOverride: number): Promise<MealEntryLinkedRecipe>;
+  unlinkRecipe(linkId: string): Promise<void>;
+  updateLinkedServings(linkId: string, servings: number): Promise<void>;
+  getLinkedRecipes(mealEntryId: string): Promise<MealEntryLinkedRecipe[]>;
 }

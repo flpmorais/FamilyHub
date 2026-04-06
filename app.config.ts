@@ -44,6 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-image-picker',
       { photosPermission: 'FamilyHub precisa de acesso às suas fotos para escolher um avatar.' },
     ],
+    'expo-sharing',
   ],
   extra: {
     supabaseUrl: process.env.SUPABASE_URL,

@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { IMealPlanRepository } from '../interfaces/meal-plan.repository.interface';
-import { MealEntry, MealSlot, MealType, CreateMealEntryInput, UpdateMealEntryInput, MealPlanSlotConfig } from '../../types/meal-plan.types';
+import { MealEntry, MealEntryLinkedRecipe, MealSlot, MealType, CreateMealEntryInput, UpdateMealEntryInput, MealPlanSlotConfig } from '../../types/meal-plan.types';
 import { logger } from '../../utils/logger';
 import { uuid } from '../../utils/uuid';
 
@@ -223,6 +223,77 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
     return mapSlotConfig(data);
   }
+
+  async linkRecipe(mealEntryId: string, recipeId: string, servingsOverride: number): Promise<MealEntryLinkedRecipe> {
+    const { data, error } = await this.client
+      .from('meal_entry_recipes')
+      .insert({
+        meal_entry_id: mealEntryId,
+        recipe_id: recipeId,
+        servings_override: servingsOverride,
+        sort_order: 0,
+      })
+      .select('id, meal_entry_id, recipe_id, servings_override, sort_order, recipes(name, type)')
+      .single();
+
+    if (error) {
+      logger.error('MealPlanRepository', 'Erro ao associar receita', error);
+      throw error;
+    }
+
+    return mapLinkedRecipe(data);
+  }
+
+  async unlinkRecipe(linkId: string): Promise<void> {
+    const { error } = await this.client
+      .from('meal_entry_recipes')
+      .delete()
+      .eq('id', linkId);
+
+    if (error) {
+      logger.error('MealPlanRepository', 'Erro ao remover associação', error);
+      throw error;
+    }
+  }
+
+  async updateLinkedServings(linkId: string, servings: number): Promise<void> {
+    const { error } = await this.client
+      .from('meal_entry_recipes')
+      .update({ servings_override: servings, updated_at: new Date().toISOString() })
+      .eq('id', linkId);
+
+    if (error) {
+      logger.error('MealPlanRepository', 'Erro ao atualizar porções', error);
+      throw error;
+    }
+  }
+
+  async getLinkedRecipes(mealEntryId: string): Promise<MealEntryLinkedRecipe[]> {
+    const { data, error } = await this.client
+      .from('meal_entry_recipes')
+      .select('id, meal_entry_id, recipe_id, servings_override, sort_order, recipes(name, type)')
+      .eq('meal_entry_id', mealEntryId)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      logger.error('MealPlanRepository', 'Erro ao carregar receitas associadas', error);
+      throw error;
+    }
+
+    return (data ?? []).map(mapLinkedRecipe);
+  }
+}
+
+function mapLinkedRecipe(row: any): MealEntryLinkedRecipe {
+  return {
+    id: row.id,
+    mealEntryId: row.meal_entry_id,
+    recipeId: row.recipe_id,
+    recipeName: row.recipes?.name ?? '',
+    recipeType: row.recipes?.type ?? 'other',
+    servingsOverride: row.servings_override,
+    sortOrder: row.sort_order,
+  };
 }
 
 function mapSlotConfig(row: any): MealPlanSlotConfig {

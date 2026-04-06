@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4', 'step-e-01-discovery-5', 'step-e-02-review-5', 'step-e-03-edit-5']
+stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4', 'step-e-01-discovery-5', 'step-e-02-review-5', 'step-e-03-edit-5', 'step-e-01-discovery-6', 'step-e-02-review-6', 'step-e-03-edit-6']
 classification:
   projectType: 'mobile_app'
   domain: 'general'
@@ -13,7 +13,7 @@ briefCount: 1
 brainstormingCount: 1
 researchCount: 0
 projectDocsCount: 0
-lastEdited: '2026-04-02'
+lastEdited: '2026-04-04'
 editHistory:
   - date: '2026-03-27'
     changes: 'V2 Leftovers module expansion — added user journey, full functional requirements, success criteria, product scope, phased development, offline scope, NFR'
@@ -25,6 +25,8 @@ editHistory:
     changes: 'V3 Meal Plan full expansion — added Journey 8 (weekly meal planning), V3 success criteria signal, expanded Product Scope and Phase 3 descriptions. Replaced 2 placeholder FRs (FR81-82) with 19 detailed FRs (FR81-FR99): meal plan configuration (3), core CRUD (8), participant management (3), leftovers integration (2), dashboard widget (3). Renumbered future module FRs to FR100-FR105. Added 2 NFRs (NFR25 week view load, NFR26 default config propagation). Total FRs: 105. Total NFRs: 26.'
   - date: '2026-04-02'
     changes: 'V4 Language Learning (Greek) — replaced V4 Recipes with Language Learning module. Version rebrand: Recipes V4→V5, Finances V5→V6, Maid V6→V7, Intelligence V7+→V8+. Added Journey 9 (Greek learning with voice via Pi + WebSocket + TTS/STT). Replaced 2 Recipes placeholder FRs (FR100-FR101) with 14 Language Learning FRs (FR100-FR113): session service (4), WebSocket + TTS (3), voice input (2), skill system (2), onboarding (2), learning profiles (1). Added 4 NFRs (NFR27-NFR30: session service response, WebSocket TTS latency, STT transcription time, TTS double-speak timing). Updated Executive Summary, Success Criteria, Product Scope, Device Permissions, Phased Development, Risk Mitigation. Added 2 FRs from validation (FR114 connection status, FR115 skill-complete signal). Renumbered future module FRs to FR116-FR121. Total FRs: 121. Total NFRs: 30.'
+  - date: '2026-04-04'
+    changes: 'V5 Recipes full expansion — added Journey 10 (recipe collection, import, cooking from plan, shopping list generation). Replaced 2 placeholder FRs (FR116-FR117) with 34 detailed FRs (FR116-FR149): recipe CRUD (6), URL import (2), YouTube import (3), photo OCR import (2), manual entry (1), browse & search (4), scaling (2), meal plan integration (5), shopping list generation (6), sharing (2), sync (1). Added 7 NFRs (NFR31-NFR37: URL/YouTube/OCR import times, search speed, shopping list generation, PDF generation, LLM cost cap). Updated Success Criteria (V5 signal), Measurable Outcomes (V5 row), Product Scope (V5 expanded), Device Permissions (CAMERA extended pulled to V5), Phased Development (V5 full paragraph + new infrastructure), Risk Mitigation (5 V5-specific risks), Journey Requirements Summary (Journey 10 row). Renumbered future module FRs to FR150-FR153. Total FRs: 153. Total NFRs: 37.'
 ---
 
 # Product Requirements Document - FamilyHub
@@ -85,6 +87,9 @@ Within one month of V3 shipping, both admins use the weekly meal plan consistent
 **V4 signal — Greek learning sessions used regularly with voice.**
 Within one month of V4 shipping, both admins use the language learning module for Greek practice at least twice per week. Voice playback works reliably — phrases spoken aloud on the phone without manual intervention. At least one admin uses the mic for voice input regularly. The subjective test: is Greek improving faster with audio reinforcement than with text-only learning?
 
+**V5 signal — recipes used for meal planning and shopping list generation.**
+Within one month of V5 shipping, both admins use the Recipes module to plan home-cooked meals. At least half of home-cooked meals in the weekly plan are linked to recipes rather than free-text entries. Shopping list generation from the meal plan is used weekly — the manual "check what ingredients I need" step is eliminated. The subjective test: does having recipes linked to the meal plan make cooking and shopping easier, or does it feel like admin overhead?
+
 **Ongoing signal — modules used without friction.**
 Each module in active use should feel like a shortcut, not an obligation. The moment any module becomes a chore, that module has failed its design goal.
 
@@ -111,6 +116,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | Shopping friction eliminated | Shopping list used every supermarket visit | V2 (next) |
 | Meal planning adopted | Meal plan prepared weekly, adjusted in real-time, "what's for dinner?" eliminated | V3 (planned) |
 | Greek learning with voice | Both admins use language learning with voice playback at least twice per week | V4 (planned) |
+| Recipes adopted for meal planning | At least half of home-cooked meals linked to recipes; shopping list generated from plan weekly | V5 (planned) |
 | Version gate reached | Each module in daily use before next version begins | V1 gate passed |
 
 ---
@@ -123,7 +129,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | V2 | Shopping | Living shared list (tick/untick), Alexa Skill voice input, AI categorization (cheap LLM), category-grouped display, real-time sync, dashboard widget (open item count) | Next |
 | V3 | Meal Plan | 7-day week grid (lunch + dinner), configurable default participants per slot, meal types (home-cooked, eating out, takeaway, leftovers), per-meal participant overrides, slot skip/enable overrides, leftovers linking to previous meals, dashboard widget (next meal + planning reminders) | Planned |
 | V4 | Language Learning (Greek) | Greek learning via Claude Code on Raspberry Pi, WebSocket voice bridge to phone, TTS playback (el-GR, double-speak), STT voice input as keyboard replacement, Pi-side session service (start/resume/end), skill system (/learn, /review, /vocab, /writing, /speaking, /reading, /progress), per-user isolation (separate Linux users on Pi), Claude OAuth onboarding via in-app WebView, Tailscale connectivity | Planned |
-| V5 | Recipes | Import, search, scaling, organisation, deduplicated shopping list generation from meal plan | Planned |
+| V5 | Recipes | Recipe CRUD (name, type, structured steps, ingredients with quantities, servings, prep/cook time, cost, image), static recipe types (meal, main, side, soup, dessert, other — shared with meal plan), import from URL (LLM parsing), YouTube (transcript via Data API + LLM extraction), photo OCR (camera + LLM structuring), manual entry, user-defined categories and tags, browse by type with filters (categories, tags, ingredients, total/prep/cook time), servings scaling with auto-calculated ingredient quantities, meal plan integration (link multiple recipes per meal slot, free-text fallback, per-recipe servings override), shopping list generation from weekly plan (review screen with checkboxes, checked items merge deduplicated into shopping list), share recipe as PDF via Android share sheet | Planned |
 | V6 | Finances | Budgets, envelopes, expense tracking | Planned |
 | V7 | Maid | Hours logging, billing, payment register, PDF payslips, maid salary as household expense | Planned |
 | V8+ | Intelligence | AI features, push notifications, Google Drive/Calendar, child accounts | Vision |
@@ -304,6 +310,59 @@ The next morning, Filipe opens the app on the bus. `GET /session/status?userId=f
 
 ---
 
+### Journey 10: Filipe — Building a Recipe Collection and Cooking from the Plan (Recipes, V5)
+
+It's Sunday afternoon. Filipe has been using the meal plan for a few weeks — free-text entries like "Grilled chicken with rice" and "Lasagna". It works, but he keeps forgetting quantities and steps mid-cook. He opens the Recipes module for the first time.
+
+**Importing from a URL.** He found a bacalhau à Brás recipe on a Portuguese cooking blog last week. He taps "Add Recipe", selects "Import from URL", pastes the link. The system fetches the page, sends the HTML to an LLM, and extracts: name, ingredients with quantities, structured steps, servings (4), prep time (20 min), cook time (25 min). Filipe reviews the extracted recipe — the LLM missed the salt quantity. He edits the ingredient row, adds "q.b." as quantity. He sets the type to **Meal**, assigns categories "Portuguese" and "Fish", tags "Quick" and "Family Favourite", and saves. The recipe appears in his collection with the blog's image auto-extracted.
+
+**Importing from YouTube.** Angela sent him a YouTube link — a Greek moussaka tutorial. He taps "Import from URL", pastes the YouTube link. The system pulls the video transcript via YouTube Data API, sends it to the LLM, and extracts the recipe. The transcript is chatty — the cook rambles about her grandmother — but the LLM isolates the recipe cleanly: ingredients, steps, times. Filipe reviews, adjusts the servings from 6 to 4, sets type to **Meal**, categories "Greek", tags "Weekend Project". Saved.
+
+**Manual entry.** His mother's canja (chicken soup) has no URL — it's a family recipe. He taps "Add Recipe", selects "Manual Entry". He fills in: name "Canja da Mãe", type **Soup**, servings 6, prep time 15 min, cook time 45 min, cost €5. He adds ingredients one by one: chicken thighs (500g), rice (150g), carrot (2), onion (1), lemon (1), salt (q.b.), water (2L). Then the steps — step 1: boil chicken with carrot and onion for 30 min. Step 2: shred chicken, discard bones. Step 3: add rice, cook 15 min. Step 4: squeeze lemon, season. Four clean steps. Categories "Portuguese" and "Soup", tags "Comfort Food". He takes a photo of his mother's handwritten recipe card — it saves as the recipe image. Saved.
+
+**Photo OCR import.** Angela's colleague gave her a printed recipe for bolo de laranja (orange cake). Angela takes a photo of the paper. The app runs OCR on the image, extracts the text, sends it to the LLM for structuring. The LLM returns: name, ingredients, steps, servings. Angela reviews — the OCR misread "raspa" as "rasps". She corrects it to "raspa de laranja" (orange zest). Type: **Dessert**. Categories "Baking". Saved.
+
+**Browsing recipes.** A week later, Filipe has 12 recipes in the collection. He opens Recipes and sees them grouped by type: 2 soups, 6 meals, 2 sides, 2 desserts. He taps **Meal** — sees all 6. He filters by category "Portuguese" — 3 results. He filters by tag "Quick" — 2 results. He clears filters, searches by ingredient "chicken" — 3 recipes that use chicken. He filters by total time under 30 minutes — 4 quick recipes.
+
+**Scaling a recipe.** He taps the bacalhau à Brás (serves 4). His in-laws are visiting — 6 people eating. He adjusts servings to 6. All ingredient quantities recalculate: potatoes from 600g to 900g, eggs from 6 to 9, bacalhau from 400g to 600g. He reads the scaled recipe while cooking.
+
+**Linking recipes to the meal plan.** Sunday evening — time to plan next week. He opens the meal plan. Monday dinner: he taps the slot, and now instead of just free text, he sees "Link Recipe" as the primary option. He taps it, the recipe browser opens filtered to **Meal** type. He selects bacalhau à Brás. The slot shows "Bacalhau à Brás" with a recipe link indicator. He adjusts servings for this meal to 4 (just the family). The slot shows: "Bacalhau à Brás (4 servings)".
+
+Tuesday dinner: he wants a fuller meal. He links the canja (soup, 4 servings) and a green salad (side — he hasn't added this recipe yet, so he types "Green salad" as free text). The slot shows two entries: "Canja da Mãe (soup, 4 servings)" linked to a recipe, and "Green salad" as free text. Multiple items per meal — soup and a side.
+
+Wednesday dinner: he doesn't have a recipe for what he wants to cook. He types "Improvised stir-fry" as free text. No recipe linked — the free-text fallback works exactly as before.
+
+Thursday dinner: eating out — unchanged from V3 behaviour.
+
+Friday dinner: Angela links the moussaka (meal, 4 servings) and the bolo de laranja (dessert, 4 servings). A full meal: main and dessert, both from recipes.
+
+**Generating the shopping list.** The week is planned. Filipe taps "Generate Shopping List" in the meal plan. The system scans all linked recipes for the week, scales each recipe's ingredients to the specified servings, and produces a consolidated ingredient list. A review screen appears:
+
+| Ingredient | Quantity (total) | ☐ |
+|---|---|---|
+| Chicken thighs | 500g | ☐ |
+| Bacalhau | 400g | ☐ |
+| Potatoes | 600g | ☐ |
+| Eggs | 6 | ☐ |
+| Rice | 150g | ☐ |
+| Onion | 3 | ☐ |
+| Carrot | 2 | ☐ |
+| Lemon | 1 | ☐ |
+| Aubergine | 3 | ☐ |
+| Minced lamb | 500g | ☐ |
+| Flour | 200g | ☐ |
+| Orange | 4 | ☐ |
+| Sugar | 200g | ☐ |
+| ... | ... | ... |
+
+Quantities are summed where the same ingredient appears in multiple recipes (e.g., onion: 1 from canja + 2 from moussaka = 3). Filipe checks the items he needs — he already has rice, eggs, and sugar at home. He checks 18 of 24 items. Taps "Add to Shopping List". The 18 checked items merge into the existing shopping list — deduplicated against items already there. If "potatoes" already exists on the shopping list (ticked from last week), it gets unticked with the new quantity. If "onion" is already unticked, the quantity updates.
+
+**Sharing a recipe.** Angela's sister asks for the moussaka recipe. Angela opens it, taps the share button. The app generates a PDF — recipe name, image, ingredients, steps, prep/cook time, servings — and opens the Android share sheet. She sends it via WhatsApp. Clean, formatted, no app required on the receiving end.
+
+**Capabilities revealed:** Recipe CRUD (name, type, structured steps, ingredients with quantities, servings, prep time, cook time, cost, categories, tags, image), static recipe types (meal, main, side, soup, dessert, other), import from URL (HTML fetch + LLM extraction), import from YouTube (transcript via Data API + LLM extraction, fallback to comments), import via photo OCR (camera capture + OCR + LLM structuring), manual entry with structured steps and ingredient rows, user-defined categories and tags, browse by type (primary grouping), filter by categories/tags/ingredients/total time/prep time/cook time, search by ingredient, servings scaling with proportional ingredient recalculation, meal plan integration (link multiple recipes per meal slot, per-recipe servings override, free-text fallback), shopping list generation from weekly plan (ingredient aggregation with quantity summing across recipes, review screen with checkboxes, checked items merge deduplicated into shopping list with quantity updates), recipe sharing as PDF via Android share sheet, real-time sync between admins.
+
+---
+
 ### Journey Requirements Summary
 
 | Journey | Module | Capabilities Required |
@@ -317,6 +376,7 @@ The next morning, Filipe opens the app on the bus. `GET /session/status?userId=f
 | 7. Supermarket shopping (V2) | V2 Shopping | Living list (tick/untick, no lifecycle), category-grouped display, real-time sync, ticked items greyed, carry-over, dashboard widget (open item count) |
 | 8. Weekly meal planning (V3) | V3 Meal Plan | 7-day week grid (lunch + dinner), configurable default participants, meal types (home-cooked, eating out, takeaway, leftovers), leftovers linking, participant overrides, slot skip/enable overrides, dashboard widget (next meal + planning reminder), real-time sync |
 | 9. Greek learning with voice (V4) | V4 Language Learning | Pi-side session service (start/resume/end/status with skill parameter), per-user WebSocket routing, terminal display, /setup gating, setup-complete flag in Supabase, skill selection (learn/review/vocab/writing/speaking/reading/progress), one session at a time, resume within same skill, tmux persistence, Claude OAuth onboarding via WebView, TTS double-speak (el-GR), mic as keyboard replacement (STT → terminal text), speak command on exercises and answers, Tailscale connectivity, per-user Linux isolation on Pi |
+| 10. Recipe collection & meal plan cooking (V5) | V5 Recipes | Recipe CRUD (name, type, steps, ingredients+quantities, servings, prep/cook time, cost, categories, tags, image), static types (meal/main/side/soup/dessert/other), import from URL (LLM parsing), YouTube import (transcript + LLM), photo OCR import (camera + OCR + LLM), manual entry (structured steps + ingredient rows), user-defined categories + tags, browse by type, filter (categories/tags/ingredients/time), ingredient search, servings scaling (proportional ingredient recalc), meal plan integration (multiple recipes per slot, per-recipe servings, free-text fallback), shopping list generation (ingredient aggregation, quantity summing, review screen with checkboxes, dedup merge into shopping list), PDF share via Android share sheet |
 
 ---
 
@@ -387,7 +447,8 @@ Permissions scoped strictly to what is needed per version:
 | `INTERNET` | V1 | Supabase sync, Google Sign-In |
 | `CAMERA` | V2+ (optional) | Profile photo capture |
 | `RECORD_AUDIO` | V4 | Speech-to-text voice input for language learning exercises (mic as keyboard replacement) |
-| `CAMERA` (extended) | V8+ | Receipt OCR, recipe photo scanning |
+| `CAMERA` (extended) | V5 | Recipe photo OCR (capture printed/handwritten recipes for LLM-based extraction) |
+| `CAMERA` (extended) | V8+ | Receipt OCR |
 | `POST_NOTIFICATIONS` | V8+ | Push notification delivery |
 
 V1 requires only `INTERNET` — minimal permission surface.
@@ -462,7 +523,9 @@ No app store compliance requirements apply.
 
 **V4 — Language Learning (Greek):** Greek learning via Claude Code running on a Raspberry Pi, bridged to the mobile app via WebSocket over Tailscale. A Pi-side session service manages session lifecycle (start/resume/end/status) via HTTP. Claude Code runs learning skills (/learn, /review, /vocab, /writing, /speaking, /reading, /progress) inside tmux sessions — one per user, one at a time. Claude calls `speak-greek.sh` to send Greek text to the phone via WebSocket; the phone speaks each phrase aloud twice via TTS (el-GR). Users interact via the terminal — typing answers on the keyboard or tapping a mic button on the phone (STT transcribes speech and sends it as terminal text input; Claude is unaware of input method). First launch gates on `/setup` (learning profile onboarding) before unlocking the skill menu. Claude OAuth authentication is handled via in-app WebView (one-time, non-technical). Each admin is a separate Linux user on the Pi — complete session and credential isolation. No dependency on V3 Meal Plan.
 
-**V5 — Recipes:** Import, search, scaling, and organisation. Generates a deduplicated shopping list from the weekly meal plan. Requires V3 Meal Plan as prerequisite.
+**V5 — Recipes:** Full recipe management with multi-source import and meal plan integration. Recipes are structured: name, type (meal/main/side/soup/dessert/other — static enum shared with meal plan), ingredients with quantities, step-by-step instructions, servings, prep time, cook time, cost, image, user-defined categories and tags. Four import paths: URL scraping (fetch page HTML, LLM extracts recipe), YouTube (pull transcript via YouTube Data API, LLM extracts recipe — falls back to comments if transcript has no recipe content), photo OCR (camera capture, OCR text extraction, LLM structures into recipe fields), and manual entry (full form with structured steps and ingredient rows). Browse by type as primary grouping; filter by categories, tags, ingredients, total time, prep time, cook time. Servings scaling recalculates ingredient quantities proportionally — available when browsing and when linking to a meal plan slot. Meal plan integration enhances V3: each meal slot supports multiple linked recipes (e.g., soup + main + side + dessert), with per-recipe servings override and free-text fallback for meals without a recipe. Shopping list generation: a button in the meal plan scans all linked recipes for the week, scales ingredients to specified servings, sums quantities across recipes for shared ingredients, and presents a review screen with checkboxes — checked items merge into the existing shopping list (deduplicated, quantities updated). Share any recipe as a formatted PDF via Android share sheet. Requires V3 Meal Plan as prerequisite.
+
+**New infrastructure:** LLM API integration (recipe extraction from HTML, YouTube transcripts, and OCR text — reuses V2 LLM provider via repository pattern), YouTube Data API (transcript retrieval), OCR library (on-device text extraction from photos), PDF generation (on-device). All within free/negligible cost tier at family scale.
 
 **V6 — Finances:** Budgets, expense tracking, private spending envelopes per admin (RLS-enforced).
 
@@ -490,6 +553,11 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - *Greek TTS quality (V4).* expo-speech el-GR voice quality varies by Android device and OS version. Some devices may lack a Greek TTS voice entirely. Mitigation: test on both admins' devices before shipping. Fallback: install Google TTS engine (free) which includes high-quality Greek voices.
 - *Pi availability (V4).* Raspberry Pi must be powered on and running the session service and WebSocket server (via pm2). Power outage or SD card failure kills all sessions. Mitigation: pm2 auto-restarts services on boot. tmux sessions survive service restarts. SD card backup strategy recommended.
 - *V4/V5 independence.* V4 Language Learning has no dependency on V3 Meal Plan — unlike the previous V4 Recipes. V5 Recipes still depends on V3.
+- *URL scraping fragility (V5).* Recipe websites change their HTML structure without notice — LLM extraction may fail or produce incomplete results. Mitigation: LLM-based extraction is inherently adaptive (no hard-coded selectors). Failed extraction presents an error; the admin can retry or fall back to manual entry. No recipe is saved without admin review.
+- *YouTube transcript availability (V5).* Not all YouTube videos have transcripts — auto-generated captions may be absent or inaccurate, especially for non-English content. Mitigation: fallback to video comments. If neither yields a recipe, the system reports extraction failure clearly. Admin can fall back to manual entry.
+- *OCR accuracy (V5).* Handwritten recipes and low-quality photos may produce garbled OCR text, leading to poor LLM extraction. Mitigation: admin always reviews and edits extracted recipes before saving. The LLM structures whatever text it receives — partial extraction is better than none.
+- *Ingredient deduplication complexity (V5).* Different recipes may name the same ingredient differently (e.g., "onion" vs "yellow onion" vs "cebola"). Shopping list generation sums by exact ingredient name match — no fuzzy matching or cross-language dedup. Mitigation: accepted limitation. Admin can manually merge items on the shopping list. Same trade-off as V2 Alexa cross-language dedup.
+- *LLM cost scaling (V5).* Recipe imports use larger LLM prompts than V2 categorization (full HTML pages, transcripts). Mitigation: use cheapest capable model. Cost cap NFR37 (€2/month combined) monitored. At family scale, import volume is low (a few recipes per week).
 - *Supabase free tier limits.* Mitigation: family-scale traffic is negligible. Free tier monitored; paid upgrade is a defined fallback (low cost, no architecture change needed).
 
 ---
@@ -693,14 +761,81 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **FR114:** App displays connection status to the Pi — connected, disconnected, or reconnecting — so the user knows immediately if the Pi is unreachable (V4)
 - **FR115:** When Claude sends a skill-complete signal via WebSocket, the app automatically calls the session end endpoint and returns the user to the skill selection screen (V4)
 
-### Future Module Capabilities (V5–V7)
+### Recipe Management (V5)
 
-- **FR116:** Admin can import, search, scale, and organise recipes (V5)
-- **FR117:** Admin can generate a deduplicated shopping list from the weekly meal plan based on recipe ingredients (V5)
-- **FR118:** Admin can record household income and expenses against budget categories and envelopes (V6)
-- **FR119:** Maid can log daily work hours with a single-tap interaction (V7)
-- **FR120:** Admin can generate a billing statement and payslip for the Maid for any period (V7)
-- **FR121:** Maid salary auto-posts as a household expense in the Finances module (V7)
+#### Recipe CRUD
+
+- **FR116:** Admin can create a recipe with: name, type, ingredients (each with name and quantity), step-by-step instructions (ordered list of individual steps), servings, prep time (minutes), cook time (minutes), cost (manual entry), image, categories, and tags (V5)
+- **FR117:** Admin can edit any recipe's fields — name, type, ingredients, steps, servings, times, cost, image, categories, tags (V5)
+- **FR118:** Admin can delete a recipe (V5)
+- **FR119:** Recipe type is a static enum shared with the meal plan: meal, main, side, soup, dessert, other — defined at development time, not user-configurable (V5)
+- **FR120:** Admin can create, edit, and delete recipe categories — user-defined at runtime (V5)
+- **FR121:** Admin can create, edit, and delete recipe tags — user-defined at runtime (V5)
+
+#### Recipe Import — URL
+
+- **FR122:** Admin can import a recipe by pasting a URL; the system fetches the page HTML and sends it to an LLM to extract recipe fields (name, ingredients with quantities, steps, servings, prep time, cook time, image URL) (V5)
+- **FR123:** After LLM extraction, the system presents the extracted recipe for admin review and editing before saving — no recipe is saved without admin confirmation (V5)
+
+#### Recipe Import — YouTube
+
+- **FR124:** Admin can import a recipe by pasting a YouTube URL; the system retrieves the video transcript via YouTube Data API and sends it to an LLM to extract recipe fields (V5)
+- **FR125:** If the transcript contains no extractable recipe content, the system retrieves the video's top-level comments and sends them to the LLM as a fallback source (V5)
+- **FR126:** If neither transcript nor comments yield a recipe, the system informs the admin that extraction failed — no empty recipe is created (V5)
+
+#### Recipe Import — Photo OCR
+
+- **FR127:** Admin can import a recipe by capturing a photo (camera) or selecting an image from the gallery; the system runs OCR to extract text, then sends the text to an LLM to structure it into recipe fields (V5)
+- **FR128:** After OCR + LLM structuring, the system presents the extracted recipe for admin review and editing before saving (V5)
+
+#### Recipe Import — Manual Entry
+
+- **FR129:** Admin can create a recipe via manual entry with a structured form: name, type, ingredients (add/remove/reorder rows, each with name and quantity), steps (add/remove/reorder, each a separate text input), servings, prep time, cook time, cost, image (camera capture or gallery selection), categories, tags (V5)
+
+#### Recipe Browse & Search
+
+- **FR130:** Recipe list displays recipes grouped by type as the primary browsing view (V5)
+- **FR131:** Admin can filter recipes by: categories, tags, ingredients (text match against ingredient names), total time (prep + cook), prep time, cook time (V5)
+- **FR132:** Admin can search recipes by ingredient — the system matches the search term against ingredient names across all recipes and returns matching recipes (V5)
+- **FR133:** Filters are combinable — admin can apply multiple filters simultaneously (e.g., type "Soup" + category "Portuguese" + total time under 30 min) (V5)
+
+#### Recipe Scaling
+
+- **FR134:** Admin can adjust a recipe's servings when viewing it; all ingredient quantities recalculate proportionally based on the ratio of new servings to original servings (V5)
+- **FR135:** Scaling is non-destructive — the original recipe retains its saved servings and quantities; scaling is applied as a view-time adjustment (V5)
+
+#### Meal Plan Integration (V5 Enhancement on V3)
+
+- **FR136:** Admin can link one or more recipes to a single meal plan slot — each linked recipe appears as a separate entry within the slot (e.g., a soup, a main, and a dessert in one dinner slot) (V5)
+- **FR137:** Admin can set the servings for each linked recipe independently within a meal slot — ingredient scaling follows the specified servings (V5)
+- **FR138:** Admin can add a free-text entry to a meal slot alongside or instead of linked recipes — free-text is the fallback when no recipe exists or the admin lacks time to create one (V5)
+- **FR139:** Admin can remove a linked recipe from a meal slot without affecting the recipe itself (V5)
+- **FR140:** When linking a recipe to a meal slot, the system opens the recipe browser filtered to the slot's meal type context — admin can browse and select from the full recipe collection (V5)
+
+#### Shopping List Generation
+
+- **FR141:** Admin can tap "Generate Shopping List" in the meal plan view; the system scans all linked recipes for the displayed week, scales each recipe's ingredients to the specified servings for that meal, and produces a consolidated ingredient list (V5)
+- **FR142:** Shopping list generation sums quantities for the same ingredient across multiple recipes (e.g., onion: 1 from recipe A + 2 from recipe B = 3 onions) (V5)
+- **FR143:** The system presents a review screen showing each ingredient, its total quantity, and a checkbox — all items are unchecked by default (V5)
+- **FR144:** Admin checks the items they need and taps "Add to Shopping List"; only checked items are added (V5)
+- **FR145:** Checked items merge into the existing shopping list deduplicated: if the ingredient already exists and is ticked (shopped), it is unticked with the new quantity; if already unticked, the quantity is updated; if not present, a new item is created (V5)
+- **FR146:** Free-text meal entries (meals without linked recipes) are excluded from shopping list generation — only linked recipes contribute ingredients (V5)
+
+#### Recipe Sharing
+
+- **FR147:** Admin can share any recipe as a PDF; the system generates a formatted PDF on-device containing the recipe name, image, type, ingredients with quantities, steps, servings, prep time, cook time, and cost (V5)
+- **FR148:** After PDF generation, the system opens the Android share sheet so the admin can send the PDF via any installed app (WhatsApp, email, etc.) (V5)
+
+#### Recipe Sync
+
+- **FR149:** System propagates recipe changes (create, edit, delete) from one Admin to all other connected Admin devices in real-time (V5)
+
+### Future Module Capabilities (V6–V7)
+
+- **FR150:** Admin can record household income and expenses against budget categories and envelopes (V6)
+- **FR151:** Maid can log daily work hours with a single-tap interaction (V7)
+- **FR152:** Admin can generate a billing statement and payslip for the Maid for any period (V7)
+- **FR153:** Maid salary auto-posts as a household expense in the Finances module (V7)
 
 ---
 
@@ -753,3 +888,13 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 - **NFR28:** Greek text received via WebSocket must begin TTS playback within 500ms of message arrival on the phone (V4)
 - **NFR29:** Android STT transcription must complete and send the transcript to the terminal within 2 seconds of the user finishing speech (V4)
 - **NFR30:** TTS double-speak must play each phrase twice with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases, matching the Pi-side `speak-greek.sh` timing (V4)
+
+### Recipes (V5)
+
+- **NFR31:** Recipe URL import (HTML fetch + LLM extraction) must complete and present the extracted recipe for review within 10 seconds (V5)
+- **NFR32:** Recipe YouTube import (transcript retrieval + LLM extraction) must complete and present the extracted recipe for review within 15 seconds (V5)
+- **NFR33:** Recipe photo OCR import (OCR text extraction + LLM structuring) must complete and present the extracted recipe for review within 10 seconds (V5)
+- **NFR34:** Recipe search and filter operations must return results within 300ms on devices running Android 8.0+ (V5)
+- **NFR35:** Shopping list generation from the weekly meal plan (ingredient aggregation, deduplication, quantity summing across all linked recipes) must complete and display the review screen within 3 seconds (V5)
+- **NFR36:** Recipe PDF generation must complete within 3 seconds on-device and open the Android share sheet immediately after (V5)
+- **NFR37:** LLM API costs for recipe import (URL, YouTube, OCR extraction) must remain under €2/month at family-scale usage — combined with V2 categorization costs (V5)
