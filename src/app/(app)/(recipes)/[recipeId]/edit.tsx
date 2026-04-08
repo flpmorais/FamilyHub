@@ -11,23 +11,34 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
+import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { useRepository } from '../../../../hooks/use-repository';
 import { useAuthStore } from '../../../../stores/auth.store';
 import { RECIPE_TYPE_LIST, DEFAULT_SERVINGS } from '../../../../constants/recipe-defaults';
 import { logger } from '../../../../utils/logger';
+import { PageHeader } from '../../../../components/page-header';
 import type { RecipeType, RecipeCategory, RecipeTag, RecipeWithDetails } from '../../../../types/recipe.types';
 
 interface IngredientRow {
+  key: string;
   name: string;
   quantity: string;
 }
 
 interface StepRow {
+  key: string;
   text: string;
+}
+
+let _keyCounter = 0;
+function nextKey() {
+  return `ek${++_keyCounter}`;
 }
 
 export default function EditRecipeScreen() {
@@ -50,9 +61,9 @@ export default function EditRecipeScreen() {
   const [cost, setCost] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    { name: '', quantity: '' },
+    { key: nextKey(), name: '', quantity: '' },
   ]);
-  const [steps, setSteps] = useState<StepRow[]>([{ text: '' }]);
+  const [steps, setSteps] = useState<StepRow[]>([{ key: nextKey(), text: '' }]);
   const [allCategories, setAllCategories] = useState<RecipeCategory[]>([]);
   const [allTags, setAllTags] = useState<RecipeTag[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -95,9 +106,9 @@ export default function EditRecipeScreen() {
     setCost(recipe.cost ?? '');
     setImageUri(recipe.imageUrl);
     setIngredients(
-      recipe.ingredients.map((i) => ({ name: i.ingredientName, quantity: i.quantity ?? '' })),
+      recipe.ingredients.map((i) => ({ key: nextKey(), name: i.ingredientName, quantity: i.quantity ?? '' })),
     );
-    setSteps(recipe.steps.map((s) => ({ text: s.stepText })));
+    setSteps(recipe.steps.map((s) => ({ key: nextKey(), text: s.stepText })));
     setSelectedCategoryIds(recipe.categories.map((c) => c.id));
     setSelectedTagIds(recipe.tags.map((t) => t.id));
   }, [recipe]);
@@ -117,7 +128,7 @@ export default function EditRecipeScreen() {
 
   // Ingredients helpers
   function addIngredient() {
-    setIngredients([...ingredients, { name: '', quantity: '' }]);
+    setIngredients([...ingredients, { key: nextKey(), name: '', quantity: '' }]);
   }
 
   function removeIngredient(index: number) {
@@ -137,7 +148,7 @@ export default function EditRecipeScreen() {
 
   // Steps helpers
   function addStep() {
-    setSteps([...steps, { text: '' }]);
+    setSteps([...steps, { key: nextKey(), text: '' }]);
   }
 
   function removeStep(index: number) {
@@ -147,23 +158,7 @@ export default function EditRecipeScreen() {
 
   function updateStep(index: number, value: string) {
     const updated = [...steps];
-    updated[index] = { text: value };
-    setSteps(updated);
-  }
-
-  function moveIngredient(index: number, direction: 'up' | 'down') {
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target < 0 || target >= ingredients.length) return;
-    const updated = [...ingredients];
-    [updated[index], updated[target]] = [updated[target], updated[index]];
-    setIngredients(updated);
-  }
-
-  function moveStep(index: number, direction: 'up' | 'down') {
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target < 0 || target >= steps.length) return;
-    const updated = [...steps];
-    [updated[index], updated[target]] = [updated[target], updated[index]];
+    updated[index] = { ...updated[index], text: value };
     setSteps(updated);
   }
 
@@ -243,6 +238,35 @@ export default function EditRecipeScreen() {
     }
   }
 
+  function handleDelete() {
+    if (!recipe || !recipeId) return;
+    Alert.alert(
+      'Eliminar receita',
+      `Tem a certeza que quer eliminar "${recipe.name}"? Esta acção não pode ser desfeita.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await recipeRepo.delete(recipeId);
+              router.dismiss(2);
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : '';
+              if (msg.includes('RESTRICT') || msg.includes('violates foreign key')) {
+                showError('Esta receita está associada a uma ementa semanal. Remova a associação primeiro.');
+              } else {
+                showError('Não foi possível eliminar a receita');
+              }
+              logger.error('EditRecipeScreen', 'delete failed', err);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   // Validation and save
   async function handleSave() {
     if (!recipeId) return;
@@ -317,19 +341,14 @@ export default function EditRecipeScreen() {
   }
 
   return (
+    <GestureHandlerRootView style={s.flex}>
     <KeyboardAvoidingView
       style={s.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.headerBack}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Editar Receita</Text>
-        <View style={{ width: 60 }} />
-      </View>
+      <PageHeader title="Editar Receita" showBack imageUri={imageUri} fallbackColor="#F5F5F5" />
 
-      <ScrollView style={s.flex} contentContainerStyle={s.form}>
+      <NestableScrollContainer style={s.flex} contentContainerStyle={s.form}>
         {/* Name */}
         <Text style={s.label}>Nome *</Text>
         <TextInput
@@ -481,100 +500,118 @@ export default function EditRecipeScreen() {
 
         {/* Ingredients */}
         <Text style={s.sectionTitle}>Ingredientes *</Text>
-        {ingredients.map((ing, i) => (
-          <View key={i} style={s.dynamicRow}>
-            <View style={s.dynamicRowInputs}>
-              <TextInput
-                style={[s.input, s.ingredientName]}
-                value={ing.name}
-                onChangeText={(v) => updateIngredient(i, 'name', v)}
-                placeholder="Ingrediente"
-                placeholderTextColor="#CCCCCC"
-              />
-              <TextInput
-                style={[s.input, s.ingredientQty]}
-                value={ing.quantity}
-                onChangeText={(v) => updateIngredient(i, 'quantity', v)}
-                placeholder="Qtd"
-                placeholderTextColor="#CCCCCC"
-              />
-            </View>
-            <View style={s.dynamicRowActions}>
-              {i > 0 && (
-                <TouchableOpacity onPress={() => moveIngredient(i, 'up')}>
-                  <Text style={s.actionBtn}>↑</Text>
-                </TouchableOpacity>
-              )}
-              {i < ingredients.length - 1 && (
-                <TouchableOpacity onPress={() => moveIngredient(i, 'down')}>
-                  <Text style={s.actionBtn}>↓</Text>
-                </TouchableOpacity>
-              )}
-              {ingredients.length > 1 && (
-                <TouchableOpacity onPress={() => removeIngredient(i)}>
-                  <Text style={s.removeBtn}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ))}
+        <NestableDraggableFlatList
+          data={ingredients}
+          keyExtractor={(item) => item.key}
+          onDragEnd={({ data }) => setIngredients(data)}
+          renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<IngredientRow>) => {
+            const i = getIndex() ?? 0;
+            return (
+              <ScaleDecorator>
+                <View style={[s.dynamicRow, isActive && s.dynamicRowActive]}>
+                  <TouchableOpacity onLongPress={drag} style={s.dragHandle}>
+                    <Text style={s.dragHandleText}>{'\u2261'}</Text>
+                  </TouchableOpacity>
+                  <View style={s.dynamicRowInputs}>
+                    <TextInput
+                      style={[s.input, s.ingredientName]}
+                      value={item.name}
+                      onChangeText={(v) => updateIngredient(i, 'name', v)}
+                      placeholder="Ingrediente"
+                      placeholderTextColor="#CCCCCC"
+                    />
+                    <TextInput
+                      style={[s.input, s.ingredientQty]}
+                      value={item.quantity}
+                      onChangeText={(v) => updateIngredient(i, 'quantity', v)}
+                      placeholder="Qtd"
+                      placeholderTextColor="#CCCCCC"
+                    />
+                  </View>
+                  {ingredients.length > 1 && (
+                    <TouchableOpacity onPress={() => removeIngredient(i)}>
+                      <Text style={s.removeBtn}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScaleDecorator>
+            );
+          }}
+        />
         <TouchableOpacity style={s.addRowBtn} onPress={addIngredient}>
           <Text style={s.addRowBtnText}>+ Adicionar ingrediente</Text>
         </TouchableOpacity>
 
         {/* Steps */}
         <Text style={s.sectionTitle}>Passos *</Text>
-        {steps.map((step, i) => (
-          <View key={i} style={s.dynamicRow}>
-            <View style={s.stepNumberContainer}>
-              <Text style={s.stepNumber}>{i + 1}.</Text>
-            </View>
-            <TextInput
-              style={[s.input, s.stepInput]}
-              value={step.text}
-              onChangeText={(v) => updateStep(i, v)}
-              placeholder={`Passo ${i + 1}`}
-              placeholderTextColor="#CCCCCC"
-              multiline
-            />
-            <View style={s.dynamicRowActions}>
-              {i > 0 && (
-                <TouchableOpacity onPress={() => moveStep(i, 'up')}>
-                  <Text style={s.actionBtn}>↑</Text>
-                </TouchableOpacity>
-              )}
-              {i < steps.length - 1 && (
-                <TouchableOpacity onPress={() => moveStep(i, 'down')}>
-                  <Text style={s.actionBtn}>↓</Text>
-                </TouchableOpacity>
-              )}
-              {steps.length > 1 && (
-                <TouchableOpacity onPress={() => removeStep(i)}>
-                  <Text style={s.removeBtn}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ))}
+        <NestableDraggableFlatList
+          data={steps}
+          keyExtractor={(item) => item.key}
+          onDragEnd={({ data }) => setSteps(data)}
+          renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<StepRow>) => {
+            const i = getIndex() ?? 0;
+            return (
+              <ScaleDecorator>
+                <View style={[s.dynamicRow, isActive && s.dynamicRowActive]}>
+                  <TouchableOpacity onLongPress={drag} style={s.dragHandle}>
+                    <Text style={s.dragHandleText}>{'\u2261'}</Text>
+                  </TouchableOpacity>
+                  <View style={s.stepNumberContainer}>
+                    <Text style={s.stepNumber}>{i + 1}.</Text>
+                  </View>
+                  <TextInput
+                    style={[s.input, s.stepInput]}
+                    value={item.text}
+                    onChangeText={(v) => updateStep(i, v)}
+                    placeholder={`Passo ${i + 1}`}
+                    placeholderTextColor="#CCCCCC"
+                    multiline
+                  />
+                  {steps.length > 1 && (
+                    <TouchableOpacity onPress={() => removeStep(i)}>
+                      <Text style={s.removeBtn}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScaleDecorator>
+            );
+          }}
+        />
         <TouchableOpacity style={s.addRowBtn} onPress={addStep}>
           <Text style={s.addRowBtnText}>+ Adicionar passo</Text>
         </TouchableOpacity>
 
-        {/* Save */}
-        <TouchableOpacity
-          style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
-          onPress={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={s.saveBtnText}>Guardar Alterações</Text>
-          )}
-        </TouchableOpacity>
+        {/* Actions */}
+        <View style={s.buttonRow}>
+          <TouchableOpacity
+            style={s.deleteButton}
+            onPress={handleDelete}
+            disabled={isSaving}
+          >
+            <Text style={s.deleteText}>Eliminar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.cancelButton}
+            onPress={() => router.back()}
+            disabled={isSaving}
+          >
+            <Text style={s.cancelText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.saveButton, isSaving && s.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={s.saveButtonText}>Guardar</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </NestableScrollContainer>
 
       {/* Inline Category Modal */}
       <Modal
@@ -653,6 +690,7 @@ export default function EditRecipeScreen() {
         {errorMsg}
       </Snackbar>
     </KeyboardAvoidingView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -662,19 +700,6 @@ const s = StyleSheet.create({
   backLink: { paddingHorizontal: 16, paddingVertical: 8 },
   backLinkText: { fontSize: 14, color: '#B5451B', fontWeight: '600' },
   flex: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 48,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  headerBack: { fontSize: 14, color: '#B5451B', fontWeight: '600' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1A1A1A' },
   form: { padding: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#666666', marginBottom: 4, marginTop: 12 },
   input: {
@@ -694,15 +719,16 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   rowItem: { flex: 1 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1A1A1A', marginTop: 20, marginBottom: 8 },
-  dynamicRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4 },
+  dynamicRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4, backgroundColor: '#FFFFFF' },
+  dynamicRowActive: { backgroundColor: '#FFF5F0', borderRadius: 8, elevation: 4 },
   dynamicRowInputs: { flex: 1, flexDirection: 'row', gap: 8 },
-  dynamicRowActions: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 4 },
+  dragHandle: { paddingHorizontal: 4, paddingVertical: 8 },
+  dragHandleText: { fontSize: 20, color: '#AAAAAA' },
   ingredientName: { flex: 2 },
   ingredientQty: { flex: 1 },
   stepNumberContainer: { width: 24, alignItems: 'center' },
   stepNumber: { fontSize: 14, fontWeight: '600', color: '#888888' },
   stepInput: { flex: 1 },
-  actionBtn: { fontSize: 16, color: '#888888', paddingHorizontal: 4 },
   removeBtn: { fontSize: 16, color: '#D32F2F', paddingHorizontal: 4 },
   addRowBtn: { paddingVertical: 10 },
   addRowBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '600' },
@@ -716,9 +742,34 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
   },
   imageRemoveText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  saveBtn: { backgroundColor: '#B5451B', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 24 },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  buttonRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  deleteButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D32F2F',
+    alignItems: 'center',
+  },
+  deleteText: { color: '#D32F2F', fontSize: 14, fontWeight: '600' },
+  cancelButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    alignItems: 'center',
+  },
+  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#B5451B',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4, marginBottom: 4 },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#E0E0E0', backgroundColor: '#FFFFFF' },
   chipSelected: { backgroundColor: '#B5451B', borderColor: '#B5451B' },

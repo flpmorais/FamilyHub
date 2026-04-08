@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
+import { useCurrentProfile } from '../../../hooks/use-current-profile';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
 import { compressAvatar } from '../../../utils/image.utils';
@@ -26,7 +27,8 @@ import type { Profile, ProfileStatus, UserRole, Family } from '../../../types/pr
 // ── Role helpers ────────────────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  admin: 'Admin',
+  admin: 'Administrador',
+  member: 'Membro',
   maid: 'Empregada',
   child: 'Criança',
 };
@@ -67,6 +69,8 @@ function validNextStatuses(current: ProfileStatus): ProfileStatus[] {
 export default function ProfilesScreen() {
   const profileRepository = useRepository('profile');
   const { userAccount } = useAuthStore();
+  const currentProfile = useCurrentProfile();
+  const isAdmin = currentProfile?.role === 'admin';
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [family, setFamily] = useState<Family | null>(null);
@@ -236,6 +240,7 @@ export default function ProfilesScreen() {
   }
 
   function openEdit(profile: Profile) {
+    if (!isAdmin && profile.id !== currentProfile?.id) return;
     setEditingProfile(profile);
     setFormName(profile.displayName);
     setFormEmail(profile.email ?? '');
@@ -363,6 +368,7 @@ export default function ProfilesScreen() {
   // ── Status change (from list badge tap → picker modal) ─────────────────
 
   function handleBadgeTap(profile: Profile) {
+    if (!isAdmin) return;
     setStatusPickerProfile(profile);
   }
 
@@ -510,7 +516,7 @@ export default function ProfilesScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <PageHeader title="Família" subtitle={family?.name} imageUri={family?.bannerUrl} showBack onEdit={openFamilyEdit} />
+      <PageHeader title="Família" subtitle={family?.name} imageUri={family?.bannerUrl} showBack onEdit={isAdmin ? openFamilyEdit : undefined} />
 
       <View style={styles.content}>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -522,9 +528,11 @@ export default function ProfilesScreen() {
           onDragEnd={({ data }) => handleReorder(data)}
           ListEmptyComponent={<Text style={styles.empty}>Nenhum perfil encontrado.</Text>}
           ListFooterComponent={
-            <TouchableOpacity style={styles.addButton} onPress={openCreate}>
-              <Text style={styles.addButtonText}>Adicionar perfil</Text>
-            </TouchableOpacity>
+            isAdmin ? (
+              <TouchableOpacity style={styles.addButton} onPress={openCreate}>
+                <Text style={styles.addButtonText}>Adicionar perfil</Text>
+              </TouchableOpacity>
+            ) : null
           }
         />
       </View>
@@ -581,28 +589,32 @@ export default function ProfilesScreen() {
               editable={!isSaving}
             />
 
-            <Text style={styles.label}>Função</Text>
-            <View style={styles.roleRow}>
-              {(['admin', 'maid', 'child'] as UserRole[]).map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={[styles.roleOption, formRole === r && styles.roleOptionSelected]}
-                  onPress={() => setFormRole(r)}
-                  disabled={isSaving}
-                >
-                  <Text
-                    style={[styles.roleOptionText, formRole === r && styles.roleOptionTextSelected]}
-                  >
-                    {ROLE_LABEL[r]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {isAdmin && (
+              <>
+                <Text style={styles.label}>Função</Text>
+                <View style={styles.roleRow}>
+                  {(['admin', 'member', 'maid', 'child'] as UserRole[]).map((r) => (
+                    <TouchableOpacity
+                      key={r}
+                      style={[styles.roleOption, formRole === r && styles.roleOptionSelected]}
+                      onPress={() => setFormRole(r)}
+                      disabled={isSaving}
+                    >
+                      <Text
+                        style={[styles.roleOptionText, formRole === r && styles.roleOptionTextSelected]}
+                      >
+                        {ROLE_LABEL[r]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <View style={styles.sheetButtons}>
-              {editingProfile && editingProfile.status !== 'enrolled' && (
+              {isAdmin && editingProfile && editingProfile.status !== 'enrolled' && (
                 <TouchableOpacity
                   style={styles.deleteSheetButton}
                   onPress={() => {
@@ -733,7 +745,7 @@ export default function ProfilesScreen() {
 
                 <Text style={styles.label}>Função</Text>
                 <View style={styles.roleRow}>
-                  {(['admin', 'maid', 'child'] as UserRole[]).map((r) => (
+                  {(['admin', 'member', 'maid', 'child'] as UserRole[]).map((r) => (
                     <TouchableOpacity
                       key={r}
                       style={[
@@ -1135,7 +1147,7 @@ const styles = StyleSheet.create({
   dragHandleText: { fontSize: 18, color: '#CCCCCC' },
   editFamilyBtn: {
     position: 'absolute',
-    top: 44,
+    top: 56,
     right: 12,
     zIndex: 2,
     width: 32,

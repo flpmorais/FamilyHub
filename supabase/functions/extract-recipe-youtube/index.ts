@@ -1,16 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Provider config — same pattern as extract-recipe
-const LLM_PROVIDER = Deno.env.get("LLM_PROVIDER") ?? "haiku";
+// Provider config
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_DATA_API_KEY") ?? "";
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const LLM_TIMEOUT_MS = 12000;
-const FETCH_TIMEOUT_MS = 3000;
-const MAX_TEXT_LENGTH = 4000;
+const HAIKU_TIMEOUT_MS = 12000;
+const SONNET_TIMEOUT_MS = 30000;
+const FETCH_TIMEOUT_MS = 6000;
+const MAX_TEXT_LENGTH = 8000;
+
+type ModelChoice = "haiku" | "sonnet";
+
+const MODEL_IDS: Record<ModelChoice, string> = {
+  haiku: "claude-haiku-4-5-20251001",
+  sonnet: "claude-sonnet-4-5-20250514",
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,9 +36,18 @@ function recipeResponse(data: Record<string, unknown>) {
   );
 }
 
-// ── LLM Providers ──────────────────────────────────────────────────────────
+// ── LLM Provider ──────────────────────────────────────────────────────────
 
-async function callHaiku(prompt: string): Promise<string> {
+async function callAnthropic(prompt: string, model: ModelChoice): Promise<string> {
+  const isSonnet = model === "sonnet";
+  const timeout = isSonnet ? SONNET_TIMEOUT_MS : HAIKU_TIMEOUT_MS;
+
+  const body: Record<string, unknown> = {
+    model: MODEL_IDS[model],
+    max_tokens: isSonnet ? 4000 : 2000,
+    messages: [{ role: "user", content: prompt }],
+  };
+
   const response = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -42,119 +55,55 @@ async function callHaiku(prompt: string): Promise<string> {
       "x-api-key": ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeout),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Haiku API error:", response.status, errorText);
-    throw new Error(`Haiku error: ${response.status}`);
+    console.error(`${model} API error:`, response.status, errorText);
+    throw new Error(`${model} error: ${response.status}`);
   }
 
   const result = await response.json();
-  return result?.content?.[0]?.text?.trim() ?? "";
+  const textBlock = result?.content?.find((b: { type: string }) => b.type === "text");
+  return textBlock?.text?.trim() ?? "";
 }
 
-async function callGemini(prompt: string): Promise<string> {
-  const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 2000,
-      },
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
-  });
+// ── YouTube Data API: video description ───────────────────────────────────
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Gemini API error:", response.status, errorText);
-    throw new Error(`Gemini error: ${response.status}`);
-  }
-
-  const result = await response.json();
-  return result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
-}
-
-async function callLlm(prompt: string): Promise<string> {
-  return LLM_PROVIDER === "gemini"
-    ? await callGemini(prompt)
-    : await callHaiku(prompt);
-}
-
-// ── Transcript fetching ────────────────────────────────────────────────────
-
-async function fetchTranscript(videoId: string): Promise<string | null> {
+async function fetchVideoDescription(videoId: string): Promise<string | null> {
   try {
-    // Fetch YouTube watch page to extract caption track URLs
-    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+    const url = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${YOUTUBE_API_KEY}`;
+    const response = await fetch(url, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    const html = await response.text();
 
-    // Extract captionTracks from ytInitialPlayerResponse
-    const match = html.match(/"captionTracks":\s*(\[[^\]]*\])/);
-    if (!match) {
-      console.log("No captionTracks found in page HTML");
+    if (!response.ok) {
+      console.error("YouTube videos API error:", response.status, await response.text().catch(() => ""));
       return null;
     }
 
-    let tracks: { baseUrl?: string; languageCode?: string }[];
-    try {
-      tracks = JSON.parse(match[1]);
-    } catch {
-      console.log("Failed to parse captionTracks JSON");
+    const data = await response.json();
+    const snippet = data.items?.[0]?.snippet;
+    if (!snippet) {
+      console.log("No video snippet found");
       return null;
     }
 
-    if (!tracks?.length || !tracks[0].baseUrl) {
-      console.log("No caption track URLs found");
-      return null;
-    }
-
-    // Fetch the first available caption track (usually auto-generated)
-    const trackUrl = tracks[0].baseUrl;
-    const trackResponse = await fetch(trackUrl, {
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-    const trackXml = await trackResponse.text();
-
-    // Parse XML to plain text
-    const text = trackXml
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, MAX_TEXT_LENGTH);
-
+    // Combine title and description for better context
+    const text = `Title: ${snippet.title ?? ""}\n\nDescription:\n${snippet.description ?? ""}`.trim().slice(0, MAX_TEXT_LENGTH);
+    console.log(`Video description extracted: ${text.length} chars`);
     return text.length > 50 ? text : null;
   } catch (err) {
-    console.error("Transcript fetch failed:", err);
+    console.error("Video description fetch failed:", err);
     return null;
   }
 }
 
-// ── Comments fallback ──────────────────────────────────────────────────────
+// ── YouTube Data API: comments ────────────────────────────────────────────
 
 async function fetchComments(videoId: string): Promise<string | null> {
-  if (!YOUTUBE_API_KEY) {
-    console.log("No YOUTUBE_DATA_API_KEY set, skipping comments fallback");
-    return null;
-  }
-
   try {
     const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=20&order=relevance&key=${YOUTUBE_API_KEY}`;
     const response = await fetch(url, {
@@ -162,7 +111,9 @@ async function fetchComments(videoId: string): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.error("YouTube comments API error:", response.status);
+      const errText = await response.text().catch(() => "");
+      console.error("YouTube comments API error:", response.status, errText);
+      // Comments may be disabled — not a fatal error
       return null;
     }
 
@@ -176,6 +127,7 @@ async function fetchComments(videoId: string): Promise<string | null> {
       .join("\n");
 
     const text = comments.slice(0, MAX_TEXT_LENGTH);
+    console.log(`Comments extracted: ${text.length} chars`);
     return text.length > 30 ? text : null;
   } catch (err) {
     console.error("Comments fetch failed:", err);
@@ -192,10 +144,14 @@ function buildRecipePrompt(text: string, source: string): string {
 
 Rules:
 - "type" must be exactly one of: meal, main, side, soup, dessert, other
-- Keep ingredient names and steps in the original language of the recipe
+- ALWAYS translate the recipe name, all ingredient names, and all steps to European Portuguese (pt-PT), never Brazilian Portuguese (pt-BR)
 - Each step should be a complete instruction
 - If servings/times are not found, use null
 - If no recipe is found in the text, return {"error": "No recipe found"}
+- For ingredients: first look for a structured ingredient list in the text; only if no ingredient list is found, try to infer ingredients from the recipe steps
+- Unit conversion for English-language recipes: convert cups to ml (1 cup = 234 ml), tablespoons to ml (1 tablespoon = 15 ml), teaspoons to ml (1 teaspoon = 5 ml)
+- Unit conversion for non-English recipes: use "chavenas" for cups, "colheres de sopa" for tablespoons, "colheres de chá" for teaspoons (do NOT convert to ml)
+- ALWAYS convert pints, quarts, and gallons to ml; ALWAYS convert ounces and pounds to grams
 
 Text:
 ${text}`;
@@ -213,6 +169,33 @@ function parseRecipeJson(rawText: string): Record<string, unknown> | null {
   }
 }
 
+function formatRecipeResponse(parsed: Record<string, unknown>) {
+  return recipeResponse({
+    name: parsed.name ?? "",
+    type: parsed.type ?? "other",
+    ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
+    steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+    servings: typeof parsed.servings === "number" ? parsed.servings : null,
+    prepTimeMinutes: typeof parsed.prepTimeMinutes === "number" ? parsed.prepTimeMinutes : null,
+    cookTimeMinutes: typeof parsed.cookTimeMinutes === "number" ? parsed.cookTimeMinutes : null,
+  });
+}
+
+async function tryExtractFromText(text: string, source: string, model: ModelChoice): Promise<Response | null> {
+  try {
+    const rawText = await callAnthropic(buildRecipePrompt(text, source), model);
+    const parsed = parseRecipeJson(rawText);
+    if (parsed && !parsed.error) {
+      return formatRecipeResponse(parsed);
+    }
+    console.log(`LLM extraction from ${source} returned no recipe`);
+    return null;
+  } catch (err) {
+    console.error(`LLM call for ${source} failed:`, err);
+    return null;
+  }
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -221,79 +204,50 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { videoId } = (await req.json()) as { videoId?: string };
+    const { videoId, model: rawModel } = (await req.json()) as { videoId?: string; model?: string };
 
     if (!videoId) {
       return errorResponse("videoId is required");
     }
 
-    // Check LLM API key
-    const apiKey = LLM_PROVIDER === "gemini" ? GEMINI_API_KEY : ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      console.error(`${LLM_PROVIDER} API key not set`);
+    const model: ModelChoice = (["haiku", "sonnet"] as const).includes(rawModel as ModelChoice)
+      ? (rawModel as ModelChoice)
+      : "haiku";
+
+    if (!ANTHROPIC_API_KEY) {
+      console.error("ANTHROPIC_API_KEY not set");
       return errorResponse("LLM provider not configured");
     }
 
-    // Step 1: Try transcript
-    console.log(`Fetching transcript for video ${videoId}...`);
-    const transcript = await fetchTranscript(videoId);
+    if (!YOUTUBE_API_KEY) {
+      console.error("YOUTUBE_DATA_API_KEY not set");
+      return errorResponse("YouTube API key not configured. Set YOUTUBE_DATA_API_KEY in Supabase secrets.");
+    }
 
-    if (transcript) {
-      console.log(`Transcript found (${transcript.length} chars), sending to LLM...`);
-      try {
-        const rawText = await callLlm(
-          buildRecipePrompt(transcript, "YouTube video transcript"),
-        );
-        const parsed = parseRecipeJson(rawText);
+    // Step 1: Try video description (title + description from YouTube Data API)
+    console.log(`[${videoId}] Step 1: Fetching video description via API...`);
+    const description = await fetchVideoDescription(videoId);
 
-        if (parsed && !parsed.error) {
-          return recipeResponse({
-            name: parsed.name ?? "",
-            type: parsed.type ?? "other",
-            ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
-            steps: Array.isArray(parsed.steps) ? parsed.steps : [],
-            servings: typeof parsed.servings === "number" ? parsed.servings : null,
-            prepTimeMinutes: typeof parsed.prepTimeMinutes === "number" ? parsed.prepTimeMinutes : null,
-            cookTimeMinutes: typeof parsed.cookTimeMinutes === "number" ? parsed.cookTimeMinutes : null,
-          });
-        }
-        console.log("Transcript LLM extraction returned no recipe, trying comments...");
-      } catch (err) {
-        console.error("Transcript LLM call failed:", err);
-      }
+    if (description) {
+      const result = await tryExtractFromText(description, "YouTube video description", model);
+      if (result) return result;
+      console.log(`[${videoId}] Description extraction failed, trying comments...`);
     } else {
-      console.log("No transcript available, trying comments...");
+      console.log(`[${videoId}] No description available, trying comments...`);
     }
 
     // Step 2: Fallback to comments
+    console.log(`[${videoId}] Step 2: Fetching comments via API...`);
     const comments = await fetchComments(videoId);
 
     if (comments) {
-      console.log(`Comments found (${comments.length} chars), sending to LLM...`);
-      try {
-        const rawText = await callLlm(
-          buildRecipePrompt(comments, "YouTube video comments"),
-        );
-        const parsed = parseRecipeJson(rawText);
-
-        if (parsed && !parsed.error) {
-          return recipeResponse({
-            name: parsed.name ?? "",
-            type: parsed.type ?? "other",
-            ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
-            steps: Array.isArray(parsed.steps) ? parsed.steps : [],
-            servings: typeof parsed.servings === "number" ? parsed.servings : null,
-            prepTimeMinutes: typeof parsed.prepTimeMinutes === "number" ? parsed.prepTimeMinutes : null,
-            cookTimeMinutes: typeof parsed.cookTimeMinutes === "number" ? parsed.cookTimeMinutes : null,
-          });
-        }
-      } catch (err) {
-        console.error("Comments LLM call failed:", err);
-      }
+      const result = await tryExtractFromText(comments, "YouTube video comments", model);
+      if (result) return result;
     }
 
     // Step 3: Nothing worked
-    return errorResponse("No recipe found in transcript or comments");
+    console.log(`[${videoId}] All extraction attempts failed`);
+    return errorResponse("No recipe found in video description or comments");
   } catch (err) {
     console.error("extract-recipe-youtube error:", err);
     return errorResponse("An unexpected error occurred");

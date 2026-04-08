@@ -21,6 +21,8 @@ const TYPE_OPTIONS: { value: LeftoverType; label: string }[] = [
   { value: "main", label: "Principal" },
   { value: "soup", label: "Sopa" },
   { value: "side", label: "Acompanhamento" },
+  { value: "dessert", label: "Sobremesa" },
+  { value: "other", label: "Outro" },
 ];
 
 interface LeftoverAddFormProps {

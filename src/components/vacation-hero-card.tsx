@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   topRowSafe: {
-    top: 44,
+    top: 56,
   },
   topRight: {
     flexDirection: 'row',

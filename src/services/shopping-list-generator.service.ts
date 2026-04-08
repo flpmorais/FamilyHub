@@ -1,14 +1,11 @@
 import { scaleQuantity } from './recipe-scaling.service';
 import type { RecipeWithDetails, GeneratedShoppingItem } from '../types/recipe.types';
-import type { MealEntryLinkedRecipe } from '../types/meal-plan.types';
 
 const NUMERIC_REGEX = /^(\d+\.?\d*)\s*/;
 
-interface QuantityAccumulator {
-  numericTotal: number;
-  suffix: string;
-  nonNumericParts: string[];
-  hasMixedSuffixes: boolean;
+interface RecipeLink {
+  recipeId: string;
+  servingsOverride: number;
 }
 
 /**
@@ -16,7 +13,7 @@ interface QuantityAccumulator {
  * Scales each recipe's ingredients by its servingsOverride, then aggregates by ingredient name.
  */
 export function generateShoppingList(
-  linkedRecipes: MealEntryLinkedRecipe[],
+  linkedRecipes: RecipeLink[],
   recipeDetails: Map<string, RecipeWithDetails>,
 ): GeneratedShoppingItem[] {
   // Collect all scaled ingredients
@@ -58,7 +55,7 @@ export function generateShoppingList(
 }
 
 function findOriginalName(
-  linkedRecipes: MealEntryLinkedRecipe[],
+  linkedRecipes: RecipeLink[],
   recipeDetails: Map<string, RecipeWithDetails>,
   lowerKey: string,
 ): string {

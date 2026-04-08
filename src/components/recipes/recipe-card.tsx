@@ -1,10 +1,11 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { RECIPE_TYPES } from '../../constants/recipe-defaults';
-import type { Recipe } from '../../types/recipe.types';
+import { StarRating } from './star-rating';
+import type { RecipeForList } from '../../types/recipe.types';
 
 interface RecipeCardProps {
-  recipe: Recipe;
-  onPress: (recipe: Recipe) => void;
+  recipe: RecipeForList & { averageRating?: number | null; ratingCount?: number };
+  onPress: (recipe: RecipeForList) => void;
 }
 
 export function RecipeCard({ recipe, onPress }: RecipeCardProps) {
@@ -35,7 +36,12 @@ export function RecipeCard({ recipe, onPress }: RecipeCardProps) {
           {totalTime > 0 && (
             <Text style={s.metaText}>{totalTime} min</Text>
           )}
-          <Text style={s.metaText}>{recipe.servings} porções</Text>
+          <View style={{ flex: 1 }} />
+          <StarRating
+            rating={recipe.averageRating ?? null}
+            size={14}
+            showLabel={true}
+          />
         </View>
       </View>
     </TouchableOpacity>

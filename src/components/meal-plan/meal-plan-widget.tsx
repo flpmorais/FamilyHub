@@ -11,7 +11,6 @@ const MEAL_TYPE_ICONS: Record<MealType, string | null> = {
   home_cooked: null,
   eating_out: 'store',
   takeaway: 'food-takeout-box',
-  leftovers: 'recycle-variant',
 };
 
 interface EmptySlotInfo {

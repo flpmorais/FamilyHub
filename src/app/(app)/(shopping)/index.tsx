@@ -33,47 +33,61 @@ function buildSections(
   categories: ShoppingCategory[],
 ): ShoppingSection[] {
   const categoryIds = new Set(categories.map((c) => c.id));
-  const grouped = new Map<string, ShoppingItem[]>();
-  const orphaned: ShoppingItem[] = [];
+  const uncheckedGrouped = new Map<string, ShoppingItem[]>();
+  const uncheckedOrphaned: ShoppingItem[] = [];
+  const checked: ShoppingItem[] = [];
 
   for (const item of items) {
-    if (item.categoryId && categoryIds.has(item.categoryId)) {
-      const list = grouped.get(item.categoryId) ?? [];
+    if (item.isTicked) {
+      checked.push(item);
+    } else if (item.categoryId && categoryIds.has(item.categoryId)) {
+      const list = uncheckedGrouped.get(item.categoryId) ?? [];
       list.push(item);
-      grouped.set(item.categoryId, list);
+      uncheckedGrouped.set(item.categoryId, list);
     } else {
-      orphaned.push(item);
+      uncheckedOrphaned.push(item);
     }
   }
 
-  const sortByTicked = (a: ShoppingItem, b: ShoppingItem) =>
-    Number(a.isTicked) - Number(b.isTicked) || Number(b.isUrgent) - Number(a.isUrgent);
+  const sortByUrgent = (a: ShoppingItem, b: ShoppingItem) =>
+    Number(b.isUrgent) - Number(a.isUrgent);
 
   const sections = categories
-    .filter((c) => grouped.has(c.id))
-    .sort((a, b) => {
-      const aHasUnchecked = grouped.get(a.id)?.some((i) => !i.isTicked) ? 0 : 1;
-      const bHasUnchecked = grouped.get(b.id)?.some((i) => !i.isTicked) ? 0 : 1;
-      return aHasUnchecked - bHasUnchecked || a.sortOrder - b.sortOrder;
-    })
+    .filter((c) => uncheckedGrouped.has(c.id))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((c) => ({
       title: c.name,
       categoryId: c.id,
-      data: (grouped.get(c.id) ?? []).sort(sortByTicked),
+      data: (uncheckedGrouped.get(c.id) ?? []).sort(sortByUrgent),
     }));
 
-  // Add orphaned items (null/invalid categoryId) under "Outros"
-  if (orphaned.length > 0) {
+  // Add orphaned unchecked items under "Outros"
+  if (uncheckedOrphaned.length > 0) {
     const otherSection = sections.find((s) => s.title === OTHER_CATEGORY_NAME);
     if (otherSection) {
-      otherSection.data = [...otherSection.data, ...orphaned].sort(sortByTicked);
+      otherSection.data = [...otherSection.data, ...uncheckedOrphaned].sort(sortByUrgent);
     } else {
       sections.push({
         title: OTHER_CATEGORY_NAME,
         categoryId: "",
-        data: orphaned.sort(sortByTicked),
+        data: uncheckedOrphaned.sort(sortByUrgent),
       });
     }
+  }
+
+  // Checked items go into a single "Fechados" section at the bottom
+  if (checked.length > 0) {
+    const catOrder = new Map(categories.map((c) => [c.id, c.sortOrder]));
+    checked.sort((a, b) => {
+      const orderA = catOrder.get(a.categoryId) ?? 9999;
+      const orderB = catOrder.get(b.categoryId) ?? 9999;
+      return orderA - orderB || a.name.localeCompare(b.name);
+    });
+    sections.push({
+      title: "Fechados",
+      categoryId: "__fechados",
+      data: checked,
+    });
   }
 
   return sections;
@@ -272,7 +286,14 @@ export default function ShoppingScreen() {
           sections={sections}
           keyExtractor={(item) => item.id}
           renderSectionHeader={({ section }) => (
-            <Text style={s.sectionHeader}>{section.title}</Text>
+            <Text
+              style={[
+                s.sectionHeader,
+                section.categoryId === "__fechados" && s.sectionHeaderFechados,
+              ]}
+            >
+              {section.title}
+            </Text>
           )}
           renderItem={({ item }) => (
             <ShoppingItemCard
@@ -347,6 +368,13 @@ const s = StyleSheet.create({
     marginTop: 16,
     marginBottom: 4,
     paddingHorizontal: 4,
+  },
+  sectionHeaderFechados: {
+    marginTop: 28,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    color: "#AAAAAA",
   },
   list: {
     paddingHorizontal: 16,

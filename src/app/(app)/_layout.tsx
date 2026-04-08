@@ -73,7 +73,19 @@ export default function AppLayout() {
           })}
         />
         <Tabs.Screen
+          name="(recipes)"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="(vacations)"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="(suggestions)"
           options={{
             href: null,
           }}

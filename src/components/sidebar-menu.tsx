@@ -32,6 +32,7 @@ const MENU_ITEMS = [
   { label: 'Restos', icon: 'recycle-variant', route: '/(app)/(leftovers)' },
   { label: 'Receitas', icon: 'book-open-variant', route: '/(app)/(recipes)' },
   { label: 'Viagens', icon: 'airplane', route: '/(app)/(vacations)' },
+  { label: 'Sugestões', icon: 'lightbulb-outline', route: '/(app)/(suggestions)' },
   { label: 'Definições', icon: 'cog', route: '/(app)/(settings)' },
 ] as const;
 

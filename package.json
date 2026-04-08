@@ -13,7 +13,9 @@
     "type-check": "tsc --noEmit",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
-    "build:production": "eas build --profile production --platform android"
+    "build:production": "eas build --profile production --platform android",
+    "ota:dev": "bash -c 'set -a && source .env.development && set +a && npx eas update --branch development --environment development --platform android --message \"$0\"'",
+    "ota:production": "bash -c 'set -a && source .env.production && set +a && npx eas update --branch production --environment production --platform android --message \"$0\"'"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.7",

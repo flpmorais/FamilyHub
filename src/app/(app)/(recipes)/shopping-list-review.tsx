@@ -77,7 +77,7 @@ export default function ShoppingListReviewScreen() {
       Alert.alert(
         'Lista de compras atualizada',
         msg,
-        [{ text: 'OK', onPress: () => router.dismiss(2) }],
+        [{ text: 'OK', onPress: () => router.back() }],
       );
     } catch (err) {
       logger.error('ShoppingListReviewScreen', 'merge failed', err);

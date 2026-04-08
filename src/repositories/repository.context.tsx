@@ -21,6 +21,9 @@ import { SupabaseRecipeRepository } from './supabase/recipe.repository';
 import { SupabaseRecipeCategoryRepository } from './supabase/recipe-category.repository';
 import { SupabaseRecipeTagRepository } from './supabase/recipe-tag.repository';
 import { SupabaseRecipeImportRepository } from './supabase/recipe-import.repository';
+import { SupabaseRecipeRatingRepository } from './supabase/recipe-rating.repository';
+import { SupabaseRecipeCommentRepository } from './supabase/recipe-comment.repository';
+import { SupabaseSuggestionRepository } from './supabase/suggestion.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -43,6 +46,9 @@ import type { IRecipeRepository } from './interfaces/recipe.repository.interface
 import type { IRecipeCategoryRepository } from './interfaces/recipe-category.repository.interface';
 import type { IRecipeTagRepository } from './interfaces/recipe-tag.repository.interface';
 import type { IRecipeImportRepository } from './interfaces/recipe-import.repository.interface';
+import type { IRecipeRatingRepository } from './interfaces/recipe-rating.repository.interface';
+import type { IRecipeCommentRepository } from './interfaces/recipe-comment.repository.interface';
+import type { ISuggestionRepository } from './interfaces/suggestion.repository.interface';
 
 export interface RepositoryContextValue {
   auth: IAuthRepository;
@@ -66,6 +72,9 @@ export interface RepositoryContextValue {
   recipeCategory: IRecipeCategoryRepository;
   recipeTag: IRecipeTagRepository;
   recipeImport: IRecipeImportRepository;
+  recipeRating: IRecipeRatingRepository;
+  recipeComment: IRecipeCommentRepository;
+  suggestion: ISuggestionRepository;
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -94,6 +103,9 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       recipeCategory: new SupabaseRecipeCategoryRepository(supabaseClient),
       recipeTag: new SupabaseRecipeTagRepository(supabaseClient),
       recipeImport: new SupabaseRecipeImportRepository(supabaseClient),
+      recipeRating: new SupabaseRecipeRatingRepository(supabaseClient),
+      recipeComment: new SupabaseRecipeCommentRepository(supabaseClient),
+      suggestion: new SupabaseSuggestionRepository(supabaseClient),
     }),
     []
   );

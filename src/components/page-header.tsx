@@ -7,6 +7,7 @@ interface PageHeaderProps {
   imageUri?: string | null;
   familyBannerUri?: string | null;
   fallbackImage?: ImageSourcePropType;
+  fallbackColor?: string;
   height?: number;
   showBack?: boolean;
   onEdit?: () => void;
@@ -20,18 +21,25 @@ export function PageHeader({
   imageUri,
   familyBannerUri,
   fallbackImage,
+  fallbackColor,
   height = 150,
   showBack = false,
   onEdit,
 }: PageHeaderProps) {
+  const hasImage = !!(imageUri || familyBannerUri || fallbackImage);
   const source = imageUri
     ? { uri: imageUri }
     : familyBannerUri
       ? { uri: familyBannerUri }
-      : (fallbackImage ?? DEFAULT_FALLBACK);
+      : fallbackImage ?? (fallbackColor ? null : DEFAULT_FALLBACK);
+
   return (
     <View style={[s.container, { height }]}>
-      <Image source={source} style={[s.image, { height }]} />
+      {source ? (
+        <Image source={source} style={[s.image, { height }]} />
+      ) : (
+        <View style={[s.fallbackBg, { height, backgroundColor: fallbackColor }]} />
+      )}
       <View style={[s.overlay, { height }]} pointerEvents="none" />
       {(showBack || onEdit) && (
         <View style={s.topRow}>
@@ -59,8 +67,9 @@ export function PageHeader({
 const s = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
   image: { width: '100%', position: 'absolute' },
+  fallbackBg: { width: '100%', position: 'absolute' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  topRow: { position: 'absolute', top: 44, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
+  topRow: { position: 'absolute', top: 56, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', zIndex: 2 },
   pillBtn: { backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
   pillBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   content: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 },

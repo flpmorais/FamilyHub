@@ -7,12 +7,15 @@ import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useMealPlanStore, getMonday } from '../../../stores/meal-plan.store';
 import { MealAddForm, MealEditForm } from '../../../components/meal-plan';
-import { LeftoverFromMealForm } from '../../../components/leftovers';
+import { DishTag } from '../../../components/meal-plan/dish-tag';
+import { AddDishModal } from '../../../components/meal-plan/add-dish-modal';
+import { LeftoverFromDishesForm } from '../../../components/leftovers/leftover-from-dishes-form';
 import { PageHeader } from '../../../components/page-header';
 import { generateShoppingList } from '../../../services/shopping-list-generator.service';
+import { getDishDisplay } from '../../../types/meal-plan.types';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
-import type { MealEntry, MealEntryLinkedRecipe, MealSlot, MealType, MealPlanSlotConfig } from '../../../types/meal-plan.types';
+import type { MealEntry, MealEntryDish, MealSlot, MealType, MealPlanSlotConfig, CreateDishInput } from '../../../types/meal-plan.types';
 import type { RecipeWithDetails } from '../../../types/recipe.types';
 import type { Profile } from '../../../types/profile.types';
 import type { LeftoverType } from '../../../types/leftover.types';
@@ -25,6 +28,13 @@ const SLOT_LABELS: Record<MealSlot, string> = { lunch: 'Almoço', dinner: 'Janta
 function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
+}
+
+function formatDateToString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function formatWeekLabel(weekStart: string): string {
@@ -55,6 +65,12 @@ function isToday(weekStart: string, dayOfWeek: number): boolean {
   );
 }
 
+function getMealDate(weekStart: string, dayOfWeek: number): string {
+  const d = parseLocalDate(weekStart);
+  d.setDate(d.getDate() + (dayOfWeek - 1));
+  return formatDateToString(d);
+}
+
 interface SlotContext {
   dayOfWeek: number;
   mealSlot: MealSlot;
@@ -76,17 +92,17 @@ export default function MealPlanScreen() {
   const [slotConfigs, setSlotConfigs] = useState<MealPlanSlotConfig[]>([]);
   const [addSlot, setAddSlot] = useState<SlotContext | null>(null);
   const [editMeal, setEditMeal] = useState<MealEntry | null>(null);
-  const [linkableMeals, setLinkableMeals] = useState<MealEntry[]>([]);
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
-  const [leftoverMealName, setLeftoverMealName] = useState('');
-  const [leftoverFormVisible, setLeftoverFormVisible] = useState(false);
-  const [linkedRecipesMap, setLinkedRecipesMap] = useState<Map<string, MealEntryLinkedRecipe[]>>(new Map());
+  const [dishesMap, setDishesMap] = useState<Map<string, MealEntryDish[]>>(new Map());
   const [isGenerating, setIsGenerating] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarColor, setSnackbarColor] = useState('#388E3C');
-  const [infoSnackbarVisible, setInfoSnackbarVisible] = useState(false);
+  const [leftoverFormVisible, setLeftoverFormVisible] = useState(false);
+  const [leftoverDishes, setLeftoverDishes] = useState<MealEntryDish[]>([]);
+  const [addDishModalVisible, setAddDishModalVisible] = useState(false);
+  const [addDishTarget, setAddDishTarget] = useState<'add' | 'edit'>('add');
 
   useEffect(() => {
     const thisWeekStart = getMonday(new Date());
@@ -104,33 +120,21 @@ export default function MealPlanScreen() {
   const loadWeek = useCallback(async () => {
     if (!userAccount?.familyId) {
       setEntries([]);
-      setLinkableMeals([]);
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
     try {
-      const [data, homeCookedMeals] = await Promise.all([
-        mealPlanRepo.getWeek(userAccount.familyId, currentWeekStart),
-        mealPlanRepo.getRecentLinkableMeals(userAccount.familyId, currentWeekStart, 1),
-      ]);
+      const data = await mealPlanRepo.getWeek(userAccount.familyId, currentWeekStart);
       setEntries(data);
-      setLinkableMeals(homeCookedMeals);
-      // Load linked recipes for all entries
+
+      // Bulk load dishes for all entries (single query, no N+1)
       const entryIds = data.filter((e) => !e.isSlotSkipped).map((e) => e.id);
       if (entryIds.length > 0) {
-        const linkedMap = new Map<string, MealEntryLinkedRecipe[]>();
-        await Promise.all(
-          entryIds.map(async (eid) => {
-            try {
-              const links = await mealPlanRepo.getLinkedRecipes(eid);
-              if (links.length > 0) linkedMap.set(eid, links);
-            } catch { /* skip */ }
-          }),
-        );
-        setLinkedRecipesMap(linkedMap);
+        const map = await mealPlanRepo.getDishesForEntries(entryIds);
+        setDishesMap(map);
       } else {
-        setLinkedRecipesMap(new Map());
+        setDishesMap(new Map());
       }
     } catch (err) {
       logger.error('MealPlanScreen', 'Erro ao carregar plano de refeições', err);
@@ -168,31 +172,30 @@ export default function MealPlanScreen() {
   function getDefaultParticipants(dayOfWeek: number, mealSlot: MealSlot): string[] {
     const config = slotConfigs.find((c) => c.dayOfWeek === dayOfWeek && c.mealSlot === mealSlot);
     if (config) return config.participants;
-    return profileIds; // fallback: all profiles when no config row exists
+    return profileIds;
   }
 
-  async function handleAddMeal(name: string, mealType: MealType, linkedMealId: string | null, participants: string[]) {
-    if (!userAccount?.familyId || !addSlot) return;
+  async function handleAddMeal(name: string, mealType: MealType, participants: string[]): Promise<string> {
+    if (!userAccount?.familyId || !addSlot) return '';
     if (participants.length === 0) {
       await mealPlanRepo.skipSlot(userAccount.familyId, currentWeekStart, addSlot.dayOfWeek, addSlot.mealSlot);
       await loadWeek();
-      return;
+      return '';
     }
-    await mealPlanRepo.create({
+    const entry = await mealPlanRepo.create({
       familyId: userAccount.familyId,
       weekStart: currentWeekStart,
       dayOfWeek: addSlot.dayOfWeek,
       mealSlot: addSlot.mealSlot,
       name,
       mealType,
-      linkedMealId: linkedMealId ?? undefined,
       participants,
     });
-    await loadWeek();
+    return entry.id;
   }
 
-  async function handleEditMeal(id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) {
-    await mealPlanRepo.update(id, { name, mealType, participants, isSlotOverridden, linkedMealId });
+  async function handleEditMeal(id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean) {
+    await mealPlanRepo.update(id, { name, mealType, participants, isSlotOverridden });
     await loadWeek();
   }
 
@@ -218,14 +221,12 @@ export default function MealPlanScreen() {
     if (entry && !entry.isSlotSkipped) {
       setEditMeal(entry);
     } else if (entry && entry.isSlotSkipped) {
-      // Delete the skip entry, then open add form
       mealPlanRepo.delete(entry.id).then(() => {
         loadWeek();
         if (profileIds.length === 0) return;
         setAddSlot({ dayOfWeek, mealSlot: slot });
       });
     } else {
-      // Empty slot or config-skipped — open add form directly
       if (profileIds.length === 0) return;
       setAddSlot({ dayOfWeek, mealSlot: slot });
     }
@@ -234,13 +235,72 @@ export default function MealPlanScreen() {
   function handleSlotLongPress(dayOfWeek: number, slot: MealSlot) {
     const entry = getEntry(dayOfWeek, slot);
     if (entry && !entry.isSlotSkipped && entry.mealType === 'home_cooked') {
-      setLeftoverMealName(entry.name);
+      const entryDishes = dishesMap.get(entry.id) ?? [];
+      setLeftoverDishes(entryDishes);
       setLeftoverFormVisible(true);
     }
   }
 
+  function handleAddAsLeftover(dishes: MealEntryDish[]) {
+    setEditMeal(null);
+    setLeftoverDishes(dishes);
+    setLeftoverFormVisible(true);
+  }
+
+  async function handleLeftoverSave(items: { name: string; type: LeftoverType; totalDoses: number; expiryDays: number }[]) {
+    if (!userAccount?.familyId) return;
+    try {
+      for (const item of items) {
+        await leftoverRepo.create({
+          familyId: userAccount.familyId,
+          name: item.name,
+          type: item.type,
+          totalDoses: item.totalDoses,
+          expiryDays: item.expiryDays,
+        });
+      }
+      setSnackbarColor('#388E3C');
+      setSnackbarMsg(`${items.length} resto${items.length > 1 ? 's' : ''} adicionado${items.length > 1 ? 's' : ''}`);
+      setSnackbarVisible(true);
+    } catch (err) {
+      logger.error('MealPlanScreen', 'add leftover failed', err);
+      setSnackbarColor('#D32F2F');
+      setSnackbarMsg('Erro ao adicionar restos');
+      setSnackbarVisible(true);
+    }
+  }
+
+  // State for passing dish from top-level modal to add form
+  const [pendingDishForAdd, setPendingDishForAdd] = useState<CreateDishInput | null>(null);
+
+  async function handleDishModalSelect(dish: CreateDishInput) {
+    setAddDishModalVisible(false);
+    if (addDishTarget === 'add') {
+      // Pass to MealAddForm via pendingDish prop
+      setPendingDishForAdd(dish);
+    } else if (addDishTarget === 'edit' && editMeal) {
+      // For edit form, save directly to DB
+      try {
+        await mealPlanRepo.addDishes(editMeal.id, [dish]);
+        await loadWeek();
+      } catch (err) {
+        logger.error('MealPlanScreen', 'add dish to meal failed', err);
+      }
+    }
+  }
+
   async function handleGenerateShoppingList() {
-    if (linkedRecipesMap.size === 0) {
+    // Collect recipe dishes for shopping list
+    const allRecipeDishes: { recipeId: string; servingsOverride: number }[] = [];
+    for (const dishes of dishesMap.values()) {
+      for (const d of dishes) {
+        if (d.dishType === 'recipe' && d.recipeId && d.servingsOverride) {
+          allRecipeDishes.push({ recipeId: d.recipeId, servingsOverride: d.servingsOverride });
+        }
+      }
+    }
+
+    if (allRecipeDishes.length === 0) {
       setSnackbarColor('#D32F2F');
       setSnackbarMsg('Não existem receitas associadas para gerar a lista');
       setSnackbarVisible(true);
@@ -249,14 +309,8 @@ export default function MealPlanScreen() {
 
     setIsGenerating(true);
     try {
-      // Collect all linked recipes across all entries
-      const allLinks: MealEntryLinkedRecipe[] = [];
-      for (const links of linkedRecipesMap.values()) {
-        allLinks.push(...links);
-      }
-
       // Load unique recipe details
-      const uniqueRecipeIds = [...new Set(allLinks.map((l) => l.recipeId))];
+      const uniqueRecipeIds = [...new Set(allRecipeDishes.map((d) => d.recipeId))];
       const details = new Map<string, RecipeWithDetails>();
       await Promise.all(
         uniqueRecipeIds.map(async (recipeId) => {
@@ -264,6 +318,17 @@ export default function MealPlanScreen() {
           if (recipe) details.set(recipeId, recipe);
         }),
       );
+
+      // Build links in the format expected by generateShoppingList
+      const allLinks = allRecipeDishes.map((d) => ({
+        id: '',
+        mealEntryId: '',
+        recipeId: d.recipeId,
+        recipeName: details.get(d.recipeId)?.name ?? '',
+        recipeType: details.get(d.recipeId)?.type ?? 'other',
+        servingsOverride: d.servingsOverride,
+        sortOrder: 0,
+      }));
 
       const items = generateShoppingList(allLinks, details);
 
@@ -285,34 +350,6 @@ export default function MealPlanScreen() {
       setSnackbarVisible(true);
     } finally {
       setIsGenerating(false);
-    }
-  }
-
-  function handleAddAsLeftover(mealName: string) {
-    setEditMeal(null);
-    setLeftoverMealName(mealName);
-    setLeftoverFormVisible(true);
-    setInfoSnackbarVisible(true);
-  }
-
-  async function handleLeftoverSave(data: { name: string; type: LeftoverType; totalDoses: number; expiryDays: number }) {
-    if (!userAccount?.familyId) return;
-    try {
-      await leftoverRepo.create({
-        familyId: userAccount.familyId,
-        name: data.name,
-        type: data.type,
-        totalDoses: data.totalDoses,
-        expiryDays: data.expiryDays,
-      });
-      setSnackbarColor('#388E3C');
-      setSnackbarMsg('Resto adicionado');
-      setSnackbarVisible(true);
-    } catch (err) {
-      logger.error('MealPlanScreen', 'add leftover failed', err);
-      setSnackbarColor('#D32F2F');
-      setSnackbarMsg('Erro ao adicionar resto');
-      setSnackbarVisible(true);
     }
   }
 
@@ -356,28 +393,32 @@ export default function MealPlanScreen() {
             <>
               <View style={styles.mealInfo}>
                 <View style={styles.mealNameRow}>
-                  {entry.mealType === 'leftovers' && (
-                    <Icon source="recycle-variant" size={14} color="#888" />
-                  )}
                   {entry.mealType === 'eating_out' && (
                     <Icon source="store" size={14} color="#888" />
                   )}
                   {entry.mealType === 'takeaway' && (
                     <Icon source="food-takeout-box" size={14} color="#888" />
                   )}
-                  <Text style={styles.mealName} numberOfLines={1}>{entry.name}</Text>
+                  {(entry.mealType === 'eating_out' || entry.mealType === 'takeaway') && (
+                    <Text style={styles.mealName} numberOfLines={1}>{entry.name}</Text>
+                  )}
                   {entry.isSlotOverridden && (
                     <Icon source="account-edit" size={12} color="#B5451B" />
                   )}
                 </View>
-                {linkedRecipesMap.has(entry.id) && (
-                  <View style={styles.linkedRecipeChips}>
-                    {linkedRecipesMap.get(entry.id)!.map((lr) => (
-                      <View key={lr.id} style={styles.linkedRecipeChip}>
-                        <Text style={styles.linkedRecipeChipText} numberOfLines={1}>{lr.recipeName}</Text>
-                      </View>
-                    ))}
+                {dishesMap.has(entry.id) && (
+                  <View style={styles.dishChips}>
+                    {dishesMap.get(entry.id)!.map((dish) => {
+                      const display = getDishDisplay(dish);
+                      return (
+                        <DishTag key={dish.id} name={display.name} category={display.category} />
+                      );
+                    })}
                   </View>
+                )}
+                {/* Show name for home_cooked only if no dishes */}
+                {entry.mealType === 'home_cooked' && !dishesMap.has(entry.id) && (
+                  <Text style={styles.mealName} numberOfLines={1}>{entry.name}</Text>
                 )}
               </View>
               {entry.participants.length > 0 && (
@@ -485,28 +526,58 @@ export default function MealPlanScreen() {
         visible={!!addSlot}
         dayLabel={addSlot ? DAY_LABELS[addSlot.dayOfWeek - 1] : ''}
         slotLabel={addSlot ? SLOT_LABELS[addSlot.mealSlot] : ''}
-        linkableMeals={linkableMeals}
         profiles={profiles}
         defaultParticipants={addSlot ? getDefaultParticipants(addSlot.dayOfWeek, addSlot.mealSlot) : []}
-        onClose={() => setAddSlot(null)}
+        onClose={() => { setAddSlot(null); setPendingDishForAdd(null); loadWeek(); }}
         onSave={handleAddMeal}
+        onSkip={async () => {
+          if (!userAccount?.familyId || !addSlot) return;
+          await mealPlanRepo.skipSlot(userAccount.familyId, currentWeekStart, addSlot.dayOfWeek, addSlot.mealSlot);
+          await loadWeek();
+        }}
+        onOpenAddDish={() => {
+          setAddDishTarget('add');
+          setAddDishModalVisible(true);
+        }}
+        pendingDish={pendingDishForAdd}
       />
 
       <MealEditForm
         visible={!!editMeal}
         meal={editMeal}
+        familyId={userAccount?.familyId ?? ''}
+        mealDate={editMeal ? getMealDate(currentWeekStart, editMeal.dayOfWeek) : ''}
         profiles={profiles}
-        linkableMeals={linkableMeals}
+        dishes={editMeal ? (dishesMap.get(editMeal.id) ?? []) : []}
         onClose={() => setEditMeal(null)}
         onSave={handleEditMeal}
         onDelete={handleDeleteMeal}
         onSkip={handleSkipMeal}
         onAddAsLeftover={handleAddAsLeftover}
+        onDishChanged={loadWeek}
+        onOpenAddDish={() => {
+          setAddDishTarget('edit');
+          setAddDishModalVisible(true);
+        }}
       />
 
-      <LeftoverFromMealForm
+      <AddDishModal
+        visible={addDishModalVisible}
+        familyId={userAccount?.familyId ?? ''}
+        mealDate={
+          addDishTarget === 'add' && addSlot
+            ? getMealDate(currentWeekStart, addSlot.dayOfWeek)
+            : editMeal
+              ? getMealDate(currentWeekStart, editMeal.dayOfWeek)
+              : ''
+        }
+        onSelect={handleDishModalSelect}
+        onClose={() => setAddDishModalVisible(false)}
+      />
+
+      <LeftoverFromDishesForm
         visible={leftoverFormVisible}
-        mealName={leftoverMealName}
+        dishes={leftoverDishes}
         onClose={() => setLeftoverFormVisible(false)}
         onSave={handleLeftoverSave}
       />
@@ -520,224 +591,69 @@ export default function MealPlanScreen() {
       >
         {snackbarMsg}
       </Snackbar>
-
-      <Snackbar
-        visible={infoSnackbarVisible}
-        onDismiss={() => setInfoSnackbarVisible(false)}
-        duration={3000}
-        style={styles.infoSnackbar}
-        theme={{ colors: { inverseSurface: '#1976D2', inverseOnSurface: '#FFFFFF' } }}
-      >
-        Dica: também pode usar toque longo para adicionar restos
-      </Snackbar>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
+  container: { flex: 1, backgroundColor: '#FAFAFA' },
   generateBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
+    width: 36, height: 36, borderRadius: 10, backgroundColor: '#B5451B',
+    alignItems: 'center', justifyContent: 'center', marginLeft: 4,
   },
-  generateBtnDisabled: {
-    opacity: 0.5,
-  },
+  generateBtnDisabled: { opacity: 0.5 },
   navHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-    paddingBottom: 4,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 8, paddingBottom: 4, backgroundColor: '#FFF',
+    borderBottomWidth: 1, borderBottomColor: '#EEE',
   },
-  weekLabelContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  weekLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayList: {
-    flex: 1,
-  },
-  dayListContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
+  weekLabelContainer: { flex: 1, alignItems: 'center' },
+  weekLabel: { fontSize: 16, fontWeight: '600', color: '#333' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  dayList: { flex: 1 },
+  dayListContent: { padding: 16, paddingBottom: 32 },
   dayCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    overflow: 'hidden',
+    backgroundColor: '#FFF', borderRadius: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: '#E8E8E8', overflow: 'hidden',
   },
-  dayCardToday: {
-    borderColor: '#B5451B',
-    borderWidth: 2,
-  },
+  dayCardToday: { borderColor: '#B5451B', borderWidth: 2 },
   dayCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#FFF8F5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#FFF8F5',
+    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
   },
-  dayCardHeaderToday: {
-    backgroundColor: '#FFF0EB',
-  },
-  dayCardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#333',
-  },
-  dayCardTitleToday: {
-    color: '#B5451B',
-  },
-  dayCardHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  dayCardHeaderToday: { backgroundColor: '#FFF0EB' },
+  dayCardTitle: { fontSize: 15, fontWeight: '700', color: '#333' },
+  dayCardTitleToday: { color: '#B5451B' },
+  dayCardHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   todayBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFF',
-    backgroundColor: '#B5451B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    overflow: 'hidden',
+    fontSize: 11, fontWeight: '700', color: '#FFF', backgroundColor: '#B5451B',
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, overflow: 'hidden',
   },
   slotRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minHeight: 48,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
+    paddingHorizontal: 16, minHeight: 48,
   },
-  slotRowSkipped: {
-    backgroundColor: '#F8F8F8',
-  },
-  slotLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#888',
-    width: 60,
-  },
-  slotLabelSkipped: {
-    color: '#CCC',
-  },
-  slotContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  slotDivider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-    marginHorizontal: 16,
-  },
-  mealInfo: {
-    flex: 1,
-  },
-  mealNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  linkedRecipeChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 4,
-  },
-  linkedRecipeChip: {
-    backgroundColor: '#F0E6E0',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  linkedRecipeChipText: {
-    fontSize: 10,
-    color: '#B5451B',
-    fontWeight: '600',
-  },
-  mealName: {
-    fontSize: 15,
-    color: '#333',
-    fontWeight: '500',
-    flex: 1,
-  },
-  skippedText: {
-    fontSize: 13,
-    color: '#CCC',
-    fontStyle: 'italic',
-  },
-  emptySlot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#CCC',
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
+  slotRowSkipped: { backgroundColor: '#F8F8F8' },
+  slotLabel: { fontSize: 13, fontWeight: '600', color: '#888', width: 60 },
+  slotLabelSkipped: { color: '#CCC' },
+  slotContent: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  slotDivider: { height: 1, backgroundColor: '#F0F0F0', marginHorizontal: 16 },
+  mealInfo: { flex: 1 },
+  mealNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dishChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  mealName: { fontSize: 15, color: '#333', fontWeight: '500', flex: 1 },
+  skippedText: { fontSize: 13, color: '#CCC', fontStyle: 'italic' },
+  emptySlot: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  emptyText: { fontSize: 13, color: '#CCC' },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
   avatarCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFF',
-    overflow: 'hidden',
+    width: 24, height: 24, borderRadius: 12, backgroundColor: '#B5451B',
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
+    borderColor: '#FFF', overflow: 'hidden',
   },
-  avatarOverlap: {
-    marginLeft: -6,
-  },
-  avatarImage: {
-    width: 24,
-    height: 24,
-  },
-  avatarInitial: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  snackbar: {
-    position: 'absolute',
-    top: 48,
-  },
-  infoSnackbar: {
-    position: 'absolute',
-    top: 48,
-  },
+  avatarOverlap: { marginLeft: -6 },
+  avatarImage: { width: 24, height: 24 },
+  avatarInitial: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+  snackbar: { position: 'absolute', top: 48 },
 });

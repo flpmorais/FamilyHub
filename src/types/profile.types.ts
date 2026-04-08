@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'maid' | 'child';
+export type UserRole = 'admin' | 'member' | 'maid' | 'child';
 export type ProfileStatus = 'active' | 'invited' | 'enrolled' | 'inactive';
 
 export interface Family {

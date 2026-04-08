@@ -1,13 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Provider config — same pattern as extract-recipe
-const LLM_PROVIDER = Deno.env.get("LLM_PROVIDER") ?? "haiku";
+// Provider config
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const LLM_TIMEOUT_MS = 8000;
+const HAIKU_TIMEOUT_MS = 8000;
+const SONNET_TIMEOUT_MS = 30000;
+
+type ModelChoice = "haiku" | "sonnet";
+
+const MODEL_IDS: Record<ModelChoice, string> = {
+  haiku: "claude-haiku-4-5-20251001",
+  sonnet: "claude-sonnet-4-5-20250514",
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,14 +32,43 @@ const RECIPE_PROMPT = `Extract a recipe from this image of a printed or handwrit
 
 Rules:
 - "type" must be exactly one of: meal, main, side, soup, dessert, other
-- Keep ingredient names and steps in the original language of the recipe
+- ALWAYS translate the recipe name, all ingredient names, and all steps to European Portuguese (pt-PT), never Brazilian Portuguese (pt-BR)
 - Each step should be a complete instruction
 - If servings/times are not found, use null
-- If the image does not contain a recipe, return {"error": "No recipe found"}`;
+- If the image does not contain a recipe, return {"error": "No recipe found"}
+- For ingredients: first look for a structured ingredient list; only if no ingredient list is found, try to infer ingredients from the recipe steps
+- Unit conversion for English-language recipes: convert cups to ml (1 cup = 234 ml), tablespoons to ml (1 tablespoon = 15 ml), teaspoons to ml (1 teaspoon = 5 ml)
+- Unit conversion for non-English recipes: use "chavenas" for cups, "colheres de sopa" for tablespoons, "colheres de chá" for teaspoons (do NOT convert to ml)
+- ALWAYS convert pints, quarts, and gallons to ml; ALWAYS convert ounces and pounds to grams`;
 
 // ── LLM with Vision ───────────────────────────────────────────────────────
 
-async function callHaikuVision(imageBase64: string, mimeType: string): Promise<string> {
+async function callAnthropicVision(imageBase64: string, mimeType: string, model: ModelChoice): Promise<string> {
+  const isSonnet = model === "sonnet";
+  const timeout = isSonnet ? SONNET_TIMEOUT_MS : HAIKU_TIMEOUT_MS;
+
+  const body: Record<string, unknown> = {
+    model: MODEL_IDS[model],
+    max_tokens: isSonnet ? 4000 : 2000,
+    messages: [{
+      role: "user",
+      content: [
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: mimeType,
+            data: imageBase64,
+          },
+        },
+        {
+          type: "text",
+          text: RECIPE_PROMPT,
+        },
+      ],
+    }],
+  };
+
   const response = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -43,74 +76,19 @@ async function callHaikuVision(imageBase64: string, mimeType: string): Promise<s
       "x-api-key": ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
-      messages: [{
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mimeType,
-              data: imageBase64,
-            },
-          },
-          {
-            type: "text",
-            text: RECIPE_PROMPT,
-          },
-        ],
-      }],
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeout),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Haiku Vision API error:", response.status, errorText);
-    throw new Error(`Haiku error: ${response.status}`);
+    console.error(`${model} Vision API error:`, response.status, errorText);
+    throw new Error(`${model} error: ${response.status}`);
   }
 
   const result = await response.json();
-  return result?.content?.[0]?.text?.trim() ?? "";
-}
-
-async function callGeminiVision(imageBase64: string, mimeType: string): Promise<string> {
-  const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          {
-            inlineData: {
-              mimeType,
-              data: imageBase64,
-            },
-          },
-          {
-            text: RECIPE_PROMPT,
-          },
-        ],
-      }],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 2000,
-      },
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Gemini Vision API error:", response.status, errorText);
-    throw new Error(`Gemini error: ${response.status}`);
-  }
-
-  const result = await response.json();
-  return result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const textBlock = result?.content?.find((b: { type: string }) => b.type === "text");
+  return textBlock?.text?.trim() ?? "";
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────
@@ -121,9 +99,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { imageBase64, mimeType } = (await req.json()) as {
+    const { imageBase64, mimeType, model: rawModel } = (await req.json()) as {
       imageBase64?: string;
       mimeType?: string;
+      model?: string;
     };
 
     if (!imageBase64) {
@@ -131,22 +110,21 @@ serve(async (req: Request) => {
     }
 
     const resolvedMimeType = mimeType ?? "image/jpeg";
+    const model: ModelChoice = (["haiku", "sonnet"] as const).includes(rawModel as ModelChoice)
+      ? (rawModel as ModelChoice)
+      : "haiku";
 
-    // Check API key
-    const apiKey = LLM_PROVIDER === "gemini" ? GEMINI_API_KEY : ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      console.error(`${LLM_PROVIDER} API key not set`);
+    if (!ANTHROPIC_API_KEY) {
+      console.error("ANTHROPIC_API_KEY not set");
       return errorResponse("LLM provider not configured");
     }
 
     // Call LLM with vision
     let rawText: string;
     try {
-      rawText = LLM_PROVIDER === "gemini"
-        ? await callGeminiVision(imageBase64, resolvedMimeType)
-        : await callHaikuVision(imageBase64, resolvedMimeType);
+      rawText = await callAnthropicVision(imageBase64, resolvedMimeType, model);
     } catch (err) {
-      console.error(`${LLM_PROVIDER} vision call failed:`, err);
+      console.error(`${model} vision call failed:`, err);
       return errorResponse("LLM extraction failed. Try again with a clearer photo.");
     }
 

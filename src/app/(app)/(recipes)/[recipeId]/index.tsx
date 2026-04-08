@@ -7,23 +7,27 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { supabaseClient } from '../../../../repositories/supabase/supabase.client';
 import { RECIPE_TYPES } from '../../../../constants/recipe-defaults';
-import * as Sharing from 'expo-sharing';
 import { scaleQuantity } from '../../../../services/recipe-scaling.service';
 import { generateRecipePdf } from '../../../../services/recipe-pdf.service';
 import { ServingsScaler } from '../../../../components/recipes/servings-scaler';
+import { StarRating } from '../../../../components/recipes/star-rating';
+import { RecipeRatingModal } from '../../../../components/recipes/recipe-rating-modal';
+import { RecipeComments } from '../../../../components/recipes/recipe-comments';
+import { useAuthStore } from '../../../../stores/auth.store';
 import { logger } from '../../../../utils/logger';
-import type { RecipeWithDetails } from '../../../../types/recipe.types';
+import type { RecipeWithDetails, RecipeRatingSummary } from '../../../../types/recipe.types';
 
 export default function RecipeDetailScreen() {
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
   const recipeRepo = useRepository('recipe');
+  const recipeRatingRepo = useRepository('recipeRating');
+  const { userAccount } = useAuthStore();
 
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +36,8 @@ export default function RecipeDetailScreen() {
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+  const [ratingSummary, setRatingSummary] = useState<RecipeRatingSummary>({ average: null, count: 0 });
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,7 +47,12 @@ export default function RecipeDetailScreen() {
         .getById(recipeId)
         .then((data) => {
           if (!data) setError('Receita não encontrada');
-          else { setRecipe(data); setError(null); setTargetServings(data.servings); }
+          else {
+            setRecipe(data);
+            setError(null);
+            setTargetServings(data.servings);
+            recipeRatingRepo.getSummary(data.id).then(setRatingSummary).catch(() => {});
+          }
         })
         .catch((err) => {
           logger.error('RecipeDetailScreen', 'load failed', err);
@@ -90,6 +101,12 @@ export default function RecipeDetailScreen() {
     if (!recipe) return;
     setIsSharing(true);
     try {
+      const Sharing = await import('expo-sharing');
+      if (!(await Sharing.isAvailableAsync())) {
+        setErrorMsg('Partilha não disponível neste dispositivo');
+        setErrorVisible(true);
+        return;
+      }
       const fileUri = await generateRecipePdf(recipe);
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/pdf',
@@ -97,41 +114,11 @@ export default function RecipeDetailScreen() {
       });
     } catch (err) {
       logger.error('RecipeDetailScreen', 'share failed', err);
-      setErrorMsg('Não foi possível partilhar a receita');
+      setErrorMsg('Não foi possível partilhar a receita. Requer um development build.');
       setErrorVisible(true);
     } finally {
       setIsSharing(false);
     }
-  }
-
-  function handleDelete() {
-    if (!recipe || !recipeId) return;
-    Alert.alert(
-      'Eliminar receita',
-      `Tem a certeza que quer eliminar "${recipe.name}"? Esta acção não pode ser desfeita.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await recipeRepo.delete(recipeId);
-              router.back();
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : '';
-              if (msg.includes('RESTRICT') || msg.includes('violates foreign key')) {
-                setErrorMsg('Esta receita está associada a uma ementa semanal. Remova a associação primeiro.');
-              } else {
-                setErrorMsg('Não foi possível eliminar a receita');
-              }
-              setErrorVisible(true);
-              logger.error('RecipeDetailScreen', 'delete failed', err);
-            }
-          },
-        },
-      ],
-    );
   }
 
   if (isLoading) {
@@ -190,21 +177,36 @@ export default function RecipeDetailScreen() {
       <View style={s.content}>
         {/* Name and type */}
         <Text style={s.name}>{recipe.name}</Text>
-        <View style={s.chipRow}>
+        <View style={s.typeRatingRow}>
           <View style={s.typeChip}>
             <Text style={s.typeChipText}>{RECIPE_TYPES[recipe.type]}</Text>
           </View>
-          {recipe.categories.map((cat) => (
-            <View key={cat.id} style={s.catChip}>
-              <Text style={s.catChipText}>{cat.name}</Text>
-            </View>
-          ))}
-          {recipe.tags.map((tag) => (
-            <View key={tag.id} style={s.tagChip}>
-              <Text style={s.tagChipText}>{tag.name}</Text>
-            </View>
-          ))}
+          <TouchableOpacity
+            style={s.ratingTouchable}
+            onPress={() => setRatingModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <StarRating
+              rating={ratingSummary.average}
+              count={ratingSummary.count}
+              size={16}
+            />
+          </TouchableOpacity>
         </View>
+        {(recipe.categories.length > 0 || recipe.tags.length > 0) && (
+          <View style={s.chipRow}>
+            {recipe.categories.map((cat) => (
+              <View key={cat.id} style={s.catChip}>
+                <Text style={s.catChipText}>{cat.name}</Text>
+              </View>
+            ))}
+            {recipe.tags.map((tag) => (
+              <View key={tag.id} style={s.tagChip}>
+                <Text style={s.tagChipText}>{tag.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Meta */}
         <View style={s.metaRow}>
@@ -261,13 +263,27 @@ export default function RecipeDetailScreen() {
           </View>
         ))}
 
-        {/* Delete */}
-        <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
-          <Text style={s.deleteBtnText}>Eliminar Receita</Text>
-        </TouchableOpacity>
+        {recipeId && userAccount?.profileId && (
+          <RecipeComments
+            recipeId={recipeId}
+            currentProfileId={userAccount.profileId}
+          />
+        )}
 
         <View style={{ height: 40 }} />
       </View>
+
+      {recipeId && userAccount?.profileId && (
+        <RecipeRatingModal
+          visible={ratingModalVisible}
+          onClose={() => setRatingModalVisible(false)}
+          recipeId={recipeId}
+          profileId={userAccount.profileId}
+          onRatingChanged={() => {
+            if (recipeId) recipeRatingRepo.getSummary(recipeId).then(setRatingSummary).catch(() => {});
+          }}
+        />
+      )}
 
       <Snackbar
         visible={errorVisible}
@@ -300,11 +316,11 @@ const s = StyleSheet.create({
   },
   heroImage: {
     width: '100%',
-    height: 220,
+    height: 150,
   },
   heroPlaceholder: {
     width: '100%',
-    height: 180,
+    height: 150,
     backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
@@ -314,7 +330,7 @@ const s = StyleSheet.create({
   },
   floatingBack: {
     position: 'absolute',
-    top: 44,
+    top: 56,
     left: 12,
     backgroundColor: 'rgba(0,0,0,0.3)',
     paddingHorizontal: 12,
@@ -328,7 +344,7 @@ const s = StyleSheet.create({
   },
   floatingRight: {
     position: 'absolute',
-    top: 44,
+    top: 56,
     right: 12,
     flexDirection: 'row',
     gap: 8,
@@ -353,6 +369,12 @@ const s = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 8,
   },
+  typeRatingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -364,6 +386,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  ratingTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
   },
   typeChipText: {
     color: '#FFFFFF',
@@ -478,19 +505,6 @@ const s = StyleSheet.create({
   backBtnText: {
     fontSize: 14,
     color: '#B5451B',
-    fontWeight: '600',
-  },
-  deleteBtn: {
-    marginTop: 32,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D32F2F',
-    borderRadius: 8,
-  },
-  deleteBtnText: {
-    color: '#D32F2F',
-    fontSize: 15,
     fontWeight: '600',
   },
   snackbar: {

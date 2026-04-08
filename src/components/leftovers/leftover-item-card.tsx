@@ -15,6 +15,8 @@ const TYPE_LABEL: Record<LeftoverType, string> = {
   main: "Principal",
   soup: "Sopa",
   side: "Acompanhamento",
+  dessert: "Sobremesa",
+  other: "Outro",
 };
 
 interface LeftoverItemCardProps {

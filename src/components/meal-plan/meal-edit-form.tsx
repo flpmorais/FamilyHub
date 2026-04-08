@@ -12,117 +12,60 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { Icon, IconButton } from 'react-native-paper';
-import { LinkedMealPicker } from './linked-meal-picker';
-import { LinkedRecipesSection } from './linked-recipes-section';
+import { IconButton } from 'react-native-paper';
+import { DishesSection } from './dishes-section';
 import { ParticipantToggle } from './participant-toggle';
 import { useRepository } from '../../hooks/use-repository';
 import { logger } from '../../utils/logger';
-import type { MealEntry, MealEntryLinkedRecipe, MealSlot, MealType } from '../../types/meal-plan.types';
+import type { MealEntry, MealEntryDish, MealSlot, MealType } from '../../types/meal-plan.types';
 import type { Profile } from '../../types/profile.types';
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const SLOT_LABELS: Record<MealSlot, string> = { lunch: 'Almoço', dinner: 'Jantar' };
 
-const MEAL_TYPE_OPTIONS: { value: MealType; label: string; disabled?: boolean }[] = [
+const MEAL_TYPE_OPTIONS: { value: MealType; label: string }[] = [
   { value: 'home_cooked', label: 'Caseira' },
   { value: 'eating_out', label: 'Fora' },
   { value: 'takeaway', label: 'Takeaway' },
-  { value: 'leftovers', label: 'Restos' },
 ];
 
 interface MealEditFormProps {
   visible: boolean;
   meal: MealEntry | null;
+  familyId: string;
+  mealDate: string;
   profiles: Profile[];
-  linkableMeals: MealEntry[];
+  dishes: MealEntryDish[];
   onClose: () => void;
-  onSave: (id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean, linkedMealId: string | null) => Promise<void>;
+  onSave: (id: string, name: string, mealType: MealType, participants: string[], isSlotOverridden: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onSkip: (id: string) => Promise<void>;
-  onAddAsLeftover?: (mealName: string) => void;
+  onAddAsLeftover?: (dishes: MealEntryDish[]) => void;
+  onDishChanged: () => void;
+  onOpenAddDish: () => void;
 }
 
-export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, onSave, onDelete, onSkip, onAddAsLeftover }: MealEditFormProps) {
-  const mealPlanRepo = useRepository('mealPlan');
+export function MealEditForm({ visible, meal, familyId, mealDate, profiles, dishes, onClose, onSave, onDelete, onSkip, onAddAsLeftover, onDishChanged, onOpenAddDish }: MealEditFormProps) {
   const [name, setName] = useState('');
-  const [linkedRecipes, setLinkedRecipes] = useState<MealEntryLinkedRecipe[]>([]);
   const [mealType, setMealType] = useState<MealType>('home_cooked');
-  const [linkedMealId, setLinkedMealId] = useState<string | null>(null);
-  const [linkedMealName, setLinkedMealName] = useState('');
-  const [linkedMealMeta, setLinkedMealMeta] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [nameError, setNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showMealPicker, setShowMealPicker] = useState(false);
 
-  const isLeftovers = mealType === 'leftovers';
+  const needsName = mealType === 'eating_out' || mealType === 'takeaway';
 
   useEffect(() => {
     if (meal) {
-      setName(meal.name);
+      setName(meal.name === '_dishes' ? '' : meal.name);
       setMealType(meal.mealType);
-      setLinkedMealId(meal.linkedMealId);
-      // Resolve linked meal name and date from linkable meals list
-      if (meal.linkedMealId) {
-        const linked = linkableMeals.find((m) => m.id === meal.linkedMealId);
-        setLinkedMealName(linked?.name ?? meal.name);
-        if (linked) {
-          const dayLabel = DAY_LABELS[linked.dayOfWeek - 1] ?? '';
-          const slotLabel = SLOT_LABELS[linked.mealSlot] ?? '';
-          setLinkedMealMeta(`${dayLabel} ${slotLabel}`);
-        } else {
-          setLinkedMealMeta('(refeição antiga)');
-        }
-      } else {
-        setLinkedMealName('');
-        setLinkedMealMeta('');
-      }
       setParticipants(meal.participants);
       setNameError('');
-      // Load linked recipes
-      mealPlanRepo.getLinkedRecipes(meal.id).then(setLinkedRecipes).catch((err) => {
-        logger.error('MealEditForm', 'load linked recipes failed', err);
-      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meal, linkableMeals]);
+  }, [meal]);
 
   function handleTypeChange(type: MealType) {
     setMealType(type);
-    if (type !== 'leftovers') {
-      setLinkedMealId(null);
-      setLinkedMealName('');
-    }
-  }
-
-  function handleLinkedMealSelect(selectedMeal: MealEntry) {
-    setLinkedMealId(selectedMeal.id);
-    setLinkedMealName(selectedMeal.name);
-    const dayLabel = DAY_LABELS[selectedMeal.dayOfWeek - 1] ?? '';
-    const slotLabel = SLOT_LABELS[selectedMeal.mealSlot] ?? '';
-    setLinkedMealMeta(`${dayLabel} ${slotLabel}`);
-    setShowMealPicker(false);
-  }
-
-  function handleUnlinkPress() {
-    Alert.alert(
-      'Desassociar restos',
-      'A refeição ficará sem ligação aos restos. Continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desassociar',
-          style: 'destructive',
-          onPress: () => {
-            setLinkedMealId(null);
-            setLinkedMealName('');
-            setLinkedMealMeta('');
-            setMealType('home_cooked');
-          },
-        },
-      ]
-    );
+    setNameError('');
   }
 
   function toggleParticipant(profileId: string) {
@@ -133,15 +76,18 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
 
   async function handleSave() {
     if (!meal) return;
-    const trimmed = name.trim();
-    if (!trimmed) {
+    let finalName = name.trim();
+
+    if (needsName && !finalName) {
       setNameError('O nome da refeição é obrigatório');
       return;
     }
-    if (isLeftovers && !linkedMealId) {
-      setNameError('Selecione a refeição de origem');
-      return;
+
+    // home_cooked: name stays empty, dishes are displayed instead
+    if (!needsName) {
+      finalName = '';
     }
+
     setIsSaving(true);
     try {
       if (participants.length === 0) {
@@ -154,14 +100,7 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
       const participantsChanged = sorted1.length !== sorted2.length || sorted1.some((id, i) => id !== sorted2[i]);
       const isOverridden = meal.isSlotOverridden || participantsChanged;
 
-      await onSave(
-        meal.id,
-        trimmed,
-        mealType,
-        participants,
-        isOverridden,
-        isLeftovers ? linkedMealId : null
-      );
+      await onSave(meal.id, finalName, mealType, participants, isOverridden);
       onClose();
     } catch {
       setNameError('Erro ao guardar refeição');
@@ -234,80 +173,46 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
                 size={22}
                 iconColor="#B5451B"
                 style={styles.leftoverBtn}
-                onPress={() => onAddAsLeftover(name)}
+                onPress={() => onAddAsLeftover(dishes)}
               />
             )}
           </View>
 
           <Text style={styles.label}>Tipo</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
-            {MEAL_TYPE_OPTIONS.map((opt) => {
-              const isDisabled = opt.disabled || (opt.value === 'leftovers' && linkableMeals.length === 0 && mealType !== 'leftovers');
-              return (
+            {MEAL_TYPE_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.value}
-                style={[
-                  styles.typeChip,
-                  mealType === opt.value && styles.typeChipSelected,
-                  isDisabled && styles.typeChipDisabled,
-                ]}
-                onPress={() => !isDisabled && handleTypeChange(opt.value)}
-                disabled={isDisabled}
+                style={[styles.typeChip, mealType === opt.value && styles.typeChipSelected]}
+                onPress={() => handleTypeChange(opt.value)}
               >
-                <Text
-                  style={[
-                    styles.typeChipText,
-                    mealType === opt.value && styles.typeChipTextSelected,
-                    isDisabled && styles.typeChipTextDisabled,
-                  ]}
-                >
+                <Text style={[styles.typeChipText, mealType === opt.value && styles.typeChipTextSelected]}>
                   {opt.label}
                 </Text>
               </TouchableOpacity>
-              );
-            })}
+            ))}
           </ScrollView>
 
-          <Text style={styles.label}>Nome</Text>
-          <TextInput
-            style={[styles.input, nameError ? styles.inputError : null]}
-            value={name}
-            onChangeText={(t) => { setName(t); setNameError(''); }}
-          />
-          {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
-
-          {isLeftovers && (
+          {needsName && (
             <>
-              <Text style={[styles.label, { marginTop: 16 }]}>Refeição de origem</Text>
-              <TouchableOpacity style={styles.linkedMealButton} onPress={() => setShowMealPicker(true)}>
-                {linkedMealId ? (
-                  <View style={styles.linkedMealSelected}>
-                    <Icon source="pot-steam" size={18} color="#B5451B" />
-                    <View>
-                      <Text style={styles.linkedMealText}>{linkedMealName}</Text>
-                      {linkedMealMeta ? <Text style={styles.linkedMealMeta}>{linkedMealMeta}</Text> : null}
-                    </View>
-                  </View>
-                ) : (
-                  <Text style={styles.linkedMealPlaceholder}>Selecionar refeição caseira...</Text>
-                )}
-              </TouchableOpacity>
-              {linkedMealId && (
-                <TouchableOpacity style={styles.unlinkButton} onPress={handleUnlinkPress}>
-                  <Icon source="link-off" size={16} color="#D32F2F" />
-                  <Text style={styles.unlinkText}>Desassociar restos</Text>
-                </TouchableOpacity>
-              )}
+              <Text style={styles.label}>Nome *</Text>
+              <TextInput
+                style={[styles.input, nameError ? styles.inputError : null]}
+                value={name}
+                onChangeText={(t) => { setName(t); setNameError(''); }}
+                placeholder="Ex: Restaurante O Manel"
+              />
             </>
           )}
 
-          {mealType === 'home_cooked' && meal && (
-            <LinkedRecipesSection
+          {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
+
+          {meal && mealType === 'home_cooked' && (
+            <DishesSection
               mealEntryId={meal.id}
-              linkedRecipes={linkedRecipes}
-              onChanged={() => {
-                mealPlanRepo.getLinkedRecipes(meal.id).then(setLinkedRecipes).catch(() => {});
-              }}
+              dishes={dishes}
+              onChanged={onDishChanged}
+              onOpenAddDish={onOpenAddDish}
             />
           )}
 
@@ -339,23 +244,12 @@ export function MealEditForm({ visible, meal, profiles, linkableMeals, onClose, 
           </View>
         </View>
       </KeyboardAvoidingView>
-
-      <LinkedMealPicker
-        visible={showMealPicker}
-        meals={linkableMeals}
-        onSelect={handleLinkedMealSelect}
-        onClose={() => setShowMealPicker(false)}
-      />
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   container: {
     backgroundColor: '#FFF',
     borderTopLeftRadius: 16,
@@ -369,24 +263,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-  },
-  leftoverBtn: {
-    margin: 0,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-    marginBottom: 6,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
+  title: { fontSize: 18, fontWeight: '700', color: '#333' },
+  leftoverBtn: { margin: 0 },
+  label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 6 },
+  typeRow: { flexDirection: 'row', marginBottom: 16 },
   typeChip: {
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -396,58 +276,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: '#FFF',
   },
-  typeChipSelected: {
-    backgroundColor: '#B5451B',
-    borderColor: '#B5451B',
-  },
-  typeChipDisabled: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E8E8E8',
-  },
-  typeChipText: {
-    fontSize: 13,
-    color: '#555',
-    fontWeight: '500',
-  },
-  typeChipTextSelected: {
-    color: '#FFF',
-  },
-  typeChipTextDisabled: {
-    color: '#BBB',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  inputError: {
-    borderColor: '#D32F2F',
-  },
-  error: {
-    color: '#D32F2F',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  btnRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
+  typeChipSelected: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
+  typeChipText: { fontSize: 13, color: '#555', fontWeight: '500' },
+  typeChipTextSelected: { color: '#FFF' },
+  input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, fontSize: 16, color: '#333' },
+  inputError: { borderColor: '#D32F2F' },
+  error: { color: '#D32F2F', fontSize: 12, marginTop: 4 },
+  btnRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
   cancelBtn: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: '#CCC',
     alignItems: 'center',
   },
-  cancelText: {
-    color: '#1A1A1A',
-    fontSize: 16,
-  },
+  cancelText: { color: '#1A1A1A', fontSize: 16 },
   deleteBtn: {
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -456,11 +300,7 @@ const styles = StyleSheet.create({
     borderColor: '#D32F2F',
     alignItems: 'center',
   },
-  deleteText: {
-    color: '#D32F2F',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  deleteText: { color: '#D32F2F', fontSize: 14, fontWeight: '600' },
   skipBtn: {
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -469,61 +309,8 @@ const styles = StyleSheet.create({
     borderColor: '#888',
     alignItems: 'center',
   },
-  skipText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  saveBtn: {
-    flex: 1,
-    backgroundColor: '#B5451B',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  linkedMealButton: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-  },
-  linkedMealSelected: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  linkedMealText: {
-    fontSize: 15,
-    color: '#333',
-    fontWeight: '500',
-  },
-  linkedMealMeta: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  linkedMealPlaceholder: {
-    fontSize: 15,
-    color: '#AAA',
-  },
-  unlinkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  unlinkText: {
-    fontSize: 13,
-    color: '#D32F2F',
-    fontWeight: '500',
-  },
+  skipText: { color: '#888', fontSize: 14, fontWeight: '600' },
+  saveBtn: { flex: 1, backgroundColor: '#B5451B', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 });

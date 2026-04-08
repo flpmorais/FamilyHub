@@ -108,12 +108,14 @@ Types (pick the best match):
 - "soup" — soups (e.g. vegetable soup, chicken soup)
 - "main" — main protein dishes (e.g. steaks, chicken breast, fish)
 - "side" — side dishes (e.g. rice, pasta, potatoes, salad)
+- "dessert" — desserts and sweets (e.g. pudding, cake, fruit salad)
 - "meal" — complete meals or when you cannot determine the type (e.g. lasagna, stew)
+- "other" — anything that does not fit the above categories
 
 Input: "${input}"
 
 Reply with ONLY a JSON object (no markdown, no backticks):
-{"name": "<food name in Portuguese>", "type": "<meal|main|soup|side>", "doses": <number or null if not specified>, "expiryDays": <number of days or null if not specified>}
+{"name": "<food name in Portuguese>", "type": "<meal|main|soup|side|dessert|other>", "doses": <number or null if not specified>, "expiryDays": <number of days or null if not specified>}
 
 Examples:
 - "rice" → {"name": "arroz", "type": "side", "doses": null, "expiryDays": null}
@@ -147,7 +149,7 @@ Examples:
       return fallbackResponse(input);
     }
 
-    const validTypes = ["meal", "main", "soup", "side"];
+    const validTypes = ["meal", "main", "soup", "side", "dessert", "other"];
     const result: ClassifyResult = {
       name: parsed.name?.trim() || input,
       type: validTypes.includes(parsed.type ?? "") ? parsed.type! : "meal",

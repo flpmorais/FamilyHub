@@ -1,5 +1,5 @@
 export type RecipeType = 'meal' | 'main' | 'side' | 'soup' | 'dessert' | 'other';
-export type RecipeImportMethod = 'manual' | 'url' | 'youtube' | 'ocr';
+export type RecipeImportMethod = 'manual' | 'url' | 'youtube' | 'ocr' | 'text';
 
 export interface Recipe {
   id: string;
@@ -77,6 +77,8 @@ export interface RecipeForList extends Recipe {
   ingredientNames: string[];
   categoryIds: string[];
   tagIds: string[];
+  averageRating?: number | null;
+  ratingCount?: number;
 }
 
 export interface ExtractedRecipe {
@@ -104,6 +106,39 @@ export interface CreateRecipeInput {
   steps: { stepNumber: number; stepText: string }[];
   categoryIds?: string[];
   tagIds?: string[];
+}
+
+export interface RecipeRating {
+  id: string;
+  recipeId: string;
+  profileId: string;
+  rating: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecipeRatingWithProfile extends RecipeRating {
+  profileName: string;
+  profileAvatarUrl: string | null;
+}
+
+export interface RecipeRatingSummary {
+  average: number | null;
+  count: number;
+}
+
+export interface RecipeComment {
+  id: string;
+  recipeId: string;
+  profileId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecipeCommentWithProfile extends RecipeComment {
+  profileName: string;
+  profileAvatarUrl: string | null;
 }
 
 export interface GeneratedShoppingItem {

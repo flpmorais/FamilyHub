@@ -10,7 +10,7 @@ interface ParticipantToggleProps {
 
 export function ParticipantToggle({ profiles, selectedIds, onToggle, disabled }: ParticipantToggleProps) {
   return (
-    <View style={styles.list}>
+    <View style={s.container}>
       {profiles
         .filter((p) => p.status !== 'inactive')
         .map((p) => {
@@ -18,12 +18,13 @@ export function ParticipantToggle({ profiles, selectedIds, onToggle, disabled }:
           return (
             <TouchableOpacity
               key={p.id}
-              style={[styles.row, selected && styles.rowSelected]}
+              style={[s.chip, selected && s.chipSelected]}
               onPress={() => onToggle(p.id)}
               disabled={disabled}
             >
-              <Text style={styles.check}>{selected ? '\u2611' : '\u2610'}</Text>
-              <Text style={styles.name}>{p.displayName}</Text>
+              <Text style={[s.chipText, selected && s.chipTextSelected]}>
+                {p.displayName}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -31,18 +32,30 @@ export function ParticipantToggle({ profiles, selectedIds, onToggle, disabled }:
   );
 }
 
-const styles = StyleSheet.create({
-  list: { gap: 4 },
-  row: {
+const s = StyleSheet.create({
+  container: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  rowSelected: { borderColor: '#B5451B', backgroundColor: '#FFF0EB' },
-  check: { fontSize: 18, marginRight: 10, color: '#B5451B' },
-  name: { fontSize: 15, color: '#1A1A1A' },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: '#FFF',
+  },
+  chipSelected: {
+    backgroundColor: '#B5451B',
+    borderColor: '#B5451B',
+  },
+  chipText: {
+    fontSize: 13,
+    color: '#555',
+    fontWeight: '500',
+  },
+  chipTextSelected: {
+    color: '#FFF',
+  },
 });

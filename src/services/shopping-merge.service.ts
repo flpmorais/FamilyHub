@@ -14,6 +14,8 @@ interface MergeItem {
  * - Existing ticked items: untick + update quantity
  * - Existing unticked items: update quantity
  * - New items: AI-categorize + create
+ *
+ * Performance: loads all existing items once, then batches operations.
  */
 export async function mergeIntoShoppingList(
   items: MergeItem[],
@@ -22,30 +24,54 @@ export async function mergeIntoShoppingList(
   shoppingCategoryRepo: IShoppingCategoryRepository,
   classificationRepo: IClassificationRepository,
 ): Promise<{ created: number; updated: number }> {
-  let created = 0;
-  let updated = 0;
+  if (items.length === 0) return { created: 0, updated: 0 };
 
-  // Load categories for AI classification of new items
-  const categories = await shoppingCategoryRepo.getAll(familyId);
+  // 1. Load all existing items and categories in parallel (2 queries instead of N)
+  const [existingItems, categories] = await Promise.all([
+    shoppingRepo.getItems(familyId),
+    shoppingCategoryRepo.getAll(familyId),
+  ]);
+
+  const existingByName = new Map(
+    existingItems.map((item) => [item.name.toLowerCase(), item]),
+  );
   const activeCategoryNames = categories.filter((c) => c.active).map((c) => c.name);
   const otherCatId =
     categories.find((c) => c.name === OTHER_CATEGORY_NAME)?.id ?? categories[0]?.id;
 
-  for (const item of items) {
-    try {
-      const existing = await shoppingRepo.findByName(familyId, item.name);
+  // 2. Partition items into updates vs creates
+  const toUpdate: { id: string; isTicked: boolean; quantity: string | null }[] = [];
+  const toCreate: MergeItem[] = [];
 
-      if (existing) {
-        // Existing item — untick if ticked, update quantity
-        if (existing.isTicked) {
-          await shoppingRepo.untickItem(existing.id);
+  for (const item of items) {
+    const existing = existingByName.get(item.name.toLowerCase());
+    if (existing) {
+      toUpdate.push({ id: existing.id, isTicked: existing.isTicked, quantity: item.quantity });
+    } else {
+      toCreate.push(item);
+    }
+  }
+
+  // 3. Batch update existing items
+  await Promise.all(
+    toUpdate.map(async (upd) => {
+      try {
+        if (upd.isTicked) {
+          await shoppingRepo.untickItem(upd.id);
         }
-        if (item.quantity) {
-          await shoppingRepo.editItem(existing.id, { quantityNote: item.quantity });
+        if (upd.quantity) {
+          await shoppingRepo.editItem(upd.id, { quantityNote: upd.quantity });
         }
-        updated++;
-      } else {
-        // New item — classify and create
+      } catch (err) {
+        logger.error('ShoppingMergeService', `update failed for item ${upd.id}`, err);
+      }
+    }),
+  );
+
+  // 4. Classify and create new items in parallel
+  await Promise.all(
+    toCreate.map(async (item) => {
+      try {
         let categoryId = otherCatId ?? '';
         try {
           const result = await classificationRepo.classifyItem(item.name, activeCategoryNames);
@@ -61,12 +87,11 @@ export async function mergeIntoShoppingList(
           categoryId,
           quantityNote: item.quantity ?? undefined,
         });
-        created++;
+      } catch (err) {
+        logger.error('ShoppingMergeService', `create failed for "${item.name}"`, err);
       }
-    } catch (err) {
-      logger.error('ShoppingMergeService', `merge failed for "${item.name}"`, err);
-    }
-  }
+    }),
+  );
 
-  return { created, updated };
+  return { created: toCreate.length, updated: toUpdate.length };
 }

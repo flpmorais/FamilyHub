@@ -10,7 +10,9 @@ export function fromISODate(isoDate: string): Date {
 }
 
 export function daysUntilExpiry(iso: string): number {
-  const now = new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const expiry = new Date(iso);
-  return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  expiry.setHours(0, 0, 0, 0);
+  return Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }

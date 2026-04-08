@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { useFocusEffect, router } from 'expo-router';
@@ -24,6 +23,7 @@ import {
 } from '../../../components/recipes/recipe-filter-panel';
 import { RECIPE_TYPES } from '../../../constants/recipe-defaults';
 import { PageHeader } from '../../../components/page-header';
+import { RecipeAddModal } from '../../../components/recipes/recipe-add-modal';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
 import type { RecipeForList, RecipeType, RecipeCategory, RecipeTag } from '../../../types/recipe.types';
@@ -54,6 +54,7 @@ export default function RecipesScreen() {
   const recipeRepo = useRepository('recipe');
   const recipeCategoryRepo = useRepository('recipeCategory');
   const recipeTagRepo = useRepository('recipeTag');
+  const recipeRatingRepo = useRepository('recipeRating');
   const { userAccount } = useAuthStore();
   const { activeTypeFilter, setActiveTypeFilter } = useRecipesStore();
 
@@ -63,6 +64,7 @@ export default function RecipesScreen() {
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
   const [filters, setFilters] = useState<RecipeFilters>(EMPTY_FILTERS);
 
   const familyId = userAccount?.familyId;
@@ -71,13 +73,20 @@ export default function RecipesScreen() {
     if (!familyId) return;
     try {
       const list = await recipeRepo.getByFamilyIdForList(familyId);
-      setRecipes(list);
+      const summaries = await recipeRatingRepo.getSummariesForRecipes(list.map((r) => r.id));
+      setRecipes(
+        list.map((r) => ({
+          ...r,
+          averageRating: summaries.get(r.id)?.average ?? null,
+          ratingCount: summaries.get(r.id)?.count ?? 0,
+        })),
+      );
     } catch (err) {
       logger.error('RecipesScreen', 'load failed', err);
     } finally {
       setIsLoading(false);
     }
-  }, [recipeRepo, familyId]);
+  }, [recipeRepo, recipeRatingRepo, familyId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -249,19 +258,18 @@ export default function RecipesScreen() {
 
         <TouchableOpacity
           style={s.fab}
-          onPress={() => {
-            Alert.alert('Adicionar Receita', 'Como quer adicionar?', [
-              { text: 'Entrada Manual', onPress: () => router.push('/(app)/(recipes)/new' as any) },
-              { text: 'Importar de URL', onPress: () => router.push('/(app)/(recipes)/import-url' as any) },
-              { text: 'Importar de Foto', onPress: () => router.push('/(app)/(recipes)/import-photo' as any) },
-              { text: 'Cancelar', style: 'cancel' },
-            ]);
-          }}
+          onPress={() => setAddModalVisible(true)}
           activeOpacity={0.8}
         >
           <Text style={s.fabText}>+</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Add recipe modal */}
+      <RecipeAddModal
+        visible={addModalVisible}
+        onClose={() => setAddModalVisible(false)}
+      />
 
       {/* Filter panel */}
       <RecipeFilterPanel

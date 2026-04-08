@@ -13,24 +13,40 @@ import {
   Modal,
 } from 'react-native';
 import { Snackbar } from 'react-native-paper';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { RECIPE_TYPE_LIST, DEFAULT_SERVINGS } from '../../../constants/recipe-defaults';
 import { logger } from '../../../utils/logger';
-import type { RecipeType, RecipeCategory, RecipeTag } from '../../../types/recipe.types';
+import type { RecipeType, RecipeCategory, RecipeTag, ExtractedRecipe } from '../../../types/recipe.types';
 
 interface IngredientRow {
+  key: string;
   name: string;
   quantity: string;
 }
 
 interface StepRow {
+  key: string;
   text: string;
 }
 
+let _keyCounter = 0;
+function nextKey() {
+  return `k${++_keyCounter}`;
+}
+
 export default function NewRecipeScreen() {
+  const { extractedJson, sourceUrl, importMethod: importMethodParam } = useLocalSearchParams<{
+    extractedJson?: string;
+    sourceUrl?: string;
+    importMethod?: string;
+  }>();
+  const isImport = !!extractedJson;
+
   const recipeRepo = useRepository('recipe');
   const recipeCategoryRepo = useRepository('recipeCategory');
   const recipeTagRepo = useRepository('recipeTag');
@@ -45,9 +61,9 @@ export default function NewRecipeScreen() {
   const [cost, setCost] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    { name: '', quantity: '' },
+    { key: nextKey(), name: '', quantity: '' },
   ]);
-  const [steps, setSteps] = useState<StepRow[]>([{ text: '' }]);
+  const [steps, setSteps] = useState<StepRow[]>([{ key: nextKey(), text: '' }]);
   const [allCategories, setAllCategories] = useState<RecipeCategory[]>([]);
   const [allTags, setAllTags] = useState<RecipeTag[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -66,6 +82,32 @@ export default function NewRecipeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
 
+  // Pre-populate from imported data
+  useEffect(() => {
+    if (!extractedJson) return;
+    try {
+      const extracted: ExtractedRecipe = JSON.parse(extractedJson);
+      setName(extracted.name);
+      setType(extracted.type ?? 'main');
+      setServings(extracted.servings != null ? String(extracted.servings) : String(DEFAULT_SERVINGS));
+      setPrepTime(extracted.prepTimeMinutes != null ? String(extracted.prepTimeMinutes) : '');
+      setCookTime(extracted.cookTimeMinutes != null ? String(extracted.cookTimeMinutes) : '');
+      setIngredients(
+        extracted.ingredients.length > 0
+          ? extracted.ingredients.map((i) => ({ key: nextKey(), name: i.name, quantity: i.quantity ?? '' }))
+          : [{ key: nextKey(), name: '', quantity: '' }],
+      );
+      setSteps(
+        extracted.steps.length > 0
+          ? extracted.steps.map((s) => ({ key: nextKey(), text: s }))
+          : [{ key: nextKey(), text: '' }],
+      );
+    } catch {
+      logger.error('NewRecipeScreen', 'Failed to parse extracted recipe data');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function showError(msg: string) {
     setErrorMsg(msg);
     setErrorVisible(true);
@@ -73,7 +115,7 @@ export default function NewRecipeScreen() {
 
   // Ingredients helpers
   function addIngredient() {
-    setIngredients([...ingredients, { name: '', quantity: '' }]);
+    setIngredients([...ingredients, { key: nextKey(), name: '', quantity: '' }]);
   }
 
   function removeIngredient(index: number) {
@@ -93,7 +135,7 @@ export default function NewRecipeScreen() {
 
   // Steps helpers
   function addStep() {
-    setSteps([...steps, { text: '' }]);
+    setSteps([...steps, { key: nextKey(), text: '' }]);
   }
 
   function removeStep(index: number) {
@@ -103,23 +145,7 @@ export default function NewRecipeScreen() {
 
   function updateStep(index: number, value: string) {
     const updated = [...steps];
-    updated[index] = { text: value };
-    setSteps(updated);
-  }
-
-  function moveIngredient(index: number, direction: 'up' | 'down') {
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target < 0 || target >= ingredients.length) return;
-    const updated = [...ingredients];
-    [updated[index], updated[target]] = [updated[target], updated[index]];
-    setIngredients(updated);
-  }
-
-  function moveStep(index: number, direction: 'up' | 'down') {
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target < 0 || target >= steps.length) return;
-    const updated = [...steps];
-    [updated[index], updated[target]] = [updated[target], updated[index]];
+    updated[index] = { ...updated[index], text: value };
     setSteps(updated);
   }
 
@@ -232,6 +258,8 @@ export default function NewRecipeScreen() {
         cookTimeMinutes: cookTime ? parseInt(cookTime, 10) : undefined,
         cost: cost.trim() || undefined,
         imageUrl: imageUri ?? undefined,
+        importMethod: isImport ? ((importMethodParam as any) ?? 'url') : undefined,
+        sourceUrl: isImport ? (sourceUrl ?? undefined) : undefined,
         ingredients: validIngredients.map((ing, i) => ({
           ingredientName: ing.name.trim(),
           quantity: ing.quantity.trim() || undefined,
@@ -244,7 +272,11 @@ export default function NewRecipeScreen() {
         categoryIds: selectedCategoryIds.length > 0 ? selectedCategoryIds : undefined,
         tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
       });
-      router.back();
+      if (isImport) {
+        router.dismiss(2);
+      } else {
+        router.back();
+      }
     } catch (err) {
       logger.error('NewRecipeScreen', 'save failed', err);
       showError('Não foi possível criar a receita');
@@ -254,6 +286,7 @@ export default function NewRecipeScreen() {
   }
 
   return (
+    <GestureHandlerRootView style={s.flex}>
     <KeyboardAvoidingView
       style={s.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -262,11 +295,17 @@ export default function NewRecipeScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={s.headerBack}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Nova Receita</Text>
+        <Text style={s.headerTitle}>{isImport ? 'Rever Receita' : 'Nova Receita'}</Text>
         <View style={{ width: 60 }} />
       </View>
 
-      <ScrollView style={s.flex} contentContainerStyle={s.form}>
+      {isImport && sourceUrl ? (
+        <View style={s.sourceBar}>
+          <Text style={s.sourceText} numberOfLines={1}>Importado de: {sourceUrl}</Text>
+        </View>
+      ) : null}
+
+      <NestableScrollContainer style={s.flex} contentContainerStyle={s.form}>
         {/* Name */}
         <Text style={s.label}>Nome *</Text>
         <TextInput
@@ -418,100 +457,111 @@ export default function NewRecipeScreen() {
 
         {/* Ingredients */}
         <Text style={s.sectionTitle}>Ingredientes *</Text>
-        {ingredients.map((ing, i) => (
-          <View key={i} style={s.dynamicRow}>
-            <View style={s.dynamicRowInputs}>
-              <TextInput
-                style={[s.input, s.ingredientName]}
-                value={ing.name}
-                onChangeText={(v) => updateIngredient(i, 'name', v)}
-                placeholder="Ingrediente"
-                placeholderTextColor="#CCCCCC"
-              />
-              <TextInput
-                style={[s.input, s.ingredientQty]}
-                value={ing.quantity}
-                onChangeText={(v) => updateIngredient(i, 'quantity', v)}
-                placeholder="Qtd"
-                placeholderTextColor="#CCCCCC"
-              />
-            </View>
-            <View style={s.dynamicRowActions}>
-              {i > 0 && (
-                <TouchableOpacity onPress={() => moveIngredient(i, 'up')}>
-                  <Text style={s.actionBtn}>↑</Text>
-                </TouchableOpacity>
-              )}
-              {i < ingredients.length - 1 && (
-                <TouchableOpacity onPress={() => moveIngredient(i, 'down')}>
-                  <Text style={s.actionBtn}>↓</Text>
-                </TouchableOpacity>
-              )}
-              {ingredients.length > 1 && (
-                <TouchableOpacity onPress={() => removeIngredient(i)}>
-                  <Text style={s.removeBtn}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ))}
+        <NestableDraggableFlatList
+          data={ingredients}
+          keyExtractor={(item) => item.key}
+          onDragEnd={({ data }) => setIngredients(data)}
+          renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<IngredientRow>) => {
+            const i = getIndex() ?? 0;
+            return (
+              <ScaleDecorator>
+                <View style={[s.dynamicRow, isActive && s.dynamicRowActive]}>
+                  <TouchableOpacity onLongPress={drag} style={s.dragHandle}>
+                    <Text style={s.dragHandleText}>{'\u2261'}</Text>
+                  </TouchableOpacity>
+                  <View style={s.dynamicRowInputs}>
+                    <TextInput
+                      style={[s.input, s.ingredientName]}
+                      value={item.name}
+                      onChangeText={(v) => updateIngredient(i, 'name', v)}
+                      placeholder="Ingrediente"
+                      placeholderTextColor="#CCCCCC"
+                    />
+                    <TextInput
+                      style={[s.input, s.ingredientQty]}
+                      value={item.quantity}
+                      onChangeText={(v) => updateIngredient(i, 'quantity', v)}
+                      placeholder="Qtd"
+                      placeholderTextColor="#CCCCCC"
+                    />
+                  </View>
+                  {ingredients.length > 1 && (
+                    <TouchableOpacity onPress={() => removeIngredient(i)}>
+                      <Text style={s.removeBtn}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScaleDecorator>
+            );
+          }}
+        />
         <TouchableOpacity style={s.addRowBtn} onPress={addIngredient}>
           <Text style={s.addRowBtnText}>+ Adicionar ingrediente</Text>
         </TouchableOpacity>
 
         {/* Steps */}
         <Text style={s.sectionTitle}>Passos *</Text>
-        {steps.map((step, i) => (
-          <View key={i} style={s.dynamicRow}>
-            <View style={s.stepNumberContainer}>
-              <Text style={s.stepNumber}>{i + 1}.</Text>
-            </View>
-            <TextInput
-              style={[s.input, s.stepInput]}
-              value={step.text}
-              onChangeText={(v) => updateStep(i, v)}
-              placeholder={`Passo ${i + 1}`}
-              placeholderTextColor="#CCCCCC"
-              multiline
-            />
-            <View style={s.dynamicRowActions}>
-              {i > 0 && (
-                <TouchableOpacity onPress={() => moveStep(i, 'up')}>
-                  <Text style={s.actionBtn}>↑</Text>
-                </TouchableOpacity>
-              )}
-              {i < steps.length - 1 && (
-                <TouchableOpacity onPress={() => moveStep(i, 'down')}>
-                  <Text style={s.actionBtn}>↓</Text>
-                </TouchableOpacity>
-              )}
-              {steps.length > 1 && (
-                <TouchableOpacity onPress={() => removeStep(i)}>
-                  <Text style={s.removeBtn}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ))}
+        <NestableDraggableFlatList
+          data={steps}
+          keyExtractor={(item) => item.key}
+          onDragEnd={({ data }) => setSteps(data)}
+          renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<StepRow>) => {
+            const i = getIndex() ?? 0;
+            return (
+              <ScaleDecorator>
+                <View style={[s.dynamicRow, isActive && s.dynamicRowActive]}>
+                  <TouchableOpacity onLongPress={drag} style={s.dragHandle}>
+                    <Text style={s.dragHandleText}>{'\u2261'}</Text>
+                  </TouchableOpacity>
+                  <View style={s.stepNumberContainer}>
+                    <Text style={s.stepNumber}>{i + 1}.</Text>
+                  </View>
+                  <TextInput
+                    style={[s.input, s.stepInput]}
+                    value={item.text}
+                    onChangeText={(v) => updateStep(i, v)}
+                    placeholder={`Passo ${i + 1}`}
+                    placeholderTextColor="#CCCCCC"
+                    multiline
+                  />
+                  {steps.length > 1 && (
+                    <TouchableOpacity onPress={() => removeStep(i)}>
+                      <Text style={s.removeBtn}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScaleDecorator>
+            );
+          }}
+        />
         <TouchableOpacity style={s.addRowBtn} onPress={addStep}>
           <Text style={s.addRowBtnText}>+ Adicionar passo</Text>
         </TouchableOpacity>
 
-        {/* Save */}
-        <TouchableOpacity
-          style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
-          onPress={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={s.saveBtnText}>Guardar Receita</Text>
-          )}
-        </TouchableOpacity>
+        {/* Actions */}
+        <View style={s.buttonRow}>
+          <TouchableOpacity
+            style={s.cancelButton}
+            onPress={() => router.back()}
+            disabled={isSaving}
+          >
+            <Text style={s.cancelText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.saveButton, isSaving && s.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={s.saveButtonText}>Guardar</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </NestableScrollContainer>
 
       {/* Inline Category Modal */}
       <Modal
@@ -590,6 +640,7 @@ export default function NewRecipeScreen() {
         {errorMsg}
       </Snackbar>
     </KeyboardAvoidingView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -616,6 +667,8 @@ const s = StyleSheet.create({
     fontWeight: '700',
     color: '#1A1A1A',
   },
+  sourceBar: { backgroundColor: '#F5F5F5', paddingHorizontal: 16, paddingVertical: 8 },
+  sourceText: { fontSize: 12, color: '#888888' },
   form: {
     padding: 16,
   },
@@ -676,17 +729,25 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     gap: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  dynamicRowActive: {
+    backgroundColor: '#FFF5F0',
+    borderRadius: 8,
+    elevation: 4,
   },
   dynamicRowInputs: {
     flex: 1,
     flexDirection: 'row',
     gap: 8,
   },
-  dynamicRowActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginLeft: 4,
+  dragHandle: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+  },
+  dragHandleText: {
+    fontSize: 20,
+    color: '#AAAAAA',
   },
   ingredientName: {
     flex: 2,
@@ -705,11 +766,6 @@ const s = StyleSheet.create({
   },
   stepInput: {
     flex: 1,
-  },
-  actionBtn: {
-    fontSize: 16,
-    color: '#888888',
-    paddingHorizontal: 4,
   },
   removeBtn: {
     fontSize: 16,
@@ -764,21 +820,25 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  saveBtn: {
+  buttonRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    alignItems: 'center',
+  },
+  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  saveButton: {
+    flex: 1,
     backgroundColor: '#B5451B',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 24,
   },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
