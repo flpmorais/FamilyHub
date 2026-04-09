@@ -25,6 +25,7 @@ function mapRecipe(row: any): Recipe {
     imageUrl: row.image_url ?? null,
     importMethod: row.import_method,
     sourceUrl: row.source_url ?? null,
+    source: row.source ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -88,6 +89,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
           image_url: input.imageUrl ?? null,
           import_method: input.importMethod ?? 'manual',
           source_url: input.sourceUrl ?? null,
+          source: input.source ?? null,
         })
         .select()
         .single();
@@ -298,6 +300,154 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
     }
   }
 
+  async getListPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+    filters: {
+      type?: string | null;
+      categoryIds?: string[];
+      tagIds?: string[];
+      ingredientQuery?: string;
+      maxTotalTime?: number | null;
+      maxPrepTime?: number | null;
+      maxCookTime?: number | null;
+    },
+  ): Promise<RecipeForList[]> {
+    try {
+      // Phase 1 — pre-compute id whitelist from join filters (intersection)
+      let restrictIds: string[] | null = null;
+
+      const intersect = (ids: string[]): void => {
+        if (restrictIds === null) {
+          restrictIds = ids;
+        } else {
+          const set = new Set(ids);
+          restrictIds = restrictIds.filter((id) => set.has(id));
+        }
+      };
+
+      if (filters.categoryIds && filters.categoryIds.length > 0) {
+        const { data, error } = await this.client
+          .from('recipe_category_assignments')
+          .select('recipe_id')
+          .in('category_id', filters.categoryIds);
+        if (error) throw error;
+        intersect(Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))));
+        if (restrictIds!.length === 0) return [];
+      }
+
+      if (filters.tagIds && filters.tagIds.length > 0) {
+        const { data, error } = await this.client
+          .from('recipe_tag_assignments')
+          .select('recipe_id')
+          .in('tag_id', filters.tagIds);
+        if (error) throw error;
+        intersect(Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))));
+        if (restrictIds!.length === 0) return [];
+      }
+
+      if (filters.ingredientQuery && filters.ingredientQuery.trim()) {
+        const q = filters.ingredientQuery.trim();
+        const { data, error } = await this.client
+          .from('recipe_ingredients')
+          .select('recipe_id')
+          .ilike('ingredient_name', `%${q}%`);
+        if (error) throw error;
+        intersect(Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))));
+        if (restrictIds!.length === 0) return [];
+      }
+
+      // Phase 2 — paginated query on recipes with type + time filters
+      let query = this.client
+        .from('recipes')
+        .select('*')
+        .eq('family_id', familyId)
+        .order('created_at', { ascending: false });
+
+      if (filters.type) query = query.eq('type', filters.type);
+      if (filters.maxTotalTime != null) query = query.lte('total_time_minutes', filters.maxTotalTime);
+      if (filters.maxPrepTime != null) query = query.lte('prep_time_minutes', filters.maxPrepTime);
+      if (filters.maxCookTime != null) query = query.lte('cook_time_minutes', filters.maxCookTime);
+      if (restrictIds !== null) query = query.in('id', restrictIds);
+
+      query = query.range(offset, offset + limit - 1);
+
+      const { data: recipeRows, error } = await query;
+      if (error) throw error;
+      const recipes = (recipeRows ?? []).map(mapRecipe);
+      if (recipes.length === 0) return [];
+
+      // Phase 3 — batch load joins for the current page only
+      const recipeIds = recipes.map((r) => r.id);
+      const [ingredientsResult, catAssignments, tagAssignments] = await Promise.all([
+        this.client
+          .from('recipe_ingredients')
+          .select('recipe_id, ingredient_name')
+          .in('recipe_id', recipeIds),
+        this.client
+          .from('recipe_category_assignments')
+          .select('recipe_id, category_id')
+          .in('recipe_id', recipeIds),
+        this.client
+          .from('recipe_tag_assignments')
+          .select('recipe_id, tag_id')
+          .in('recipe_id', recipeIds),
+      ]);
+
+      const ingredientMap = new Map<string, string[]>();
+      for (const row of ingredientsResult.data ?? []) {
+        const list = ingredientMap.get(row.recipe_id) ?? [];
+        list.push(row.ingredient_name);
+        ingredientMap.set(row.recipe_id, list);
+      }
+
+      const categoryMap = new Map<string, string[]>();
+      for (const row of catAssignments.data ?? []) {
+        const list = categoryMap.get(row.recipe_id) ?? [];
+        list.push(row.category_id);
+        categoryMap.set(row.recipe_id, list);
+      }
+
+      const tagMap = new Map<string, string[]>();
+      for (const row of tagAssignments.data ?? []) {
+        const list = tagMap.get(row.recipe_id) ?? [];
+        list.push(row.tag_id);
+        tagMap.set(row.recipe_id, list);
+      }
+
+      return recipes.map((recipe) => ({
+        ...recipe,
+        ingredientNames: ingredientMap.get(recipe.id) ?? [],
+        categoryIds: categoryMap.get(recipe.id) ?? [],
+        tagIds: tagMap.get(recipe.id) ?? [],
+      }));
+    } catch (err) {
+      logger.error('RecipeRepository', 'getListPaginated failed', err);
+      throw new Error(
+        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : 'Erro'}`,
+      );
+    }
+  }
+
+  async getTypeCounts(familyId: string): Promise<Record<string, number>> {
+    try {
+      const { data, error } = await this.client
+        .from('recipes')
+        .select('type')
+        .eq('family_id', familyId);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) {
+        counts[row.type] = (counts[row.type] ?? 0) + 1;
+      }
+      return counts;
+    } catch (err) {
+      logger.error('RecipeRepository', 'getTypeCounts failed', err);
+      return {};
+    }
+  }
+
   async update(id: string, input: Partial<CreateRecipeInput>): Promise<RecipeWithDetails> {
     try {
       const updates: Record<string, unknown> = {};
@@ -308,6 +458,8 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
       if (input.cookTimeMinutes !== undefined) updates.cook_time_minutes = input.cookTimeMinutes;
       if (input.cost !== undefined) updates.cost = input.cost;
       if (input.imageUrl !== undefined) updates.image_url = input.imageUrl;
+      if (input.sourceUrl !== undefined) updates.source_url = input.sourceUrl;
+      if (input.source !== undefined) updates.source = input.source;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await this.client

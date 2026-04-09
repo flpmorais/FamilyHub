@@ -1,7 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Icon } from "react-native-paper";
-import type { Leftover, LeftoverType } from "../../types/leftover.types";
+import type { Leftover } from "../../types/leftover.types";
 import { daysUntilExpiry } from "../../utils/date.utils";
+import { DishTypeTag } from "../common/dish-type-tag";
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -9,15 +10,6 @@ function shortDate(iso: string): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   return `${dd}/${mm}`;
 }
-
-const TYPE_LABEL: Record<LeftoverType, string> = {
-  meal: "Refeição",
-  main: "Principal",
-  soup: "Sopa",
-  side: "Acompanhamento",
-  dessert: "Sobremesa",
-  other: "Outro",
-};
 
 interface LeftoverItemCardProps {
   item: Leftover;
@@ -83,7 +75,7 @@ export function LeftoverItemCard({
       {isActive ? (
         <>
           <View style={s.infoRow}>
-            <Text style={s.typeText}>{TYPE_LABEL[item.type ?? "meal"]}</Text>
+            <DishTypeTag typeKey={item.type ?? "meal"} variant="filled" size="sm" />
             <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
           </View>
           <View style={[s.infoRow, { marginBottom: 12 }]}>
@@ -204,10 +196,6 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
-  },
-  typeText: {
-    fontSize: 12,
-    color: "#888888",
   },
   dosesText: {
     fontSize: 14,

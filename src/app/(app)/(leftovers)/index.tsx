@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -8,16 +8,15 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Snackbar } from "react-native-paper";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
 import { useAuthStore } from "../../../stores/auth.store";
-import { useLeftoversStore } from "../../../stores/leftovers.store";
 import {
   LeftoverItemCard,
   LeftoverAddForm,
   LeftoverEditForm,
 } from "../../../components/leftovers";
-import { PAGINATION_PAGE_SIZE } from "../../../constants/leftover-defaults";
+import { PAGE_SIZE } from "../../../constants/pagination";
 import { logger } from "../../../utils/logger";
 import { PageHeader } from "../../../components/page-header";
 import { supabaseClient } from "../../../repositories/supabase/supabase.client";
@@ -26,13 +25,14 @@ import type { Leftover } from "../../../types/leftover.types";
 export default function LeftoversScreen() {
   const leftoverRepo = useRepository("leftover");
   const { userAccount } = useAuthStore();
-  const { paginationCursor, setPaginationCursor } = useLeftoversStore();
 
-  const [leftovers, setLeftovers] = useState<Leftover[]>([]);
+  const [activeLeftovers, setActiveLeftovers] = useState<Leftover[]>([]);
+  const [closedLeftovers, setClosedLeftovers] = useState<Leftover[]>([]);
+  const [closedCursor, setClosedCursor] = useState(0);
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMoreClosed, setHasMoreClosed] = useState(true);
   const [addVisible, setAddVisible] = useState(false);
   const [editItem, setEditItem] = useState<Leftover | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
@@ -44,16 +44,20 @@ export default function LeftoversScreen() {
   const reloadFromStart = useCallback(async () => {
     if (!familyId) return;
     try {
-      const list = await leftoverRepo.getAll(familyId, PAGINATION_PAGE_SIZE, 0);
-      setLeftovers(list);
-      setPaginationCursor(PAGINATION_PAGE_SIZE);
-      setHasMore(list.length === PAGINATION_PAGE_SIZE);
+      const [active, closed] = await Promise.all([
+        leftoverRepo.getActive(familyId),
+        leftoverRepo.getClosedPaginated(familyId, PAGE_SIZE, 0),
+      ]);
+      setActiveLeftovers(active);
+      setClosedLeftovers(closed);
+      setClosedCursor(PAGE_SIZE);
+      setHasMoreClosed(closed.length === PAGE_SIZE);
     } catch (err) {
       logger.error("LeftoversScreen", "load failed", err);
     } finally {
       setIsLoading(false);
     }
-  }, [leftoverRepo, familyId, setPaginationCursor]);
+  }, [leftoverRepo, familyId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,18 +70,18 @@ export default function LeftoversScreen() {
   );
 
   async function loadMore() {
-    if (!hasMore || loadingMoreRef.current || !familyId) return;
+    if (!hasMoreClosed || loadingMoreRef.current || !familyId) return;
     loadingMoreRef.current = true;
     setIsLoadingMore(true);
     try {
-      const nextPage = await leftoverRepo.getAll(
+      const nextPage = await leftoverRepo.getClosedPaginated(
         familyId,
-        PAGINATION_PAGE_SIZE,
-        paginationCursor,
+        PAGE_SIZE,
+        closedCursor,
       );
-      setLeftovers((prev) => [...prev, ...nextPage]);
-      setPaginationCursor(paginationCursor + PAGINATION_PAGE_SIZE);
-      setHasMore(nextPage.length === PAGINATION_PAGE_SIZE);
+      setClosedLeftovers((prev) => [...prev, ...nextPage]);
+      setClosedCursor(closedCursor + PAGE_SIZE);
+      setHasMoreClosed(nextPage.length === PAGE_SIZE);
     } catch (err) {
       logger.error("LeftoversScreen", "loadMore failed", err);
     } finally {
@@ -176,9 +180,12 @@ export default function LeftoversScreen() {
     }
   }
 
-  const firstClosedIndex = leftovers.findIndex((l) => l.status === "closed");
-  const hasActiveAndClosed =
-    firstClosedIndex > 0 && firstClosedIndex < leftovers.length;
+  const leftovers = useMemo(
+    () => [...activeLeftovers, ...closedLeftovers],
+    [activeLeftovers, closedLeftovers],
+  );
+  const firstClosedIndex = activeLeftovers.length;
+  const hasActiveAndClosed = activeLeftovers.length > 0 && closedLeftovers.length > 0;
 
   if (isLoading) {
     return (

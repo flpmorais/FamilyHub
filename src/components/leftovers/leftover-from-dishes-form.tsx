@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { DEFAULT_EXPIRY_DAYS, DEFAULT_TOTAL_DOSES } from '../../constants/leftover-defaults';
-import { DISH_CATEGORY_STYLES } from '../../constants/dish-category-styles';
+import { DishTypeTag } from '../common/dish-type-tag';
 import { getDishDisplay } from '../../types/meal-plan.types';
 import type { MealEntryDish } from '../../types/meal-plan.types';
 import type { RecipeType } from '../../types/recipe.types';
@@ -123,7 +123,6 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
               <Text style={s.emptyText}>Sem pratos elegíveis.</Text>
             ) : (
               entries.map((entry) => {
-                const catStyle = DISH_CATEGORY_STYLES[entry.category] ?? DISH_CATEGORY_STYLES.other;
                 return (
                   <View key={entry.dishId} style={s.entryCard}>
                     <TouchableOpacity style={s.checkRow} onPress={() => toggleDish(entry.dishId)}>
@@ -132,7 +131,7 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
                         size={22}
                         color={entry.selected ? '#B5451B' : '#CCC'}
                       />
-                      <Icon source={catStyle.icon} size={16} color={catStyle.color} />
+                      <DishTypeTag typeKey={entry.category} variant="filled" size="sm" />
                       <Text style={s.entryName} numberOfLines={1}>{entry.name}</Text>
                     </TouchableOpacity>
 

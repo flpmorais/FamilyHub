@@ -1,10 +1,11 @@
-import { useMemo, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   Image,
   StyleSheet,
   ActivityIndicator,
@@ -20,6 +21,7 @@ import { supabaseClient } from "../../../repositories/supabase/supabase.client";
 import { logger } from "../../../utils/logger";
 import { PageHeader } from "../../../components/page-header";
 import { SuggestionFormModal } from "../../../components/suggestions/suggestion-form-modal";
+import { PAGE_SIZE } from "../../../constants/pagination";
 import type {
   SuggestionStatus,
   SuggestionWithMeta,
@@ -56,8 +58,12 @@ export default function SuggestionsScreen() {
   const currentProfile = useCurrentProfile();
 
   const [suggestions, setSuggestions] = useState<SuggestionWithMeta[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadingMoreRef = useRef(false);
 
   // Filters
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
@@ -69,13 +75,25 @@ export default function SuggestionsScreen() {
   // Form modal
   const [formVisible, setFormVisible] = useState(false);
 
-  const loadData = useCallback(
+  const buildRepoFilters = useCallback(
+    () => ({ search: filterSearch, status: filterStatus }),
+    [filterSearch, filterStatus],
+  );
+
+  const reloadFromStart = useCallback(
     async (showSpinner = false) => {
       if (!userAccount?.familyId) return;
       if (showSpinner) setIsLoading(true);
       try {
-        const list = await suggestionRepo.getSuggestions(userAccount.familyId);
-        setSuggestions(list);
+        const firstPage = await suggestionRepo.getSuggestionsPaginated(
+          userAccount.familyId,
+          PAGE_SIZE,
+          0,
+          buildRepoFilters(),
+        );
+        setSuggestions(firstPage);
+        setCursor(PAGE_SIZE);
+        setHasMore(firstPage.length === PAGE_SIZE);
       } catch (err) {
         logger.error("SuggestionsScreen", "loadData failed", err);
         setError(
@@ -84,16 +102,44 @@ export default function SuggestionsScreen() {
       } finally {
         if (showSpinner) setIsLoading(false);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [userAccount?.familyId],
+    [suggestionRepo, userAccount?.familyId, buildRepoFilters],
   );
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMoreRef.current || !userAccount?.familyId) return;
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = await suggestionRepo.getSuggestionsPaginated(
+        userAccount.familyId,
+        PAGE_SIZE,
+        cursor,
+        buildRepoFilters(),
+      );
+      setSuggestions((prev) => [...prev, ...nextPage]);
+      setCursor(cursor + PAGE_SIZE);
+      setHasMore(nextPage.length === PAGE_SIZE);
+    } catch (err) {
+      logger.error("SuggestionsScreen", "loadMore failed", err);
+    } finally {
+      setIsLoadingMore(false);
+      loadingMoreRef.current = false;
+    }
+  }, [suggestionRepo, userAccount?.familyId, cursor, hasMore, buildRepoFilters]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadData(true);
-    }, [loadData]),
+      void reloadFromStart(true);
+    }, [reloadFromStart]),
   );
+
+  // Reload when filters change
+  useEffect(() => {
+    if (!userAccount?.familyId) return;
+    void reloadFromStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterSearch, filterStatus, userAccount?.familyId]);
 
   // Real-time
   useFocusEffect(
@@ -110,7 +156,7 @@ export default function SuggestionsScreen() {
             filter: `family_id=eq.${userAccount.familyId}`,
           },
           () => {
-            void loadData();
+            void reloadFromStart();
           },
         )
         .subscribe();
@@ -118,24 +164,11 @@ export default function SuggestionsScreen() {
       return () => {
         supabaseClient.removeChannel(channel);
       };
-    }, [userAccount?.familyId, loadData]),
+    }, [userAccount?.familyId, reloadFromStart]),
   );
 
   // Filters
   const filterCount = (filterSearch ? 1 : 0) + (filterStatus ? 1 : 0);
-
-  const filteredSuggestions = useMemo(() => {
-    if (filterCount === 0) return suggestions;
-    return suggestions.filter((s) => {
-      if (
-        filterSearch &&
-        !s.title.toLowerCase().includes(filterSearch.toLowerCase())
-      )
-        return false;
-      if (filterStatus && s.status !== filterStatus) return false;
-      return true;
-    });
-  }, [suggestions, filterSearch, filterStatus, filterCount]);
 
   function clearFilters() {
     setFilterSearch("");
@@ -150,7 +183,7 @@ export default function SuggestionsScreen() {
       description,
       createdBy: currentProfile.id,
     });
-    await loadData();
+    await reloadFromStart();
   }
 
   if (isLoading) {
@@ -164,24 +197,36 @@ export default function SuggestionsScreen() {
   return (
     <View style={st.container}>
       <PageHeader title="Sugestões" familyBannerUri={family?.bannerUrl} />
-      <ScrollView contentContainerStyle={st.content}>
-        {error ? <Text style={st.error}>{error}</Text> : null}
+      {error ? <Text style={st.error}>{error}</Text> : null}
 
-        <View style={st.cardList}>
-          {filteredSuggestions.map((s) => (
+      {suggestions.length === 0 ? (
+        <View style={st.emptyContainer}>
+          {filterCount > 0 ? (
+            <>
+              <Text style={st.emptyFilterText}>
+                Nenhuma sugestão corresponde aos filtros activos
+              </Text>
+              <TouchableOpacity onPress={clearFilters}>
+                <Text style={st.clearLink}>Limpar filtros</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={st.empty}>Nenhuma sugestão encontrada.</Text>
+          )}
+        </View>
+      ) : (
+        <FlatList
+          data={suggestions}
+          keyExtractor={(s) => s.id}
+          renderItem={({ item: s }) => (
             <TouchableOpacity
-              key={s.id}
               style={st.card}
               onPress={() => router.push(`/(app)/(suggestions)/${s.id}`)}
               activeOpacity={0.7}
             >
               <View style={st.cardTop}>
-                {/* Creator avatar */}
                 {s.creatorAvatarUrl ? (
-                  <Image
-                    source={{ uri: s.creatorAvatarUrl }}
-                    style={st.avatar}
-                  />
+                  <Image source={{ uri: s.creatorAvatarUrl }} style={st.avatar} />
                 ) : (
                   <View style={st.avatarFallback}>
                     <Text style={st.avatarInitial}>
@@ -195,15 +240,8 @@ export default function SuggestionsScreen() {
                   </Text>
                   <Text style={st.cardMeta}>{s.creatorName}</Text>
                 </View>
-                <View
-                  style={[
-                    st.statusBadge,
-                    { backgroundColor: STATUS_COLOR[s.status] },
-                  ]}
-                >
-                  <Text style={st.statusBadgeText}>
-                    {STATUS_LABEL[s.status]}
-                  </Text>
+                <View style={[st.statusBadge, { backgroundColor: STATUS_COLOR[s.status] }]}>
+                  <Text style={st.statusBadgeText}>{STATUS_LABEL[s.status]}</Text>
                 </View>
               </View>
               {s.commentCount > 0 && (
@@ -213,23 +251,14 @@ export default function SuggestionsScreen() {
                 </View>
               )}
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {suggestions.length === 0 && (
-          <Text style={st.empty}>Nenhuma sugestão encontrada.</Text>
-        )}
-        {suggestions.length > 0 && filteredSuggestions.length === 0 && (
-          <View style={st.emptyFilter}>
-            <Text style={st.emptyFilterText}>
-              Nenhuma sugestão corresponde aos filtros activos
-            </Text>
-            <TouchableOpacity onPress={clearFilters}>
-              <Text style={st.clearLink}>Limpar filtros</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
+          )}
+          contentContainerStyle={st.content}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={st.loadingMore} /> : null}
+        />
+      )}
 
       {/* FAB row */}
       <View style={st.fabRow}>
@@ -327,10 +356,7 @@ export default function SuggestionsScreen() {
                 style={st.filterApplyBtn}
                 onPress={() => setFilterPanelVisible(false)}
               >
-                <Text style={st.filterApplyBtnText}>
-                  Ver {filteredSuggestions.length}{" "}
-                  {filteredSuggestions.length === 1 ? "sugestão" : "sugestões"}
-                </Text>
+                <Text style={st.filterApplyBtnText}>Ver sugestões</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -352,7 +378,8 @@ const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   error: { color: "#D32F2F", marginBottom: 12, fontSize: 14 },
-  cardList: { gap: 12 },
+  emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
+  loadingMore: { marginVertical: 12 },
   card: {
     borderWidth: 1,
     borderColor: "#F0F0F0",

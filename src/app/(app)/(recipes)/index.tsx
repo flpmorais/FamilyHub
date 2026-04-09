@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  SectionList,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -21,34 +21,12 @@ import {
   countActiveFilters,
   type RecipeFilters,
 } from '../../../components/recipes/recipe-filter-panel';
-import { RECIPE_TYPES } from '../../../constants/recipe-defaults';
 import { PageHeader } from '../../../components/page-header';
 import { RecipeAddModal } from '../../../components/recipes/recipe-add-modal';
+import { PAGE_SIZE } from '../../../constants/pagination';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
-import type { RecipeForList, RecipeType, RecipeCategory, RecipeTag } from '../../../types/recipe.types';
-
-interface RecipeSection {
-  title: string;
-  data: RecipeForList[];
-}
-
-function buildSections(recipes: RecipeForList[]): RecipeSection[] {
-  const grouped = recipes.reduce(
-    (acc, recipe) => {
-      const type = recipe.type;
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(recipe);
-      return acc;
-    },
-    {} as Record<RecipeType, RecipeForList[]>,
-  );
-
-  return Object.entries(grouped).map(([type, data]) => ({
-    title: RECIPE_TYPES[type as RecipeType],
-    data,
-  }));
-}
+import type { RecipeForList, RecipeCategory, RecipeTag } from '../../../types/recipe.types';
 
 export default function RecipesScreen() {
   const recipeRepo = useRepository('recipe');
@@ -59,6 +37,10 @@ export default function RecipesScreen() {
   const { activeTypeFilter, setActiveTypeFilter } = useRecipesStore();
 
   const [recipes, setRecipes] = useState<RecipeForList[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [typeCounts, setTypeCounts] = useState<Record<string, number>>({});
   const [categories, setCategories] = useState<RecipeCategory[]>([]);
   const [tags, setTags] = useState<RecipeTag[]>([]);
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
@@ -66,31 +48,87 @@ export default function RecipesScreen() {
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [filters, setFilters] = useState<RecipeFilters>(EMPTY_FILTERS);
+  const loadingMoreRef = useRef(false);
 
   const familyId = userAccount?.familyId;
 
-  const reload = useCallback(async () => {
+  const parseTime = (value: string): number | null => {
+    if (!value.trim()) return null;
+    const n = parseInt(value, 10);
+    return Number.isNaN(n) ? null : n;
+  };
+
+  const buildRepoFilters = useCallback(
+    () => ({
+      type: activeTypeFilter,
+      categoryIds: filters.categoryIds,
+      tagIds: filters.tagIds,
+      ingredientQuery: filters.ingredientSearch,
+      maxTotalTime: parseTime(filters.maxTotalTime),
+      maxPrepTime: parseTime(filters.maxPrepTime),
+      maxCookTime: parseTime(filters.maxCookTime),
+    }),
+    [activeTypeFilter, filters],
+  );
+
+  const decorateWithRatings = useCallback(
+    async (list: RecipeForList[]): Promise<RecipeForList[]> => {
+      if (list.length === 0) return list;
+      const summaries = await recipeRatingRepo.getSummariesForRecipes(list.map((r) => r.id));
+      return list.map((r) => ({
+        ...r,
+        averageRating: summaries.get(r.id)?.average ?? null,
+        ratingCount: summaries.get(r.id)?.count ?? 0,
+      }));
+    },
+    [recipeRatingRepo],
+  );
+
+  const reloadFromStart = useCallback(async () => {
     if (!familyId) return;
     try {
-      const list = await recipeRepo.getByFamilyIdForList(familyId);
-      const summaries = await recipeRatingRepo.getSummariesForRecipes(list.map((r) => r.id));
-      setRecipes(
-        list.map((r) => ({
-          ...r,
-          averageRating: summaries.get(r.id)?.average ?? null,
-          ratingCount: summaries.get(r.id)?.count ?? 0,
-        })),
-      );
+      const [firstPage, counts] = await Promise.all([
+        recipeRepo.getListPaginated(familyId, PAGE_SIZE, 0, buildRepoFilters()),
+        recipeRepo.getTypeCounts(familyId),
+      ]);
+      const decorated = await decorateWithRatings(firstPage);
+      setRecipes(decorated);
+      setCursor(PAGE_SIZE);
+      setHasMore(firstPage.length === PAGE_SIZE);
+      setTypeCounts(counts);
     } catch (err) {
       logger.error('RecipesScreen', 'load failed', err);
     } finally {
       setIsLoading(false);
     }
-  }, [recipeRepo, recipeRatingRepo, familyId]);
+  }, [recipeRepo, decorateWithRatings, familyId, buildRepoFilters]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMoreRef.current || !familyId) return;
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = await recipeRepo.getListPaginated(
+        familyId,
+        PAGE_SIZE,
+        cursor,
+        buildRepoFilters(),
+      );
+      const decorated = await decorateWithRatings(nextPage);
+      setRecipes((prev) => [...prev, ...decorated]);
+      setCursor(cursor + PAGE_SIZE);
+      setHasMore(nextPage.length === PAGE_SIZE);
+    } catch (err) {
+      logger.error('RecipesScreen', 'loadMore failed', err);
+    } finally {
+      setIsLoadingMore(false);
+      loadingMoreRef.current = false;
+    }
+  }, [recipeRepo, decorateWithRatings, familyId, cursor, hasMore, buildRepoFilters]);
 
   useFocusEffect(
     useCallback(() => {
-      void reload();
+      void reloadFromStart();
       if (familyId) {
         supabaseClient
           .from('families')
@@ -101,8 +139,15 @@ export default function RecipesScreen() {
             if (data) setFamilyBannerUrl(data.banner_url ?? null);
           });
       }
-    }, [reload, familyId]),
+    }, [reloadFromStart, familyId]),
   );
+
+  // Reload when filters change
+  useEffect(() => {
+    if (!familyId) return;
+    void reloadFromStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTypeFilter, filters, familyId]);
 
   // Load categories and tags for filter panel
   useEffect(() => {
@@ -112,66 +157,11 @@ export default function RecipesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
 
-  // Cross-device real-time sync
-  useRecipeRealtime(familyId, reload);
+  // Cross-device real-time sync — reload page 0 on any change
+  useRecipeRealtime(familyId, reloadFromStart);
 
-  // Client-side filtering
-  const filteredRecipes = useMemo(() => {
-    let result = recipes;
-
-    // Type filter
-    if (activeTypeFilter) {
-      result = result.filter((r) => r.type === activeTypeFilter);
-    }
-
-    // Category filter
-    if (filters.categoryIds.length > 0) {
-      result = result.filter((r) =>
-        filters.categoryIds.some((catId) => r.categoryIds.includes(catId)),
-      );
-    }
-
-    // Tag filter
-    if (filters.tagIds.length > 0) {
-      result = result.filter((r) =>
-        filters.tagIds.some((tagId) => r.tagIds.includes(tagId)),
-      );
-    }
-
-    // Ingredient search
-    const ingredientSearch = filters.ingredientSearch.trim().toLowerCase();
-    if (ingredientSearch) {
-      result = result.filter((r) =>
-        r.ingredientNames.some((name) => name.toLowerCase().includes(ingredientSearch)),
-      );
-    }
-
-    // Time filters
-    const maxTotal = filters.maxTotalTime ? parseInt(filters.maxTotalTime, 10) : null;
-    const maxPrep = filters.maxPrepTime ? parseInt(filters.maxPrepTime, 10) : null;
-    const maxCook = filters.maxCookTime ? parseInt(filters.maxCookTime, 10) : null;
-
-    if (maxTotal != null && !isNaN(maxTotal)) {
-      result = result.filter((r) => {
-        const total = (r.prepTimeMinutes ?? 0) + (r.cookTimeMinutes ?? 0);
-        return total <= maxTotal;
-      });
-    }
-
-    if (maxPrep != null && !isNaN(maxPrep)) {
-      result = result.filter((r) => (r.prepTimeMinutes ?? 0) <= maxPrep);
-    }
-
-    if (maxCook != null && !isNaN(maxCook)) {
-      result = result.filter((r) => (r.cookTimeMinutes ?? 0) <= maxCook);
-    }
-
-    return result;
-  }, [recipes, activeTypeFilter, filters]);
-
-  const sections = useMemo(() => buildSections(filteredRecipes), [filteredRecipes]);
   const activeFilterCount = countActiveFilters(filters);
-  const hasAnyFilter = activeTypeFilter !== null || activeFilterCount > 0;
+  const totalCount = Object.values(typeCounts).reduce((sum, n) => sum + n, 0);
 
   if (isLoading) {
     return (
@@ -186,19 +176,19 @@ export default function RecipesScreen() {
       <PageHeader title="Receitas" familyBannerUri={familyBannerUrl} />
 
       {/* Type filter tabs */}
-      {recipes.length > 0 && (
+      {totalCount > 0 && (
         <View style={s.typeFilterContainer}>
           <RecipeTypeFilter
-            recipes={recipes}
+            counts={typeCounts}
             activeType={activeTypeFilter}
             onSelect={setActiveTypeFilter}
           />
         </View>
       )}
 
-      {filteredRecipes.length === 0 ? (
+      {recipes.length === 0 ? (
         <View style={s.emptyContainer}>
-          {recipes.length === 0 ? (
+          {totalCount === 0 ? (
             <>
               <Text style={s.emptyText}>Ainda não tem receitas.</Text>
               <Text style={s.emptySubtext}>
@@ -220,24 +210,19 @@ export default function RecipesScreen() {
           )}
         </View>
       ) : (
-        <SectionList
-          sections={sections}
+        <FlatList
+          data={recipes}
           keyExtractor={(item) => item.id}
-          renderSectionHeader={({ section }) => (
-            <Text style={s.sectionHeader}>
-              {section.title} ({section.data.length})
-            </Text>
-          )}
           renderItem={({ item }) => (
             <RecipeCard
               recipe={item}
-              onPress={(recipe) =>
-                router.push(`/(app)/(recipes)/${recipe.id}` as any)
-              }
+              onPress={(recipe) => router.push(`/(app)/(recipes)/${recipe.id}` as any)}
             />
           )}
           contentContainerStyle={s.list}
-          stickySectionHeadersEnabled={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={s.loadingMore} /> : null}
         />
       )}
 
@@ -314,18 +299,12 @@ const s = StyleSheet.create({
     fontWeight: '600',
     marginTop: 12,
   },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#888888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 16,
-    marginBottom: 4,
-    paddingHorizontal: 16,
-  },
   list: {
     paddingBottom: 80,
+  },
+  loadingMore: {
+    marginTop: 12,
+    marginBottom: 16,
   },
   fabRow: {
     position: 'absolute',

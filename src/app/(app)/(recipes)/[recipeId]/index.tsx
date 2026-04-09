@@ -12,7 +12,8 @@ import { Snackbar } from 'react-native-paper';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { supabaseClient } from '../../../../repositories/supabase/supabase.client';
-import { RECIPE_TYPES } from '../../../../constants/recipe-defaults';
+import { DishTypeTag } from '../../../../components/common/dish-type-tag';
+import { RecipeSource } from '../../../../components/recipes/recipe-source';
 import { scaleQuantity } from '../../../../services/recipe-scaling.service';
 import { generateRecipePdf } from '../../../../services/recipe-pdf.service';
 import { ServingsScaler } from '../../../../components/recipes/servings-scaler';
@@ -178,9 +179,7 @@ export default function RecipeDetailScreen() {
         {/* Name and type */}
         <Text style={s.name}>{recipe.name}</Text>
         <View style={s.typeRatingRow}>
-          <View style={s.typeChip}>
-            <Text style={s.typeChipText}>{RECIPE_TYPES[recipe.type]}</Text>
-          </View>
+          <DishTypeTag typeKey={recipe.type} variant="filled" size="md" />
           <TouchableOpacity
             style={s.ratingTouchable}
             onPress={() => setRatingModalVisible(true)}
@@ -207,6 +206,8 @@ export default function RecipeDetailScreen() {
             ))}
           </View>
         )}
+
+        <RecipeSource source={recipe.source} sourceUrl={recipe.sourceUrl} />
 
         {/* Meta */}
         <View style={s.metaRow}>
@@ -381,21 +382,10 @@ const s = StyleSheet.create({
     gap: 6,
     marginBottom: 16,
   },
-  typeChip: {
-    backgroundColor: '#B5451B',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
   ratingTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 2,
-  },
-  typeChipText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   catChip: {
     backgroundColor: '#E8E0D8',

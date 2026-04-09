@@ -1,4 +1,4 @@
-export type RecipeType = 'meal' | 'main' | 'side' | 'soup' | 'dessert' | 'other';
+export type RecipeType = 'meal' | 'main' | 'side' | 'soup' | 'dessert' | 'other' | 'appetizer';
 export type RecipeImportMethod = 'manual' | 'url' | 'youtube' | 'ocr' | 'text';
 
 export interface Recipe {
@@ -13,6 +13,7 @@ export interface Recipe {
   imageUrl: string | null;
   importMethod: RecipeImportMethod;
   sourceUrl: string | null;
+  source: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +90,7 @@ export interface ExtractedRecipe {
   servings: number | null;
   prepTimeMinutes: number | null;
   cookTimeMinutes: number | null;
+  source?: string | null;
 }
 
 export interface CreateRecipeInput {
@@ -101,7 +103,8 @@ export interface CreateRecipeInput {
   cost?: string;
   imageUrl?: string;
   importMethod?: RecipeImportMethod;
-  sourceUrl?: string;
+  sourceUrl?: string | null;
+  source?: string | null;
   ingredients: { ingredientName: string; quantity?: string; sortOrder: number }[];
   steps: { stepNumber: number; stepText: string }[];
   categoryIds?: string[];

@@ -7,8 +7,19 @@ import type {
   SuggestionStatusHistory,
 } from "../../types/suggestion.types";
 
+export interface SuggestionListFilters {
+  search?: string;
+  status?: SuggestionStatus | null;
+}
+
 export interface ISuggestionRepository {
   getSuggestions(familyId: string): Promise<SuggestionWithMeta[]>;
+  getSuggestionsPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+    filters: SuggestionListFilters,
+  ): Promise<SuggestionWithMeta[]>;
   getSuggestionById(id: string): Promise<Suggestion | null>;
   createSuggestion(data: CreateSuggestionInput): Promise<Suggestion>;
   updateSuggestion(

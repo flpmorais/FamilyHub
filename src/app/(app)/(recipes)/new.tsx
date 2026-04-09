@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,24 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  type ListRenderItemInfo,
 } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
+import {
+  NestedReorderableList,
+  ScrollViewContainer,
+  reorderItems,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { RECIPE_TYPE_LIST, DEFAULT_SERVINGS } from '../../../constants/recipe-defaults';
 import { logger } from '../../../utils/logger';
+import { IngredientRowCell, StepRowCell } from '../../../components/recipes/recipe-row-cells';
+import { DishTypeTag } from '../../../components/common/dish-type-tag';
 import type { RecipeType, RecipeCategory, RecipeTag, ExtractedRecipe } from '../../../types/recipe.types';
 
 interface IngredientRow {
@@ -53,17 +61,45 @@ export default function NewRecipeScreen() {
   const { userAccount } = useAuthStore();
   const familyId = userAccount?.familyId;
 
-  const [name, setName] = useState('');
-  const [type, setType] = useState<RecipeType>('main');
-  const [servings, setServings] = useState(String(DEFAULT_SERVINGS));
-  const [prepTime, setPrepTime] = useState('');
-  const [cookTime, setCookTime] = useState('');
+  const parsedExtracted = useMemo<ExtractedRecipe | null>(() => {
+    if (!extractedJson) return null;
+    try {
+      return JSON.parse(extractedJson) as ExtractedRecipe;
+    } catch {
+      logger.error('NewRecipeScreen', 'Failed to parse extracted recipe data');
+      return null;
+    }
+  }, [extractedJson]);
+
+  const [name, setName] = useState(() => parsedExtracted?.name ?? '');
+  const [type, setType] = useState<RecipeType>(() => parsedExtracted?.type ?? 'main');
+  const [servings, setServings] = useState(() =>
+    parsedExtracted?.servings != null ? String(parsedExtracted.servings) : String(DEFAULT_SERVINGS),
+  );
+  const [prepTime, setPrepTime] = useState(() =>
+    parsedExtracted?.prepTimeMinutes != null ? String(parsedExtracted.prepTimeMinutes) : '',
+  );
+  const [cookTime, setCookTime] = useState(() =>
+    parsedExtracted?.cookTimeMinutes != null ? String(parsedExtracted.cookTimeMinutes) : '',
+  );
   const [cost, setCost] = useState('');
+  const [source, setSource] = useState(() => parsedExtracted?.source ?? '');
+  const [link, setLink] = useState(() => sourceUrl ?? '');
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    { key: nextKey(), name: '', quantity: '' },
-  ]);
-  const [steps, setSteps] = useState<StepRow[]>([{ key: nextKey(), text: '' }]);
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(() =>
+    parsedExtracted && parsedExtracted.ingredients.length > 0
+      ? parsedExtracted.ingredients.map((i) => ({
+          key: nextKey(),
+          name: i.name,
+          quantity: i.quantity ?? '',
+        }))
+      : [{ key: nextKey(), name: '', quantity: '' }],
+  );
+  const [steps, setSteps] = useState<StepRow[]>(() =>
+    parsedExtracted && parsedExtracted.steps.length > 0
+      ? parsedExtracted.steps.map((s) => ({ key: nextKey(), text: s }))
+      : [{ key: nextKey(), text: '' }],
+  );
   const [allCategories, setAllCategories] = useState<RecipeCategory[]>([]);
   const [allTags, setAllTags] = useState<RecipeTag[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -82,72 +118,88 @@ export default function NewRecipeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
 
-  // Pre-populate from imported data
-  useEffect(() => {
-    if (!extractedJson) return;
-    try {
-      const extracted: ExtractedRecipe = JSON.parse(extractedJson);
-      setName(extracted.name);
-      setType(extracted.type ?? 'main');
-      setServings(extracted.servings != null ? String(extracted.servings) : String(DEFAULT_SERVINGS));
-      setPrepTime(extracted.prepTimeMinutes != null ? String(extracted.prepTimeMinutes) : '');
-      setCookTime(extracted.cookTimeMinutes != null ? String(extracted.cookTimeMinutes) : '');
-      setIngredients(
-        extracted.ingredients.length > 0
-          ? extracted.ingredients.map((i) => ({ key: nextKey(), name: i.name, quantity: i.quantity ?? '' }))
-          : [{ key: nextKey(), name: '', quantity: '' }],
-      );
-      setSteps(
-        extracted.steps.length > 0
-          ? extracted.steps.map((s) => ({ key: nextKey(), text: s }))
-          : [{ key: nextKey(), text: '' }],
-      );
-    } catch {
-      logger.error('NewRecipeScreen', 'Failed to parse extracted recipe data');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   function showError(msg: string) {
     setErrorMsg(msg);
     setErrorVisible(true);
   }
 
   // Ingredients helpers
-  function addIngredient() {
-    setIngredients([...ingredients, { key: nextKey(), name: '', quantity: '' }]);
-  }
+  const addIngredient = useCallback(() => {
+    setIngredients((prev) => [...prev, { key: nextKey(), name: '', quantity: '' }]);
+  }, []);
 
-  function removeIngredient(index: number) {
-    if (ingredients.length <= 1) return;
-    setIngredients(ingredients.filter((_, i) => i !== index));
-  }
+  const removeIngredient = useCallback((index: number) => {
+    setIngredients((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }, []);
 
-  function updateIngredient(
-    index: number,
-    field: 'name' | 'quantity',
-    value: string,
-  ) {
-    const updated = [...ingredients];
-    updated[index] = { ...updated[index], [field]: value };
-    setIngredients(updated);
-  }
+  const updateIngredientName = useCallback((index: number, value: string) => {
+    setIngredients((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], name: value };
+      return updated;
+    });
+  }, []);
+
+  const updateIngredientQuantity = useCallback((index: number, value: string) => {
+    setIngredients((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], quantity: value };
+      return updated;
+    });
+  }, []);
+
+  const handleIngredientReorder = useCallback(({ from, to }: ReorderableListReorderEvent) => {
+    setIngredients((prev) => reorderItems(prev, from, to));
+  }, []);
+
+  const renderIngredient = useCallback(
+    ({ item, index }: ListRenderItemInfo<IngredientRow>) => (
+      <IngredientRowCell
+        index={index}
+        name={item.name}
+        quantity={item.quantity}
+        showRemove={ingredients.length > 1}
+        onChangeName={updateIngredientName}
+        onChangeQuantity={updateIngredientQuantity}
+        onRemove={removeIngredient}
+      />
+    ),
+    [ingredients.length, updateIngredientName, updateIngredientQuantity, removeIngredient],
+  );
 
   // Steps helpers
-  function addStep() {
-    setSteps([...steps, { key: nextKey(), text: '' }]);
-  }
+  const addStep = useCallback(() => {
+    setSteps((prev) => [...prev, { key: nextKey(), text: '' }]);
+  }, []);
 
-  function removeStep(index: number) {
-    if (steps.length <= 1) return;
-    setSteps(steps.filter((_, i) => i !== index));
-  }
+  const removeStep = useCallback((index: number) => {
+    setSteps((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }, []);
 
-  function updateStep(index: number, value: string) {
-    const updated = [...steps];
-    updated[index] = { ...updated[index], text: value };
-    setSteps(updated);
-  }
+  const updateStepText = useCallback((index: number, value: string) => {
+    setSteps((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], text: value };
+      return updated;
+    });
+  }, []);
+
+  const handleStepReorder = useCallback(({ from, to }: ReorderableListReorderEvent) => {
+    setSteps((prev) => reorderItems(prev, from, to));
+  }, []);
+
+  const renderStep = useCallback(
+    ({ item, index }: ListRenderItemInfo<StepRow>) => (
+      <StepRowCell
+        index={index}
+        text={item.text}
+        showRemove={steps.length > 1}
+        onChangeText={updateStepText}
+        onRemove={removeStep}
+      />
+    ),
+    [steps.length, updateStepText, removeStep],
+  );
 
   // Image picker
   async function pickImage() {
@@ -227,7 +279,10 @@ export default function NewRecipeScreen() {
 
   // Validation and save
   async function handleSave() {
-    if (!familyId) return;
+    if (!familyId) {
+      showError('Sessão expirada. Inicie sessão novamente.');
+      return;
+    }
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -259,7 +314,8 @@ export default function NewRecipeScreen() {
         cost: cost.trim() || undefined,
         imageUrl: imageUri ?? undefined,
         importMethod: isImport ? ((importMethodParam as any) ?? 'url') : undefined,
-        sourceUrl: isImport ? (sourceUrl ?? undefined) : undefined,
+        sourceUrl: link.trim() ? link.trim() : null,
+        source: source.trim() ? source.trim() : null,
         ingredients: validIngredients.map((ing, i) => ({
           ingredientName: ing.name.trim(),
           quantity: ing.quantity.trim() || undefined,
@@ -272,11 +328,7 @@ export default function NewRecipeScreen() {
         categoryIds: selectedCategoryIds.length > 0 ? selectedCategoryIds : undefined,
         tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
       });
-      if (isImport) {
-        router.dismiss(2);
-      } else {
-        router.back();
-      }
+      router.back();
     } catch (err) {
       logger.error('NewRecipeScreen', 'save failed', err);
       showError('Não foi possível criar a receita');
@@ -299,13 +351,7 @@ export default function NewRecipeScreen() {
         <View style={{ width: 60 }} />
       </View>
 
-      {isImport && sourceUrl ? (
-        <View style={s.sourceBar}>
-          <Text style={s.sourceText} numberOfLines={1}>Importado de: {sourceUrl}</Text>
-        </View>
-      ) : null}
-
-      <NestableScrollContainer style={s.flex} contentContainerStyle={s.form}>
+      <ScrollViewContainer style={s.flex} contentContainerStyle={s.form}>
         {/* Name */}
         <Text style={s.label}>Nome *</Text>
         <TextInput
@@ -316,28 +362,43 @@ export default function NewRecipeScreen() {
           placeholderTextColor="#CCCCCC"
         />
 
+        {/* Source + Link */}
+        <Text style={s.label}>Fonte</Text>
+        <TextInput
+          style={s.input}
+          value={source}
+          onChangeText={setSource}
+          placeholder="Ex: Panelinha"
+          placeholderTextColor="#CCCCCC"
+        />
+
+        <Text style={s.label}>Link</Text>
+        <TextInput
+          style={s.input}
+          value={link}
+          onChangeText={setLink}
+          placeholder="https://..."
+          placeholderTextColor="#CCCCCC"
+          autoCapitalize="none"
+          keyboardType="url"
+        />
+
         {/* Type */}
         <Text style={s.label}>Tipo *</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={s.typeScroll}
+          contentContainerStyle={s.typeScrollContent}
         >
           {RECIPE_TYPE_LIST.map((t) => (
-            <TouchableOpacity
+            <DishTypeTag
               key={t.key}
-              style={[s.typeChip, type === t.key && s.typeChipActive]}
+              typeKey={t.key}
+              variant={type === t.key ? 'filled' : 'outlined'}
+              size="md"
               onPress={() => setType(t.key)}
-            >
-              <Text
-                style={[
-                  s.typeChipText,
-                  type === t.key && s.typeChipTextActive,
-                ]}
-              >
-                {t.label}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
         </ScrollView>
 
@@ -457,43 +518,12 @@ export default function NewRecipeScreen() {
 
         {/* Ingredients */}
         <Text style={s.sectionTitle}>Ingredientes *</Text>
-        <NestableDraggableFlatList
+        <NestedReorderableList
           data={ingredients}
           keyExtractor={(item) => item.key}
-          onDragEnd={({ data }) => setIngredients(data)}
-          renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<IngredientRow>) => {
-            const i = getIndex() ?? 0;
-            return (
-              <ScaleDecorator>
-                <View style={[s.dynamicRow, isActive && s.dynamicRowActive]}>
-                  <TouchableOpacity onLongPress={drag} style={s.dragHandle}>
-                    <Text style={s.dragHandleText}>{'\u2261'}</Text>
-                  </TouchableOpacity>
-                  <View style={s.dynamicRowInputs}>
-                    <TextInput
-                      style={[s.input, s.ingredientName]}
-                      value={item.name}
-                      onChangeText={(v) => updateIngredient(i, 'name', v)}
-                      placeholder="Ingrediente"
-                      placeholderTextColor="#CCCCCC"
-                    />
-                    <TextInput
-                      style={[s.input, s.ingredientQty]}
-                      value={item.quantity}
-                      onChangeText={(v) => updateIngredient(i, 'quantity', v)}
-                      placeholder="Qtd"
-                      placeholderTextColor="#CCCCCC"
-                    />
-                  </View>
-                  {ingredients.length > 1 && (
-                    <TouchableOpacity onPress={() => removeIngredient(i)}>
-                      <Text style={s.removeBtn}>✕</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </ScaleDecorator>
-            );
-          }}
+          onReorder={handleIngredientReorder}
+          renderItem={renderIngredient}
+          shouldUpdateActiveItem
         />
         <TouchableOpacity style={s.addRowBtn} onPress={addIngredient}>
           <Text style={s.addRowBtnText}>+ Adicionar ingrediente</Text>
@@ -501,38 +531,12 @@ export default function NewRecipeScreen() {
 
         {/* Steps */}
         <Text style={s.sectionTitle}>Passos *</Text>
-        <NestableDraggableFlatList
+        <NestedReorderableList
           data={steps}
           keyExtractor={(item) => item.key}
-          onDragEnd={({ data }) => setSteps(data)}
-          renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<StepRow>) => {
-            const i = getIndex() ?? 0;
-            return (
-              <ScaleDecorator>
-                <View style={[s.dynamicRow, isActive && s.dynamicRowActive]}>
-                  <TouchableOpacity onLongPress={drag} style={s.dragHandle}>
-                    <Text style={s.dragHandleText}>{'\u2261'}</Text>
-                  </TouchableOpacity>
-                  <View style={s.stepNumberContainer}>
-                    <Text style={s.stepNumber}>{i + 1}.</Text>
-                  </View>
-                  <TextInput
-                    style={[s.input, s.stepInput]}
-                    value={item.text}
-                    onChangeText={(v) => updateStep(i, v)}
-                    placeholder={`Passo ${i + 1}`}
-                    placeholderTextColor="#CCCCCC"
-                    multiline
-                  />
-                  {steps.length > 1 && (
-                    <TouchableOpacity onPress={() => removeStep(i)}>
-                      <Text style={s.removeBtn}>✕</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </ScaleDecorator>
-            );
-          }}
+          onReorder={handleStepReorder}
+          renderItem={renderStep}
+          shouldUpdateActiveItem
         />
         <TouchableOpacity style={s.addRowBtn} onPress={addStep}>
           <Text style={s.addRowBtnText}>+ Adicionar passo</Text>
@@ -561,7 +565,7 @@ export default function NewRecipeScreen() {
         </View>
 
         <View style={{ height: 40 }} />
-      </NestableScrollContainer>
+      </ScrollViewContainer>
 
       {/* Inline Category Modal */}
       <Modal
@@ -667,8 +671,6 @@ const s = StyleSheet.create({
     fontWeight: '700',
     color: '#1A1A1A',
   },
-  sourceBar: { backgroundColor: '#F5F5F5', paddingHorizontal: 16, paddingVertical: 8 },
-  sourceText: { fontSize: 12, color: '#888888' },
   form: {
     padding: 16,
   },
@@ -692,23 +694,10 @@ const s = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
   },
-  typeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#F5F5F5',
-    marginRight: 8,
-  },
-  typeChipActive: {
-    backgroundColor: '#B5451B',
-  },
-  typeChipText: {
-    fontSize: 13,
-    color: '#666666',
-    fontWeight: '600',
-  },
-  typeChipTextActive: {
-    color: '#FFFFFF',
+  typeScrollContent: {
+    gap: 8,
+    paddingRight: 16,
+    alignItems: 'center',
   },
   row: {
     flexDirection: 'row',
@@ -723,54 +712,6 @@ const s = StyleSheet.create({
     color: '#1A1A1A',
     marginTop: 20,
     marginBottom: 8,
-  },
-  dynamicRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  dynamicRowActive: {
-    backgroundColor: '#FFF5F0',
-    borderRadius: 8,
-    elevation: 4,
-  },
-  dynamicRowInputs: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dragHandle: {
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-  },
-  dragHandleText: {
-    fontSize: 20,
-    color: '#AAAAAA',
-  },
-  ingredientName: {
-    flex: 2,
-  },
-  ingredientQty: {
-    flex: 1,
-  },
-  stepNumberContainer: {
-    width: 24,
-    alignItems: 'center',
-  },
-  stepNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#888888',
-  },
-  stepInput: {
-    flex: 1,
-  },
-  removeBtn: {
-    fontSize: 16,
-    color: '#D32F2F',
-    paddingHorizontal: 4,
   },
   addRowBtn: {
     paddingVertical: 10,

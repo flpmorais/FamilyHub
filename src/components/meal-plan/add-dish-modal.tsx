@@ -12,11 +12,10 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Icon } from 'react-native-paper';
 import { useRepository } from '../../hooks/use-repository';
 import { useAuthStore } from '../../stores/auth.store';
-import { RECIPE_TYPES, RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
-import { DISH_CATEGORY_STYLES } from '../../constants/dish-category-styles';
+import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
+import { DishTypeTag } from '../common/dish-type-tag';
 import { logger } from '../../utils/logger';
 import type { Recipe, RecipeType } from '../../types/recipe.types';
 import type { MealEntryDish, CreateDishInput } from '../../types/meal-plan.types';
@@ -163,10 +162,7 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
           renderItem={({ item }) => (
             <TouchableOpacity style={s.listRow} onPress={() => handleSelect(item)}>
               <Text style={s.listName} numberOfLines={1}>{item.name}</Text>
-              <View style={[s.badge, { backgroundColor: DISH_CATEGORY_STYLES[item.type]?.color ?? '#888' }]}>
-                <Icon source={DISH_CATEGORY_STYLES[item.type]?.icon ?? 'food'} size={10} color="#FFF" />
-                <Text style={s.badgeText}>{RECIPE_TYPES[item.type]}</Text>
-              </View>
+              <DishTypeTag typeKey={item.type} variant="filled" size="sm" />
             </TouchableOpacity>
           )}
           contentContainerStyle={s.listContent}
@@ -214,20 +210,15 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
 
       <Text style={[s.fieldLabel, { marginTop: 16 }]}>Categoria</Text>
       <View style={s.categoryRow}>
-        {RECIPE_TYPE_LIST.map((t) => {
-          const catStyle = DISH_CATEGORY_STYLES[t.key];
-          const selected = category === t.key;
-          return (
-            <TouchableOpacity
-              key={t.key}
-              style={[s.categoryChip, selected && { backgroundColor: catStyle.color, borderColor: catStyle.color }]}
-              onPress={() => setCategory(t.key)}
-            >
-              <Icon source={catStyle.icon} size={12} color={selected ? '#FFF' : catStyle.color} />
-              <Text style={[s.categoryChipText, selected && { color: '#FFF' }]}>{t.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {RECIPE_TYPE_LIST.map((t) => (
+          <DishTypeTag
+            key={t.key}
+            typeKey={t.key}
+            variant={category === t.key ? 'filled' : 'outlined'}
+            size="md"
+            onPress={() => setCategory(t.key)}
+          />
+        ))}
       </View>
 
       <TouchableOpacity style={s.saveBtn} onPress={handleSave}>
@@ -273,14 +264,10 @@ function RestoTab({ familyId, mealDate, onSelect, onClose }: { familyId: string;
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const display = getDishDisplay(item);
-            const catStyle = DISH_CATEGORY_STYLES[display.category] ?? DISH_CATEGORY_STYLES.other;
             return (
               <TouchableOpacity style={s.listRow} onPress={() => handleSelect(item)}>
-                <Icon source={catStyle.icon} size={16} color={catStyle.color} />
                 <Text style={s.listName} numberOfLines={1}>{display.name}</Text>
-                <View style={[s.badge, { backgroundColor: catStyle.color }]}>
-                  <Text style={s.badgeText}>{catStyle.label}</Text>
-                </View>
+                <DishTypeTag typeKey={display.category} variant="filled" size="sm" />
               </TouchableOpacity>
             );
           }}
@@ -335,7 +322,6 @@ function FridgeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
           data={leftovers}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
-            const catStyle = DISH_CATEGORY_STYLES[item.type as RecipeType] ?? DISH_CATEGORY_STYLES.other;
             const days = daysLeft(item.expiryDate);
             const remaining = item.totalDoses - item.dosesEaten - item.dosesThrownOut;
             return (
@@ -344,10 +330,7 @@ function FridgeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
                   <Text style={s.listName} numberOfLines={1}>{item.name}</Text>
                   <Text style={s.listMeta}>{remaining} doses · {days}d restantes</Text>
                 </View>
-                <View style={[s.badge, { backgroundColor: catStyle.color }]}>
-                  <Icon source={catStyle.icon} size={10} color="#FFF" />
-                  <Text style={s.badgeText}>{catStyle.label}</Text>
-                </View>
+                <DishTypeTag typeKey={item.type as RecipeType} variant="filled" size="sm" />
               </TouchableOpacity>
             );
           }}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,14 @@ import {
   Alert,
   Switch,
   FlatList,
+  type ListRenderItemInfo,
 } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import ReorderableList, {
+  reorderItems,
+  useIsActive,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon, Snackbar } from 'react-native-paper';
 import { router } from 'expo-router';
@@ -46,6 +52,33 @@ const TAG_COLORS = [
   '#607D8B',
   '#888888',
 ];
+
+interface TagDraggableRowProps {
+  tag: Tag;
+  onOpenEdit: (tag: Tag) => void;
+}
+
+const TagDraggableRow = memo(function TagDraggableRow({ tag, onOpenEdit }: TagDraggableRowProps) {
+  const drag = useReorderableDrag();
+  const isActive = useIsActive();
+
+  return (
+    <TouchableOpacity
+      style={[s.row, !tag.active && s.rowInactive, isActive && s.rowDragging]}
+      onPress={() => onOpenEdit(tag)}
+      onLongPress={drag}
+    >
+      <View style={s.rowIconWrap}>
+        <Icon source={tag.icon} size={20} color={tag.color} />
+      </View>
+      <Text style={[s.rowName, !tag.active && s.rowNameInactive]}>{tag.name}</Text>
+      {!tag.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
+      <TouchableOpacity onPressIn={drag} disabled={isActive}>
+        <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
 
 export default function TagsScreen() {
   const family = useFamily();
@@ -181,9 +214,9 @@ export default function TagsScreen() {
     ]);
   }
 
-  const handleDragEnd = useCallback(
-    async ({ data: reorderedData }: { data: Tag[] }) => {
-      // Update local state immediately for responsiveness
+  const handleReorder = useCallback(
+    async ({ from, to }: ReorderableListReorderEvent) => {
+      const reorderedData = reorderItems(filteredTags, from, to);
       setTags(reorderedData);
 
       // Persist new sort orders for items that changed position
@@ -204,27 +237,12 @@ export default function TagsScreen() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tagRepo]
+    [tagRepo, filteredTags]
   );
 
   const renderDraggableItem = useCallback(
-    ({ item: tag, drag, isActive }: RenderItemParams<Tag>) => (
-      <ScaleDecorator>
-        <TouchableOpacity
-          style={[s.row, !tag.active && s.rowInactive, isActive && s.rowDragging]}
-          onPress={() => openEdit(tag)}
-          onLongPress={drag}
-        >
-          <View style={s.rowIconWrap}>
-            <Icon source={tag.icon} size={20} color={tag.color} />
-          </View>
-          <Text style={[s.rowName, !tag.active && s.rowNameInactive]}>{tag.name}</Text>
-          {!tag.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
-          <TouchableOpacity onPressIn={drag} disabled={isActive}>
-            <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </ScaleDecorator>
+    ({ item: tag }: ListRenderItemInfo<Tag>) => (
+      <TagDraggableRow tag={tag} onOpenEdit={openEdit} />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -273,13 +291,14 @@ export default function TagsScreen() {
       <View style={s.container}>
         <PageHeader title="Etiquetas" showBack familyBannerUri={family?.bannerUrl} />
         {isDragEnabled ? (
-          <DraggableFlatList
+          <ReorderableList
             data={filteredTags}
             keyExtractor={(item) => item.id}
             renderItem={renderDraggableItem}
-            onDragEnd={handleDragEnd}
+            onReorder={handleReorder}
             ListHeaderComponent={ListHeader}
             contentContainerStyle={s.listContent}
+            shouldUpdateActiveItem
           />
         ) : (
           <FlatList

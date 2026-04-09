@@ -61,7 +61,12 @@ serve(async (req: Request) => {
       case "add": {
         if (existing && !existing.is_ticked) break; // Already on list
         if (existing && existing.is_ticked) {
-          const updates: Record<string, unknown> = { is_ticked: false, is_urgent: isUrgent ?? false, updated_at: ts };
+          const updates: Record<string, unknown> = {
+            is_ticked: false,
+            checked_at: null,
+            is_urgent: isUrgent ?? false,
+            updated_at: ts,
+          };
           if (quantityNote) updates.quantity_note = quantityNote;
           await supabase.from("shopping_items").update(updates).eq("id", existing.id);
           break;
@@ -84,7 +89,11 @@ serve(async (req: Request) => {
       }
       case "untick": {
         if (existing) {
-          const updates: Record<string, unknown> = { is_ticked: false, updated_at: ts };
+          const updates: Record<string, unknown> = {
+            is_ticked: false,
+            checked_at: null,
+            updated_at: ts,
+          };
           if (quantityNote) updates.quantity_note = quantityNote;
           if (isUrgent !== undefined) updates.is_urgent = isUrgent;
           await supabase.from("shopping_items").update(updates).eq("id", existing.id);
@@ -93,7 +102,10 @@ serve(async (req: Request) => {
       }
       case "tick": {
         if (existing) {
-          await supabase.from("shopping_items").update({ is_ticked: true, updated_at: ts }).eq("id", existing.id);
+          await supabase
+            .from("shopping_items")
+            .update({ is_ticked: true, checked_at: ts, updated_at: ts })
+            .eq("id", existing.id);
         }
         break;
       }

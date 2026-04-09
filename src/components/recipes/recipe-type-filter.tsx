@@ -1,14 +1,16 @@
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
-import type { RecipeType, RecipeForList } from '../../types/recipe.types';
+import { DishTypeTag } from '../common/dish-type-tag';
+import type { RecipeType } from '../../types/recipe.types';
 
 interface RecipeTypeFilterProps {
-  recipes: RecipeForList[];
+  counts: Record<string, number>;
   activeType: RecipeType | null;
   onSelect: (type: RecipeType | null) => void;
 }
 
-export function RecipeTypeFilter({ recipes, activeType, onSelect }: RecipeTypeFilterProps) {
+export function RecipeTypeFilter({ counts, activeType, onSelect }: RecipeTypeFilterProps) {
+  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
   return (
     <ScrollView
       horizontal
@@ -17,26 +19,24 @@ export function RecipeTypeFilter({ recipes, activeType, onSelect }: RecipeTypeFi
       contentContainerStyle={s.content}
     >
       <TouchableOpacity
-        style={[s.chip, !activeType && s.chipActive]}
+        style={[s.allChip, !activeType && s.allChipActive]}
         onPress={() => onSelect(null)}
       >
-        <Text style={[s.chipText, !activeType && s.chipTextActive]}>
-          Todos ({recipes.length})
-        </Text>
+        <Text style={[s.allChipText, !activeType && s.allChipTextActive]}>Todos ({total})</Text>
       </TouchableOpacity>
       {RECIPE_TYPE_LIST.map((t) => {
-        const count = recipes.filter((r) => r.type === t.key).length;
+        const count = counts[t.key] ?? 0;
         if (count === 0) return null;
         return (
-          <TouchableOpacity
-            key={t.key}
-            style={[s.chip, activeType === t.key && s.chipActive]}
-            onPress={() => onSelect(t.key)}
-          >
-            <Text style={[s.chipText, activeType === t.key && s.chipTextActive]}>
-              {t.label} ({count})
-            </Text>
-          </TouchableOpacity>
+          <View key={t.key}>
+            <DishTypeTag
+              typeKey={t.key}
+              variant={activeType === t.key ? 'filled' : 'outlined'}
+              size="md"
+              count={count}
+              onPress={() => onSelect(t.key)}
+            />
+          </View>
         );
       })}
     </ScrollView>
@@ -52,21 +52,21 @@ const s = StyleSheet.create({
     gap: 8,
     alignItems: 'center',
   },
-  chip: {
+  allChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
     backgroundColor: '#F5F5F5',
   },
-  chipActive: {
+  allChipActive: {
     backgroundColor: '#B5451B',
   },
-  chipText: {
+  allChipText: {
     fontSize: 13,
     color: '#666666',
     fontWeight: '600',
   },
-  chipTextActive: {
+  allChipTextActive: {
     color: '#FFFFFF',
   },
 });

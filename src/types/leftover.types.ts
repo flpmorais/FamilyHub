@@ -1,5 +1,12 @@
 export type LeftoverStatus = "active" | "closed";
-export type LeftoverType = "meal" | "main" | "side" | "soup" | "dessert" | "other";
+export type LeftoverType =
+  | "meal"
+  | "main"
+  | "side"
+  | "soup"
+  | "dessert"
+  | "other"
+  | "appetizer";
 
 export interface Leftover {
   id: string;

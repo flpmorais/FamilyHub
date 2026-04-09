@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   ShoppingEditForm,
 } from "../../../components/shopping";
 import { OTHER_CATEGORY_NAME } from "../../../constants/shopping-defaults";
+import { PAGE_SIZE } from "../../../constants/pagination";
 import { logger } from "../../../utils/logger";
 import { PageHeader } from "../../../components/page-header";
 import { supabaseClient } from "../../../repositories/supabase/supabase.client";
@@ -29,18 +30,16 @@ interface ShoppingSection {
 }
 
 function buildSections(
-  items: ShoppingItem[],
+  uncheckedItems: ShoppingItem[],
+  checkedItems: ShoppingItem[],
   categories: ShoppingCategory[],
 ): ShoppingSection[] {
   const categoryIds = new Set(categories.map((c) => c.id));
   const uncheckedGrouped = new Map<string, ShoppingItem[]>();
   const uncheckedOrphaned: ShoppingItem[] = [];
-  const checked: ShoppingItem[] = [];
 
-  for (const item of items) {
-    if (item.isTicked) {
-      checked.push(item);
-    } else if (item.categoryId && categoryIds.has(item.categoryId)) {
+  for (const item of uncheckedItems) {
+    if (item.categoryId && categoryIds.has(item.categoryId)) {
       const list = uncheckedGrouped.get(item.categoryId) ?? [];
       list.push(item);
       uncheckedGrouped.set(item.categoryId, list);
@@ -52,7 +51,7 @@ function buildSections(
   const sortByUrgent = (a: ShoppingItem, b: ShoppingItem) =>
     Number(b.isUrgent) - Number(a.isUrgent);
 
-  const sections = categories
+  const sections: ShoppingSection[] = categories
     .filter((c) => uncheckedGrouped.has(c.id))
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((c) => ({
@@ -61,7 +60,6 @@ function buildSections(
       data: (uncheckedGrouped.get(c.id) ?? []).sort(sortByUrgent),
     }));
 
-  // Add orphaned unchecked items under "Outros"
   if (uncheckedOrphaned.length > 0) {
     const otherSection = sections.find((s) => s.title === OTHER_CATEGORY_NAME);
     if (otherSection) {
@@ -75,18 +73,11 @@ function buildSections(
     }
   }
 
-  // Checked items go into a single "Fechados" section at the bottom
-  if (checked.length > 0) {
-    const catOrder = new Map(categories.map((c) => [c.id, c.sortOrder]));
-    checked.sort((a, b) => {
-      const orderA = catOrder.get(a.categoryId) ?? 9999;
-      const orderB = catOrder.get(b.categoryId) ?? 9999;
-      return orderA - orderB || a.name.localeCompare(b.name);
-    });
+  if (checkedItems.length > 0) {
     sections.push({
       title: "Fechados",
       categoryId: "__fechados",
-      data: checked,
+      data: checkedItems,
     });
   }
 
@@ -99,7 +90,11 @@ export default function ShoppingScreen() {
   const classificationRepo = useRepository("classification");
   const { userAccount } = useAuthStore();
 
-  const [items, setItems] = useState<ShoppingItem[]>([]);
+  const [uncheckedItems, setUncheckedItems] = useState<ShoppingItem[]>([]);
+  const [checkedItems, setCheckedItems] = useState<ShoppingItem[]>([]);
+  const [checkedCursor, setCheckedCursor] = useState(0);
+  const [hasMoreChecked, setHasMoreChecked] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [categories, setCategories] = useState<ShoppingCategory[]>([]);
   const [familyBannerUrl, setFamilyBannerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,17 +103,22 @@ export default function ShoppingScreen() {
   const [successMsg, setSuccessMsg] = useState("");
   const [successVisible, setSuccessVisible] = useState(false);
   const [snackbarColor, setSnackbarColor] = useState("#388E3C");
+  const loadingMoreRef = useRef(false);
 
   const familyId = userAccount?.familyId;
 
   const reload = useCallback(async () => {
     if (!familyId) return;
     try {
-      const [itemList, catList] = await Promise.all([
-        shoppingRepo.getItems(familyId),
+      const [unchecked, checked, catList] = await Promise.all([
+        shoppingRepo.getUnchecked(familyId),
+        shoppingRepo.getCheckedPaginated(familyId, PAGE_SIZE, 0),
         categoryRepo.getAll(familyId),
       ]);
-      setItems(itemList);
+      setUncheckedItems(unchecked);
+      setCheckedItems(checked);
+      setCheckedCursor(PAGE_SIZE);
+      setHasMoreChecked(checked.length === PAGE_SIZE);
       setCategories(catList);
     } catch (err) {
       logger.error("ShoppingScreen", "load failed", err);
@@ -136,6 +136,27 @@ export default function ShoppingScreen() {
       }
     }, [reload, familyId])
   );
+
+  async function loadMoreChecked() {
+    if (!hasMoreChecked || loadingMoreRef.current || !familyId) return;
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = await shoppingRepo.getCheckedPaginated(
+        familyId,
+        PAGE_SIZE,
+        checkedCursor,
+      );
+      setCheckedItems((prev) => [...prev, ...nextPage]);
+      setCheckedCursor(checkedCursor + PAGE_SIZE);
+      setHasMoreChecked(nextPage.length === PAGE_SIZE);
+    } catch (err) {
+      logger.error("ShoppingScreen", "loadMoreChecked failed", err);
+    } finally {
+      setIsLoadingMore(false);
+      loadingMoreRef.current = false;
+    }
+  }
 
   function showSuccess(msg: string) {
     setSnackbarColor("#388E3C");
@@ -204,20 +225,35 @@ export default function ShoppingScreen() {
   }
 
   async function handleToggle(item: ShoppingItem) {
-    try {
-      if (item.isTicked) {
+    if (item.isTicked) {
+      // Untick: move from checked → unchecked
+      try {
         await shoppingRepo.untickItem(item.id);
-      } else {
-        await shoppingRepo.tickItem(item.id);
+        const nowIso = new Date().toISOString();
+        setCheckedItems((prev) => prev.filter((i) => i.id !== item.id));
+        setUncheckedItems((prev) => [
+          ...prev,
+          { ...item, isTicked: false, checkedAt: null, updatedAt: nowIso },
+        ]);
+      } catch (err) {
+        logger.error("ShoppingScreen", "untick failed", err);
+        showError("Erro ao atualizar item");
+        await reload();
       }
-      // Optimistic: update local state immediately
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, isTicked: !i.isTicked } : i,
-        ),
-      );
+      return;
+    }
+
+    // Tick: move from unchecked → top of checked
+    try {
+      await shoppingRepo.tickItem(item.id);
+      const nowIso = new Date().toISOString();
+      setUncheckedItems((prev) => prev.filter((i) => i.id !== item.id));
+      setCheckedItems((prev) => [
+        { ...item, isTicked: true, checkedAt: nowIso, updatedAt: nowIso },
+        ...prev,
+      ]);
     } catch (err) {
-      logger.error("ShoppingScreen", "toggle failed", err);
+      logger.error("ShoppingScreen", "tick failed", err);
       showError("Erro ao atualizar item");
       await reload();
     }
@@ -226,11 +262,10 @@ export default function ShoppingScreen() {
   async function handleToggleUrgent(item: ShoppingItem) {
     try {
       await shoppingRepo.setUrgent(item.id, !item.isUrgent);
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, isUrgent: !i.isUrgent } : i,
-        ),
-      );
+      const update = (list: ShoppingItem[]) =>
+        list.map((i) => (i.id === item.id ? { ...i, isUrgent: !i.isUrgent } : i));
+      setUncheckedItems((prev) => update(prev));
+      setCheckedItems((prev) => update(prev));
     } catch (err) {
       logger.error("ShoppingScreen", "toggleUrgent failed", err);
       showError("Erro ao atualizar urgência");
@@ -263,7 +298,8 @@ export default function ShoppingScreen() {
     }
   }
 
-  const sections = buildSections(items, categories);
+  const sections = buildSections(uncheckedItems, checkedItems, categories);
+  const isEmpty = uncheckedItems.length === 0 && checkedItems.length === 0;
 
   if (isLoading) {
     return (
@@ -279,7 +315,7 @@ export default function ShoppingScreen() {
 
       <View style={{ height: 16 }} />
 
-      {items.length === 0 ? (
+      {isEmpty ? (
         <Text style={s.empty}>Lista de compras vazia.</Text>
       ) : (
         <SectionList
@@ -305,6 +341,11 @@ export default function ShoppingScreen() {
           )}
           contentContainerStyle={s.list}
           stickySectionHeadersEnabled={false}
+          onEndReached={loadMoreChecked}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isLoadingMore ? <ActivityIndicator style={s.loadingMore} /> : null
+          }
         />
       )}
 
@@ -379,6 +420,10 @@ const s = StyleSheet.create({
   list: {
     paddingHorizontal: 16,
     paddingBottom: 80,
+  },
+  loadingMore: {
+    marginTop: 12,
+    marginBottom: 16,
   },
   fab: {
     position: "absolute",

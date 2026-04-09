@@ -189,7 +189,7 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     }
   }
 
-  async getAll(
+  async getClosedPaginated(
     familyId: string,
     limit: number,
     offset: number,
@@ -199,14 +199,14 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
         .from('leftovers')
         .select('*')
         .eq('family_id', familyId)
-        .order('status', { ascending: true })
-        .order('expiry_date', { ascending: true })
+        .eq('status', 'closed')
+        .order('updated_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
       if (error) throw error;
       return (data ?? []).map(mapLeftover);
     } catch (err) {
-      logger.error("LeftoverRepository", "getAll failed", err);
+      logger.error("LeftoverRepository", "getClosedPaginated failed", err);
       throw new Error(
         `Erro ao carregar restos: ${err instanceof Error ? err.message : "Erro"}`,
       );

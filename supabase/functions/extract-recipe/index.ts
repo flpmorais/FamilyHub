@@ -50,6 +50,50 @@ function stripHtml(html: string): string {
     .slice(0, MAX_TEXT_LENGTH);
 }
 
+// ── Source (site name) extraction ─────────────────────────────────────────
+
+function extractSourceName(html: string, url?: string): string | null {
+  // Prefer og:site_name, then application-name, then <title>, then hostname.
+  const metaSiteName = html.match(
+    /<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i,
+  );
+  if (metaSiteName?.[1]) return decodeHtmlEntities(metaSiteName[1].trim());
+
+  const appName = html.match(
+    /<meta[^>]+name=["']application-name["'][^>]+content=["']([^"']+)["']/i,
+  );
+  if (appName?.[1]) return decodeHtmlEntities(appName[1].trim());
+
+  const titleTag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (titleTag?.[1]) {
+    // Titles often contain " | Site Name" or " - Site Name"; grab the tail.
+    const raw = decodeHtmlEntities(titleTag[1].trim());
+    const parts = raw.split(/\s[|\-–—]\s/);
+    if (parts.length > 1) return parts[parts.length - 1].trim();
+    return raw;
+  }
+
+  if (url) {
+    try {
+      const host = new URL(url).hostname.replace(/^www\./, '');
+      return host || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 // ── JSON-LD extraction ────────────────────────────────────────────────────
 
 function extractJsonLdRecipe(html: string): string | null {
@@ -166,6 +210,7 @@ serve(async (req: Request) => {
     // 1. Get page text (from raw text or URL fetch)
     let pageText: string;
     let isStructuredData = false;
+    let extractedSource: string | null = null;
 
     if (text) {
       pageText = text.trim().slice(0, MAX_TEXT_LENGTH);
@@ -191,6 +236,8 @@ serve(async (req: Request) => {
         console.error("URL fetch failed:", err);
         return errorResponse("Could not fetch the URL. Check the link and try again.");
       }
+
+      extractedSource = extractSourceName(html, url);
 
         // Tier 1: JSON-LD structured recipe data
       const jsonLd = extractJsonLdRecipe(html);
@@ -264,6 +311,7 @@ ${pageText}`;
         servings: typeof parsed.servings === "number" ? parsed.servings : null,
         prepTimeMinutes: typeof parsed.prepTimeMinutes === "number" ? parsed.prepTimeMinutes : null,
         cookTimeMinutes: typeof parsed.cookTimeMinutes === "number" ? parsed.cookTimeMinutes : null,
+        source: extractedSource,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

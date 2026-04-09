@@ -24,6 +24,7 @@ import { SupabaseRecipeImportRepository } from './supabase/recipe-import.reposit
 import { SupabaseRecipeRatingRepository } from './supabase/recipe-rating.repository';
 import { SupabaseRecipeCommentRepository } from './supabase/recipe-comment.repository';
 import { SupabaseSuggestionRepository } from './supabase/suggestion.repository';
+import { SupabaseDishTypeRepository } from './supabase/dish-type.repository';
 
 import type { IAuthRepository } from './interfaces/auth.repository.interface';
 import type { IProfileRepository } from './interfaces/profile.repository.interface';
@@ -49,6 +50,7 @@ import type { IRecipeImportRepository } from './interfaces/recipe-import.reposit
 import type { IRecipeRatingRepository } from './interfaces/recipe-rating.repository.interface';
 import type { IRecipeCommentRepository } from './interfaces/recipe-comment.repository.interface';
 import type { ISuggestionRepository } from './interfaces/suggestion.repository.interface';
+import type { IDishTypeRepository } from './interfaces/dish-type.repository.interface';
 
 export interface RepositoryContextValue {
   auth: IAuthRepository;
@@ -75,6 +77,7 @@ export interface RepositoryContextValue {
   recipeRating: IRecipeRatingRepository;
   recipeComment: IRecipeCommentRepository;
   suggestion: ISuggestionRepository;
+  dishType: IDishTypeRepository;
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -106,6 +109,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       recipeRating: new SupabaseRecipeRatingRepository(supabaseClient),
       recipeComment: new SupabaseRecipeCommentRepository(supabaseClient),
       suggestion: new SupabaseSuggestionRepository(supabaseClient),
+      dishType: new SupabaseDishTypeRepository(supabaseClient),
     }),
     []
   );

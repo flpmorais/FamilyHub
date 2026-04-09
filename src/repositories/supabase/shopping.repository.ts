@@ -17,6 +17,7 @@ function mapShoppingItem(row: any): ShoppingItem {
     quantityNote: row.quantity_note ?? null,
     isUrgent: Boolean(row.is_urgent),
     isTicked: Boolean(row.is_ticked),
+    checkedAt: row.checked_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -60,11 +61,55 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
     }
   }
 
+  async getUnchecked(familyId: string): Promise<ShoppingItem[]> {
+    try {
+      const { data, error } = await this.client
+        .from("shopping_items")
+        .select("*")
+        .eq("family_id", familyId)
+        .eq("is_ticked", false)
+        .order("is_urgent", { ascending: false })
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []).map(mapShoppingItem);
+    } catch (err) {
+      logger.error("ShoppingRepository", "getUnchecked failed", err);
+      throw new Error(
+        `Erro ao carregar compras: ${err instanceof Error ? err.message : "Erro"}`,
+      );
+    }
+  }
+
+  async getCheckedPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+  ): Promise<ShoppingItem[]> {
+    try {
+      const { data, error } = await this.client
+        .from("shopping_items")
+        .select("*")
+        .eq("family_id", familyId)
+        .eq("is_ticked", true)
+        .order("checked_at", { ascending: false, nullsFirst: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) throw error;
+      return (data ?? []).map(mapShoppingItem);
+    } catch (err) {
+      logger.error("ShoppingRepository", "getCheckedPaginated failed", err);
+      throw new Error(
+        `Erro ao carregar compras concluídas: ${err instanceof Error ? err.message : "Erro"}`,
+      );
+    }
+  }
+
   async tickItem(id: string): Promise<ShoppingItem> {
     try {
       const { data, error } = await this.client
         .from('shopping_items')
-        .update({ is_ticked: true, updated_at: now() })
+        .update({ is_ticked: true, checked_at: now(), updated_at: now() })
         .eq('id', id)
         .select()
         .single();
@@ -83,7 +128,7 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
     try {
       const { data, error } = await this.client
         .from('shopping_items')
-        .update({ is_ticked: false, updated_at: now() })
+        .update({ is_ticked: false, checked_at: null, updated_at: now() })
         .eq('id', id)
         .select()
         .single();

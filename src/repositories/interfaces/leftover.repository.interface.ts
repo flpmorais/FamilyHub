@@ -6,7 +6,7 @@ export interface ILeftoverRepository {
   delete(id: string): Promise<void>;
   getById(id: string): Promise<Leftover>;
   getActive(familyId: string): Promise<Leftover[]>;
-  getAll(familyId: string, limit: number, offset: number): Promise<Leftover[]>;
+  getClosedPaginated(familyId: string, limit: number, offset: number): Promise<Leftover[]>;
   incrementEaten(id: string): Promise<Leftover>;
   throwOutRemaining(id: string): Promise<Leftover>;
 }

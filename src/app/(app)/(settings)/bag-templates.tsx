@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,14 @@ import {
   Alert,
   Switch,
   FlatList,
+  type ListRenderItemInfo,
 } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import ReorderableList, {
+  reorderItems,
+  useIsActive,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Snackbar } from 'react-native-paper';
 import { Icon } from 'react-native-paper';
@@ -30,6 +36,36 @@ const BAG_COLORS = [
   '#4CAF50', '#CDDC39', '#F59300', '#E67E22', '#FF7043',
   '#F44336', '#795548', '#607D8B', '#888888',
 ];
+
+interface BagDraggableRowProps {
+  bag: BagTemplate;
+  onOpenEdit: (bag: BagTemplate) => void;
+}
+
+const BagDraggableRow = memo(function BagDraggableRow({ bag, onOpenEdit }: BagDraggableRowProps) {
+  const drag = useReorderableDrag();
+  const isActive = useIsActive();
+
+  return (
+    <TouchableOpacity
+      style={[s.row, !bag.active && s.rowInactive, isActive && s.rowDragging]}
+      onPress={() => onOpenEdit(bag)}
+      onLongPress={drag}
+    >
+      <View style={[s.colorDot, { backgroundColor: bag.color }]} />
+      <View style={s.rowContent}>
+        <Text style={[s.rowName, !bag.active && s.rowNameInactive]}>{bag.name}</Text>
+        <Text style={s.rowMeta}>
+          {bag.sizeLiters}L{!bag.isTopLevel ? ' · Interna' : ''}
+        </Text>
+      </View>
+      {!bag.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
+      <TouchableOpacity onPressIn={drag} disabled={isActive}>
+        <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
 
 export default function BagTemplatesScreen() {
   const family = useFamily();
@@ -167,8 +203,9 @@ export default function BagTemplatesScreen() {
     ]);
   }
 
-  const handleDragEnd = useCallback(
-    async ({ data: reorderedData }: { data: BagTemplate[] }) => {
+  const handleReorder = useCallback(
+    async ({ from, to }: ReorderableListReorderEvent) => {
+      const reorderedData = reorderItems(filteredBags, from, to);
       setBags(reorderedData);
       try {
         for (let i = 0; i < reorderedData.length; i++) {
@@ -185,30 +222,12 @@ export default function BagTemplatesScreen() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bagRepo]
+    [bagRepo, filteredBags]
   );
 
   const renderDraggableItem = useCallback(
-    ({ item: bag, drag, isActive }: RenderItemParams<BagTemplate>) => (
-      <ScaleDecorator>
-        <TouchableOpacity
-          style={[s.row, !bag.active && s.rowInactive, isActive && s.rowDragging]}
-          onPress={() => openEdit(bag)}
-          onLongPress={drag}
-        >
-          <View style={[s.colorDot, { backgroundColor: bag.color }]} />
-          <View style={s.rowContent}>
-            <Text style={[s.rowName, !bag.active && s.rowNameInactive]}>{bag.name}</Text>
-            <Text style={s.rowMeta}>
-              {bag.sizeLiters}L{!bag.isTopLevel ? ' · Interna' : ''}
-            </Text>
-          </View>
-          {!bag.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
-          <TouchableOpacity onPressIn={drag} disabled={isActive}>
-            <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </ScaleDecorator>
+    ({ item: bag }: ListRenderItemInfo<BagTemplate>) => (
+      <BagDraggableRow bag={bag} onOpenEdit={openEdit} />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -260,13 +279,14 @@ export default function BagTemplatesScreen() {
       <View style={s.container}>
         <PageHeader title="Modelos de Malas" showBack familyBannerUri={family?.bannerUrl} />
         {isDragEnabled ? (
-          <DraggableFlatList
+          <ReorderableList
             data={filteredBags}
             keyExtractor={(item) => item.id}
             renderItem={renderDraggableItem}
-            onDragEnd={handleDragEnd}
+            onReorder={handleReorder}
             ListHeaderComponent={ListHeader}
             contentContainerStyle={s.listContent}
+            shouldUpdateActiveItem
           />
         ) : (
           <FlatList

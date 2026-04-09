@@ -80,6 +80,49 @@ export class SupabaseSuggestionRepository implements ISuggestionRepository {
     }));
   }
 
+  async getSuggestionsPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+    filters: { search?: string; status?: SuggestionStatus | null },
+  ): Promise<SuggestionWithMeta[]> {
+    let query = this.client
+      .from("suggestions")
+      .select("*, profiles!created_by(display_name, avatar_url)")
+      .eq("family_id", familyId)
+      .order("created_at", { ascending: false });
+
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.search && filters.search.trim()) {
+      query = query.ilike("title", `%${filters.search.trim()}%`);
+    }
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const ids = (data ?? []).map((r: any) => r.id);
+    const countMap: Record<string, number> = {};
+    if (ids.length > 0) {
+      const { data: countData } = await this.client
+        .from("suggestion_comments")
+        .select("suggestion_id")
+        .in("suggestion_id", ids);
+
+      for (const row of (countData ?? []) as any[]) {
+        countMap[row.suggestion_id] = (countMap[row.suggestion_id] ?? 0) + 1;
+      }
+    }
+
+    return (data ?? []).map((row: any) => ({
+      ...mapSuggestion(row),
+      creatorName: row.profiles?.display_name ?? "",
+      creatorAvatarUrl: row.profiles?.avatar_url ?? null,
+      commentCount: countMap[row.id] ?? 0,
+    }));
+  }
+
   async getSuggestionById(id: string): Promise<Suggestion | null> {
     const { data, error } = await this.client
       .from("suggestions")
@@ -186,7 +229,7 @@ export class SupabaseSuggestionRepository implements ISuggestionRepository {
         "id, suggestion_id, profile_id, content, created_at, updated_at, profiles(display_name, avatar_url)",
       )
       .eq("suggestion_id", suggestionId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return (data ?? []).map(mapComment);

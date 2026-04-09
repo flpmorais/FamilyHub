@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRepository } from '../../hooks/use-repository';
 import { useAuthStore } from '../../stores/auth.store';
-import { RECIPE_TYPES, RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
+import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
+import { DishTypeTag } from '../common/dish-type-tag';
 import { logger } from '../../utils/logger';
 import type { Recipe, RecipeType } from '../../types/recipe.types';
 
@@ -81,24 +82,31 @@ export function RecipeBrowserModal({ visible, onSelect, onClose }: RecipeBrowser
           />
 
           {/* Type tabs */}
-          <FlatList
-            horizontal
-            data={[{ key: null as RecipeType | null, label: 'Todos' }, ...RECIPE_TYPE_LIST.map((t) => ({ key: t.key as RecipeType | null, label: t.label }))]}
-            keyExtractor={(item) => item.label}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[s.typeChip, activeType === item.key && s.typeChipActive]}
-                onPress={() => setActiveType(item.key)}
-              >
-                <Text style={[s.typeChipText, activeType === item.key && s.typeChipTextActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.typeRow}
-            style={s.typeScroll}
-          />
+          <View style={s.typeScroll}>
+            <FlatList
+              horizontal
+              data={RECIPE_TYPE_LIST}
+              keyExtractor={(item) => item.key}
+              ListHeaderComponent={
+                <TouchableOpacity
+                  style={[s.allChip, !activeType && s.allChipActive]}
+                  onPress={() => setActiveType(null)}
+                >
+                  <Text style={[s.allChipText, !activeType && s.allChipTextActive]}>Todos</Text>
+                </TouchableOpacity>
+              }
+              renderItem={({ item }) => (
+                <DishTypeTag
+                  typeKey={item.key}
+                  variant={activeType === item.key ? 'filled' : 'outlined'}
+                  size="md"
+                  onPress={() => setActiveType(item.key)}
+                />
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.typeRow}
+            />
+          </View>
 
           {isLoading ? (
             <View style={s.centered}><ActivityIndicator /></View>
@@ -111,9 +119,7 @@ export function RecipeBrowserModal({ visible, onSelect, onClose }: RecipeBrowser
               renderItem={({ item }) => (
                 <TouchableOpacity style={s.recipeRow} onPress={() => handleSelect(item)}>
                   <Text style={s.recipeName} numberOfLines={1}>{item.name}</Text>
-                  <View style={s.recipeBadge}>
-                    <Text style={s.recipeBadgeText}>{RECIPE_TYPES[item.type]}</Text>
-                  </View>
+                  <DishTypeTag typeKey={item.type} variant="filled" size="sm" />
                 </TouchableOpacity>
               )}
               contentContainerStyle={s.list}
@@ -154,11 +160,17 @@ const s = StyleSheet.create({
     color: '#1A1A1A',
   },
   typeScroll: { maxHeight: 44 },
-  typeRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
-  typeChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: '#F5F5F5' },
-  typeChipActive: { backgroundColor: '#B5451B' },
-  typeChipText: { fontSize: 12, color: '#666666', fontWeight: '600' },
-  typeChipTextActive: { color: '#FFFFFF' },
+  typeRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: 'center' },
+  allChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#F5F5F5',
+    marginRight: 8,
+  },
+  allChipActive: { backgroundColor: '#B5451B' },
+  allChipText: { fontSize: 12, color: '#666666', fontWeight: '600' },
+  allChipTextActive: { color: '#FFFFFF' },
   centered: { padding: 32, alignItems: 'center' },
   empty: { color: '#888888', fontSize: 14 },
   list: { paddingHorizontal: 16 },
@@ -170,6 +182,4 @@ const s = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   recipeName: { flex: 1, fontSize: 15, color: '#1A1A1A' },
-  recipeBadge: { backgroundColor: '#B5451B', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  recipeBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
 });

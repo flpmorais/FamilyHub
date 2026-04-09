@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   StyleSheet,
   ActivityIndicator,
   Modal,
@@ -15,11 +16,10 @@ import { useCallback } from 'react';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
-import { sortVacations } from '../../../utils/vacation.utils';
 import { VacationHeroCard } from '../../../components/vacation-hero-card';
 import { PageHeader } from '../../../components/page-header';
 import { useFamily } from '../../../hooks/use-family';
-import { supabaseClient } from '../../../repositories/supabase/supabase.client';
+import { PAGE_SIZE } from '../../../constants/pagination';
 import type { Vacation, VacationLifecycle } from '../../../types/vacation.types';
 import type { Profile } from '../../../types/profile.types';
 import type { Tag } from '../../../types/packing.types';
@@ -32,15 +32,15 @@ export default function VacationsScreen() {
   const { userAccount } = useAuthStore();
 
   const [vacations, setVacations] = useState<Vacation[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successVisible, setSuccessVisible] = useState(false);
-
-  // Vacation-level lookup maps for filtering
-  const [vacTagMap, setVacTagMap] = useState<Record<string, string[]>>({});
-  const [vacParticipantMap, setVacParticipantMap] = useState<Record<string, string[]>>({});
+  const loadingMoreRef = useRef(false);
 
   // Filters
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
@@ -48,73 +48,97 @@ export default function VacationsScreen() {
   const [filterProfile, setFilterProfile] = useState<string | null>(null);
   const [filterTag, setFilterTag] = useState<string | null>(null);
 
-  const loadData = useCallback(async (showSpinner = false) => {
-    if (!userAccount?.familyId) return;
-    if (showSpinner) setIsLoading(true);
+  const buildRepoFilters = useCallback(
+    () => ({
+      search: filterSearch,
+      profileId: filterProfile,
+      tagId: filterTag,
+    }),
+    [filterSearch, filterProfile, filterTag],
+  );
+
+  const reloadFromStart = useCallback(
+    async (showSpinner = false) => {
+      if (!userAccount?.familyId) return;
+      if (showSpinner) setIsLoading(true);
+      try {
+        const firstPage = await vacationRepository.getVacationsPaginated(
+          userAccount.familyId,
+          PAGE_SIZE,
+          0,
+          buildRepoFilters(),
+        );
+        setVacations(firstPage);
+        setCursor(PAGE_SIZE);
+        setHasMore(firstPage.length === PAGE_SIZE);
+      } catch (err) {
+        logger.error('VacationsScreen', 'loadData failed', err);
+        setError(err instanceof Error ? err.message : 'Erro ao carregar viagens.');
+      } finally {
+        if (showSpinner) setIsLoading(false);
+      }
+    },
+    [vacationRepository, userAccount?.familyId, buildRepoFilters],
+  );
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMoreRef.current || !userAccount?.familyId) return;
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
     try {
-      const [vacList, profList, tagList] = await Promise.all([
-        vacationRepository.getVacations(userAccount.familyId),
-        profileRepository.getProfilesByFamily(userAccount.familyId),
-        tagRepository.getTags(userAccount.familyId),
-      ]);
-      const sorted = sortVacations(vacList);
-      setVacations(sorted);
-      setProfiles(profList);
-      setTags(tagList.filter((t) => t.active));
-
-      // Batch-load vacation tags and participants for filtering
-      const { data: tagRows } = await supabaseClient.from('vacation_tags').select('vacation_id, tag_id');
-      const { data: partRows } = await supabaseClient.from('vacation_participants').select('vacation_id, profile_id');
-
-      const tMap: Record<string, string[]> = {};
-      for (const r of (tagRows ?? []) as any[]) {
-        (tMap[r.vacation_id] ??= []).push(r.tag_id);
-      }
-      setVacTagMap(tMap);
-
-      const pMap: Record<string, string[]> = {};
-      for (const r of (partRows ?? []) as any[]) {
-        (pMap[r.vacation_id] ??= []).push(r.profile_id);
-      }
-      setVacParticipantMap(pMap);
+      const nextPage = await vacationRepository.getVacationsPaginated(
+        userAccount.familyId,
+        PAGE_SIZE,
+        cursor,
+        buildRepoFilters(),
+      );
+      setVacations((prev) => [...prev, ...nextPage]);
+      setCursor(cursor + PAGE_SIZE);
+      setHasMore(nextPage.length === PAGE_SIZE);
     } catch (err) {
-      logger.error('VacationsScreen', 'loadData failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar viagens.');
+      logger.error('VacationsScreen', 'loadMore failed', err);
     } finally {
-      if (showSpinner) setIsLoading(false);
+      setIsLoadingMore(false);
+      loadingMoreRef.current = false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vacationRepository, userAccount?.familyId, cursor, hasMore, buildRepoFilters]);
+
+  // Load profiles + tags for filter panel
+  useEffect(() => {
+    if (!userAccount?.familyId) return;
+    profileRepository.getProfilesByFamily(userAccount.familyId).then(setProfiles).catch(() => {});
+    tagRepository
+      .getTags(userAccount.familyId)
+      .then((list) => setTags(list.filter((t) => t.active)))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userAccount?.familyId]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadData(true);
-    }, [loadData])
+      void reloadFromStart(true);
+    }, [reloadFromStart]),
   );
+
+  // Reload when filters change
+  useEffect(() => {
+    if (!userAccount?.familyId) return;
+    void reloadFromStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterSearch, filterProfile, filterTag, userAccount?.familyId]);
 
   async function handleLifecycleChange(vacationId: string, lc: VacationLifecycle) {
     try {
       const updates: Partial<Vacation> = { lifecycle: lc };
       if (lc === 'cancelled' || lc === 'completed') updates.isPinned = false;
       await vacationRepository.updateVacation(vacationId, updates);
-      await loadData();
+      await reloadFromStart();
     } catch (err) {
       logger.error('VacationsScreen', 'lifecycle change failed', err);
     }
   }
 
-  // Filter logic
   const filterCount = (filterSearch ? 1 : 0) + (filterProfile ? 1 : 0) + (filterTag ? 1 : 0);
-
-  const filteredVacations = useMemo(() => {
-    if (filterCount === 0) return vacations;
-    return vacations.filter((v) => {
-      if (filterSearch && !v.title.toLowerCase().includes(filterSearch.toLowerCase())) return false;
-      if (filterTag && !vacTagMap[v.id]?.includes(filterTag)) return false;
-      if (filterProfile && !vacParticipantMap[v.id]?.includes(filterProfile)) return false;
-      return true;
-    });
-  }, [vacations, filterSearch, filterTag, filterProfile, vacTagMap, vacParticipantMap, filterCount]);
 
   function clearFilters() {
     setFilterSearch('');
@@ -133,31 +157,41 @@ export default function VacationsScreen() {
   return (
     <View style={st.container}>
       <PageHeader title="Viagens" familyBannerUri={family?.bannerUrl} />
-      <ScrollView contentContainerStyle={st.content}>
-        {error ? <Text style={st.error}>{error}</Text> : null}
+      {error ? <Text style={st.error}>{error}</Text> : null}
 
-        <View style={st.cardList}>
-          {filteredVacations.map((v) => (
-            <View key={v.id} style={{ borderRadius: 12, overflow: 'hidden' }}>
+      {vacations.length === 0 ? (
+        <View style={st.emptyContainer}>
+          {filterCount > 0 ? (
+            <>
+              <Text style={st.emptyFilterText}>Nenhuma viagem corresponde aos filtros activos</Text>
+              <TouchableOpacity onPress={clearFilters}>
+                <Text style={st.clearLink}>Limpar filtros</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={st.empty}>Nenhuma viagem encontrada.</Text>
+          )}
+        </View>
+      ) : (
+        <FlatList
+          data={vacations}
+          keyExtractor={(v) => v.id}
+          renderItem={({ item }) => (
+            <View style={{ borderRadius: 12, overflow: 'hidden' }}>
               <VacationHeroCard
-                vacation={v}
-                onPress={() => router.push(`/(app)/(vacations)/${v.id}`)}
-                onLifecycleChange={(lc) => handleLifecycleChange(v.id, lc)}
+                vacation={item}
+                onPress={() => router.push(`/(app)/(vacations)/${item.id}`)}
+                onLifecycleChange={(lc) => handleLifecycleChange(item.id, lc)}
               />
             </View>
-          ))}
-        </View>
-
-        {vacations.length === 0 && <Text style={st.empty}>Nenhuma viagem encontrada.</Text>}
-        {vacations.length > 0 && filteredVacations.length === 0 && (
-          <View style={st.emptyFilter}>
-            <Text style={st.emptyFilterText}>Nenhuma viagem corresponde aos filtros activos</Text>
-            <TouchableOpacity onPress={clearFilters}>
-              <Text style={st.clearLink}>Limpar filtros</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
+          )}
+          contentContainerStyle={st.content}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={st.loadingMore} /> : null}
+        />
+      )}
 
       <Snackbar
         visible={successVisible}
@@ -268,9 +302,7 @@ export default function VacationsScreen() {
               )}
 
               <TouchableOpacity style={st.filterApplyBtn} onPress={() => setFilterPanelVisible(false)}>
-                <Text style={st.filterApplyBtnText}>
-                  Ver {filteredVacations.length} {filteredVacations.length === 1 ? 'viagem' : 'viagens'}
-                </Text>
+                <Text style={st.filterApplyBtnText}>Ver viagens</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -286,11 +318,11 @@ const st = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   error: { color: '#D32F2F', marginBottom: 12, fontSize: 14 },
   successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
-  cardList: { gap: 16 },
   empty: { color: '#888888', textAlign: 'center', marginVertical: 16 },
-  emptyFilter: { alignItems: 'center', marginVertical: 32 },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyFilterText: { color: '#888888', textAlign: 'center', marginBottom: 8 },
   clearLink: { color: '#B5451B', fontWeight: '500' },
+  loadingMore: { marginVertical: 12 },
   // FABs
   fabRow: {
     position: 'absolute',

@@ -2,11 +2,13 @@ import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Icon } from 'react-native-paper';
 import { useAuthGuard } from '../../hooks/use-auth-guard';
+import { useDishTypes } from '../../hooks/use-dish-types';
 import { useUiStore } from '../../stores/ui.store';
 import { SidebarMenu } from '../../components/sidebar-menu';
 
 export default function AppLayout() {
   useAuthGuard();
+  useDishTypes(); // hydrate dish_types store for downstream consumers
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
 
   return (

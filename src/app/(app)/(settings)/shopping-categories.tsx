@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,14 @@ import {
   Alert,
   Switch,
   FlatList,
+  type ListRenderItemInfo,
 } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import ReorderableList, {
+  reorderItems,
+  useIsActive,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon, Snackbar } from 'react-native-paper';
 import { PageHeader } from '../../../components/page-header';
@@ -28,6 +34,33 @@ function mirrorCategory(payload: Record<string, unknown>) {
     body: { ...payload, mirror: true },
   }).catch(() => {});
 }
+
+interface ShoppingCategoryDraggableRowProps {
+  category: ShoppingCategory;
+  onOpenEdit: (cat: ShoppingCategory) => void;
+}
+
+const ShoppingCategoryDraggableRow = memo(function ShoppingCategoryDraggableRow({
+  category,
+  onOpenEdit,
+}: ShoppingCategoryDraggableRowProps) {
+  const drag = useReorderableDrag();
+  const isActive = useIsActive();
+
+  return (
+    <TouchableOpacity
+      style={[s.row, !category.active && s.rowInactive, isActive && s.rowDragging]}
+      onPress={() => onOpenEdit(category)}
+      onLongPress={drag}
+    >
+      <Text style={[s.rowName, !category.active && s.rowNameInactive]}>{category.name}</Text>
+      {!category.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
+      <TouchableOpacity onPressIn={drag} disabled={isActive}>
+        <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
 
 export default function ShoppingCategoriesScreen() {
   const family = useFamily();
@@ -149,8 +182,9 @@ export default function ShoppingCategoriesScreen() {
     ]);
   }
 
-  const handleDragEnd = useCallback(
-    async ({ data: reorderedData }: { data: ShoppingCategory[] }) => {
+  const handleReorder = useCallback(
+    async ({ from, to }: ReorderableListReorderEvent) => {
+      const reorderedData = reorderItems(filteredCategories, from, to);
       setCategories(reorderedData);
       try {
         await catRepo.batchReorder(
@@ -167,24 +201,12 @@ export default function ShoppingCategoriesScreen() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [catRepo]
+    [catRepo, filteredCategories]
   );
 
   const renderDraggableItem = useCallback(
-    ({ item: cat, drag, isActive }: RenderItemParams<ShoppingCategory>) => (
-      <ScaleDecorator>
-        <TouchableOpacity
-          style={[s.row, !cat.active && s.rowInactive, isActive && s.rowDragging]}
-          onPress={() => openEdit(cat)}
-          onLongPress={drag}
-        >
-          <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
-          {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
-          <TouchableOpacity onPressIn={drag} disabled={isActive}>
-            <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </ScaleDecorator>
+    ({ item: cat }: ListRenderItemInfo<ShoppingCategory>) => (
+      <ShoppingCategoryDraggableRow category={cat} onOpenEdit={openEdit} />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -229,13 +251,14 @@ export default function ShoppingCategoriesScreen() {
       <View style={s.container}>
         <PageHeader title="Categorias de Compras" showBack familyBannerUri={family?.bannerUrl} />
         {isDragEnabled ? (
-          <DraggableFlatList
+          <ReorderableList
             data={filteredCategories}
             keyExtractor={(item) => item.id}
             renderItem={renderDraggableItem}
-            onDragEnd={handleDragEnd}
+            onReorder={handleReorder}
             ListHeaderComponent={ListHeader}
             contentContainerStyle={s.listContent}
+            shouldUpdateActiveItem
           />
         ) : (
           <FlatList

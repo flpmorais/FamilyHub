@@ -220,6 +220,7 @@ async function handleAddItem(rawInput: string): Promise<Response> {
   if (existing && existing.is_ticked) {
     const updates: Record<string, unknown> = {
       is_ticked: false,
+      checked_at: null,
       is_urgent: isUrgent,
       updated_at: new Date().toISOString(),
     };
@@ -268,9 +269,10 @@ async function handleRemoveItem(rawInput: string): Promise<Response> {
     return alexaResponse(`${rawInput} is not on the list.`);
   }
 
+  const tickTs = new Date().toISOString();
   await supabase
     .from("shopping_items")
-    .update({ is_ticked: true, updated_at: new Date().toISOString() })
+    .update({ is_ticked: true, checked_at: tickTs, updated_at: tickTs })
     .eq("id", existing.id);
 
   mirrorToDev({ action: "tick", name: parsedName });

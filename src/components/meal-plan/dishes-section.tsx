@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Icon } from 'react-native-paper';
 import { useRepository } from '../../hooks/use-repository';
-import { DISH_CATEGORY_STYLES } from '../../constants/dish-category-styles';
+import { DishTypeTag } from '../common/dish-type-tag';
 import { logger } from '../../utils/logger';
 import { getDishDisplay } from '../../types/meal-plan.types';
 import type { MealEntryDish, CreateDishInput } from '../../types/meal-plan.types';
@@ -65,17 +64,13 @@ export function DishesSection({ mealEntryId, dishes, onChanged, onOpenAddDish }:
 
       {dishes.map((dish) => {
         const display = getDishDisplay(dish);
-        const catStyle = DISH_CATEGORY_STYLES[display.category] ?? DISH_CATEGORY_STYLES.other;
         const showServings = dish.dishType === 'recipe' && dish.servingsOverride !== null;
 
         return (
           <View key={dish.id} style={s.dishCard}>
             <View style={s.dishInfo}>
               <View style={s.dishNameRow}>
-                <View style={[s.typeBadge, { backgroundColor: catStyle.color }]}>
-                  <Icon source={catStyle.icon} size={10} color="#FFF" />
-                  <Text style={s.typeBadgeText}>{catStyle.label}</Text>
-                </View>
+                <DishTypeTag typeKey={display.category} variant="filled" size="sm" />
                 <Text style={s.dishName} numberOfLines={1}>{display.name}</Text>
               </View>
               {showServings && (
@@ -127,15 +122,6 @@ const s = StyleSheet.create({
   },
   dishInfo: { flex: 1 },
   dishNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  typeBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
   dishName: { fontSize: 14, color: '#1A1A1A', fontWeight: '500', flex: 1 },
   servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   servingsBtn: {

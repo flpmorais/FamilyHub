@@ -7,8 +7,20 @@ import {
   CreateBookingTaskInput,
 } from '../../types/vacation.types';
 
+export interface VacationListFilters {
+  search?: string;
+  profileId?: string | null;
+  tagId?: string | null;
+}
+
 export interface IVacationRepository {
   getVacations(familyId: string): Promise<Vacation[]>;
+  getVacationsPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+    filters: VacationListFilters,
+  ): Promise<Vacation[]>;
   createVacation(data: CreateVacationInput): Promise<Vacation>;
   updateVacation(
     id: string,

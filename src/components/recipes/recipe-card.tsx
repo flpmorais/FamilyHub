@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
-import { RECIPE_TYPES } from '../../constants/recipe-defaults';
+import { DishTypeTag } from '../common/dish-type-tag';
 import { StarRating } from './star-rating';
 import type { RecipeForList } from '../../types/recipe.types';
 
@@ -30,9 +30,7 @@ export function RecipeCard({ recipe, onPress }: RecipeCardProps) {
           {recipe.name}
         </Text>
         <View style={s.meta}>
-          <View style={s.typeChip}>
-            <Text style={s.typeText}>{RECIPE_TYPES[recipe.type]}</Text>
-          </View>
+          <DishTypeTag typeKey={recipe.type} variant="filled" size="sm" />
           {totalTime > 0 && (
             <Text style={s.metaText}>{totalTime} min</Text>
           )}
@@ -89,17 +87,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  typeChip: {
-    backgroundColor: '#B5451B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  typeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
   metaText: {
     fontSize: 12,

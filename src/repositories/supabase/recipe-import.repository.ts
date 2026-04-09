@@ -3,7 +3,7 @@ import { IRecipeImportRepository, type LlmModel } from '../interfaces/recipe-imp
 import type { ExtractedRecipe, RecipeType } from '../../types/recipe.types';
 import { logger } from '../../utils/logger';
 
-const VALID_TYPES: RecipeType[] = ['meal', 'main', 'side', 'soup', 'dessert', 'other'];
+const VALID_TYPES: RecipeType[] = ['meal', 'main', 'side', 'soup', 'dessert', 'other', 'appetizer'];
 
 export class SupabaseRecipeImportRepository implements IRecipeImportRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -52,6 +52,7 @@ export class SupabaseRecipeImportRepository implements IRecipeImportRepository {
         servings: typeof data?.servings === 'number' ? data.servings : null,
         prepTimeMinutes: typeof data?.prepTimeMinutes === 'number' ? data.prepTimeMinutes : null,
         cookTimeMinutes: typeof data?.cookTimeMinutes === 'number' ? data.cookTimeMinutes : null,
+        source: typeof data?.source === 'string' && data.source.trim() ? data.source.trim() : null,
       };
     } catch (err) {
       if (err instanceof Error && err.message.startsWith('Não foi')) {
@@ -134,6 +135,7 @@ export class SupabaseRecipeImportRepository implements IRecipeImportRepository {
         servings: typeof data?.servings === 'number' ? data.servings : null,
         prepTimeMinutes: typeof data?.prepTimeMinutes === 'number' ? data.prepTimeMinutes : null,
         cookTimeMinutes: typeof data?.cookTimeMinutes === 'number' ? data.cookTimeMinutes : null,
+        source: typeof data?.source === 'string' && data.source.trim() ? data.source.trim() : null,
       };
     } catch (err) {
       if (err instanceof Error && (err.message.startsWith('Não foi') || err.message.startsWith('Erro na'))) {
@@ -180,6 +182,7 @@ export class SupabaseRecipeImportRepository implements IRecipeImportRepository {
         servings: typeof data?.servings === 'number' ? data.servings : null,
         prepTimeMinutes: typeof data?.prepTimeMinutes === 'number' ? data.prepTimeMinutes : null,
         cookTimeMinutes: typeof data?.cookTimeMinutes === 'number' ? data.cookTimeMinutes : null,
+        source: typeof data?.source === 'string' && data.source.trim() ? data.source.trim() : null,
       };
     } catch (err) {
       if (err instanceof Error && (err.message.startsWith('Não foi') || err.message.startsWith('Erro na'))) {
@@ -226,6 +229,7 @@ export class SupabaseRecipeImportRepository implements IRecipeImportRepository {
         servings: typeof data?.servings === 'number' ? data.servings : null,
         prepTimeMinutes: typeof data?.prepTimeMinutes === 'number' ? data.prepTimeMinutes : null,
         cookTimeMinutes: typeof data?.cookTimeMinutes === 'number' ? data.cookTimeMinutes : null,
+        source: typeof data?.source === 'string' && data.source.trim() ? data.source.trim() : null,
       };
     } catch (err) {
       if (err instanceof Error && (err.message.startsWith('Não foi') || err.message.startsWith('Erro na'))) {

@@ -15,7 +15,7 @@ import {
 import { Icon } from 'react-native-paper';
 import { ParticipantToggle } from './participant-toggle';
 import { useRepository } from '../../hooks/use-repository';
-import { DISH_CATEGORY_STYLES } from '../../constants/dish-category-styles';
+import { DishTypeTag } from '../common/dish-type-tag';
 import { getDishDisplay } from '../../types/meal-plan.types';
 import { logger } from '../../utils/logger';
 import type { MealType, CreateDishInput, MealEntryDish } from '../../types/meal-plan.types';
@@ -240,21 +240,15 @@ export function MealAddForm({ visible, dayLabel, slotLabel, profiles, defaultPar
           {mealType === 'home_cooked' && (
             <View style={styles.dishesSection}>
               <Text style={styles.label}>Pratos</Text>
-              {selectedDishes.map((dish, idx) => {
-                const catStyle = DISH_CATEGORY_STYLES[dish.displayCategory] ?? DISH_CATEGORY_STYLES.other;
-                return (
-                  <View key={idx} style={styles.dishCard}>
-                    <View style={[styles.dishBadge, { backgroundColor: catStyle.color }]}>
-                      <Icon source={catStyle.icon} size={10} color="#FFF" />
-                      <Text style={styles.dishBadgeText}>{catStyle.label}</Text>
-                    </View>
-                    <Text style={styles.dishName} numberOfLines={1}>{dish.displayName}</Text>
-                    <TouchableOpacity onPress={() => removeDish(idx)}>
-                      <Text style={styles.removeBtn}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
+              {selectedDishes.map((dish, idx) => (
+                <View key={idx} style={styles.dishCard}>
+                  <DishTypeTag typeKey={dish.displayCategory} variant="filled" size="sm" />
+                  <Text style={styles.dishName} numberOfLines={1}>{dish.displayName}</Text>
+                  <TouchableOpacity onPress={() => removeDish(idx)}>
+                    <Text style={styles.removeBtn}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
               <TouchableOpacity style={styles.addDishBtn} onPress={onOpenAddDish}>
                 <Text style={styles.addDishBtnText}>+ Adicionar</Text>
               </TouchableOpacity>
@@ -330,15 +324,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 8,
   },
-  dishBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  dishBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
   dishName: { flex: 1, fontSize: 14, color: '#1A1A1A', fontWeight: '500' },
   removeBtn: { fontSize: 16, color: '#D32F2F', fontWeight: '700', paddingHorizontal: 4 },
   addDishBtn: { paddingVertical: 8 },

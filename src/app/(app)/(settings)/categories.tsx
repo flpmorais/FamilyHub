@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,14 @@ import {
   Alert,
   Switch,
   FlatList,
+  type ListRenderItemInfo,
 } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import ReorderableList, {
+  reorderItems,
+  useIsActive,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon, Snackbar } from 'react-native-paper';
 import { router } from 'expo-router';
@@ -24,6 +30,36 @@ import { logger } from '../../../utils/logger';
 import { IconPicker } from '../../../components/icon-picker';
 import { useIconStore } from '../../../stores/icon.store';
 import type { Category } from '../../../types/packing.types';
+
+interface CategoryDraggableRowProps {
+  category: Category;
+  onOpenEdit: (cat: Category) => void;
+}
+
+const CategoryDraggableRow = memo(function CategoryDraggableRow({
+  category,
+  onOpenEdit,
+}: CategoryDraggableRowProps) {
+  const drag = useReorderableDrag();
+  const isActive = useIsActive();
+
+  return (
+    <TouchableOpacity
+      style={[s.row, !category.active && s.rowInactive, isActive && s.rowDragging]}
+      onPress={() => onOpenEdit(category)}
+      onLongPress={drag}
+    >
+      <View style={s.rowIconWrap}>
+        <Icon source={category.iconName} size={20} color={category.active ? '#B5451B' : '#CCCCCC'} />
+      </View>
+      <Text style={[s.rowName, !category.active && s.rowNameInactive]}>{category.name}</Text>
+      {!category.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
+      <TouchableOpacity onPressIn={drag} disabled={isActive}>
+        <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
 
 export default function CategoriesScreen() {
   const family = useFamily();
@@ -158,9 +194,9 @@ export default function CategoriesScreen() {
     ]);
   }
 
-  const handleDragEnd = useCallback(
-    async ({ data: reorderedData }: { data: Category[] }) => {
-      // Update local state immediately for responsiveness
+  const handleReorder = useCallback(
+    async ({ from, to }: ReorderableListReorderEvent) => {
+      const reorderedData = reorderItems(filteredCategories, from, to);
       setCategories(reorderedData);
 
       // Persist new sort orders for items that changed position
@@ -181,27 +217,12 @@ export default function CategoriesScreen() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [categoryRepo]
+    [categoryRepo, filteredCategories]
   );
 
   const renderDraggableItem = useCallback(
-    ({ item: cat, drag, isActive }: RenderItemParams<Category>) => (
-      <ScaleDecorator>
-        <TouchableOpacity
-          style={[s.row, !cat.active && s.rowInactive, isActive && s.rowDragging]}
-          onPress={() => openEdit(cat)}
-          onLongPress={drag}
-        >
-          <View style={s.rowIconWrap}>
-            <Icon source={cat.iconName} size={20} color={cat.active ? '#B5451B' : '#CCCCCC'} />
-          </View>
-          <Text style={[s.rowName, !cat.active && s.rowNameInactive]}>{cat.name}</Text>
-          {!cat.active && <Text style={s.inactiveBadge}>Inactiva</Text>}
-          <TouchableOpacity onPressIn={drag} disabled={isActive}>
-            <Text style={[s.dragHandle, isActive && s.dragHandleActive]}>{'\u2261'}</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </ScaleDecorator>
+    ({ item: cat }: ListRenderItemInfo<Category>) => (
+      <CategoryDraggableRow category={cat} onOpenEdit={openEdit} />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -251,13 +272,14 @@ export default function CategoriesScreen() {
       <View style={s.container}>
         <PageHeader title="Categorias" showBack familyBannerUri={family?.bannerUrl} />
         {isDragEnabled ? (
-          <DraggableFlatList
+          <ReorderableList
             data={filteredCategories}
             keyExtractor={(item) => item.id}
             renderItem={renderDraggableItem}
-            onDragEnd={handleDragEnd}
+            onReorder={handleReorder}
             ListHeaderComponent={ListHeader}
             contentContainerStyle={s.listContent}
+            shouldUpdateActiveItem
           />
         ) : (
           <FlatList

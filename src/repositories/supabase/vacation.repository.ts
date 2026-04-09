@@ -102,6 +102,73 @@ export class SupabaseVacationRepository implements IVacationRepository {
     return (data ?? []).map(mapVacation);
   }
 
+  async getVacationsPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+    filters: {
+      search?: string;
+      profileId?: string | null;
+      tagId?: string | null;
+    },
+  ): Promise<Vacation[]> {
+    try {
+      // Pre-compute id whitelist from join filters
+      let restrictIds: string[] | null = null;
+
+      const intersect = (ids: string[]) => {
+        if (restrictIds === null) restrictIds = ids;
+        else {
+          const set = new Set(ids);
+          restrictIds = restrictIds.filter((id) => set.has(id));
+        }
+      };
+
+      if (filters.profileId) {
+        const { data, error } = await this.client
+          .from('vacation_participants')
+          .select('vacation_id')
+          .eq('profile_id', filters.profileId);
+        if (error) throw error;
+        intersect(Array.from(new Set((data ?? []).map((r: any) => r.vacation_id))));
+        if (restrictIds!.length === 0) return [];
+      }
+
+      if (filters.tagId) {
+        const { data, error } = await this.client
+          .from('vacation_tags')
+          .select('vacation_id')
+          .eq('tag_id', filters.tagId);
+        if (error) throw error;
+        intersect(Array.from(new Set((data ?? []).map((r: any) => r.vacation_id))));
+        if (restrictIds!.length === 0) return [];
+      }
+
+      let query = this.client
+        .from('vacations')
+        .select(VACATION_COLS)
+        .eq('family_id', familyId)
+        .order('lifecycle_sort', { ascending: true })
+        .order('departure_date', { ascending: false });
+
+      if (filters.search && filters.search.trim()) {
+        query = query.ilike('title', `%${filters.search.trim()}%`);
+      }
+      if (restrictIds !== null) query = query.in('id', restrictIds);
+
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []).map(mapVacation);
+    } catch (err) {
+      logger.error('VacationRepository', 'getVacationsPaginated failed', err);
+      throw new Error(
+        `Erro ao carregar viagens: ${err instanceof Error ? err.message : 'Erro'}`,
+      );
+    }
+  }
+
   async createVacation(input: CreateVacationInput): Promise<Vacation> {
     const { data, error } = await this.client
       .from('vacations')

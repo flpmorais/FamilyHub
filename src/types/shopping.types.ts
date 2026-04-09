@@ -16,6 +16,7 @@ export interface ShoppingItem {
   quantityNote: string | null;
   isUrgent: boolean;
   isTicked: boolean;
+  checkedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

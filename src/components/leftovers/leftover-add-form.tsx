@@ -15,14 +15,16 @@ import {
   DEFAULT_TOTAL_DOSES,
 } from "../../constants/leftover-defaults";
 import type { LeftoverType } from "../../types/leftover.types";
+import { DishTypeTag } from "../common/dish-type-tag";
 
-const TYPE_OPTIONS: { value: LeftoverType; label: string }[] = [
-  { value: "meal", label: "Refeição" },
-  { value: "main", label: "Principal" },
-  { value: "soup", label: "Sopa" },
-  { value: "side", label: "Acompanhamento" },
-  { value: "dessert", label: "Sobremesa" },
-  { value: "other", label: "Outro" },
+const TYPE_OPTIONS: LeftoverType[] = [
+  "appetizer",
+  "soup",
+  "meal",
+  "main",
+  "side",
+  "dessert",
+  "other",
 ];
 
 interface LeftoverAddFormProps {
@@ -140,16 +142,13 @@ export function LeftoverAddForm({
           <Text style={s.label}>Tipo</Text>
           <View style={s.chipRow}>
             {TYPE_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[s.chip, type === opt.value && s.chipSelected]}
-                onPress={() => setType(opt.value)}
-                disabled={isSaving}
-              >
-                <Text style={[s.chipText, type === opt.value && s.chipTextSelected]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
+              <DishTypeTag
+                key={opt}
+                typeKey={opt}
+                variant={type === opt ? "filled" : "outlined"}
+                size="md"
+                onPress={isSaving ? undefined : () => setType(opt)}
+              />
             ))}
           </View>
 
@@ -252,25 +251,6 @@ const s = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
     marginBottom: 16,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    backgroundColor: "#FFFFFF",
-  },
-  chipSelected: {
-    backgroundColor: "#B5451B",
-    borderColor: "#B5451B",
-  },
-  chipText: {
-    fontSize: 13,
-    color: "#555555",
-  },
-  chipTextSelected: {
-    color: "#FFFFFF",
   },
   buttons: {
     flexDirection: "row",

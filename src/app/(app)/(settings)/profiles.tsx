@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,14 @@ import {
   Modal,
   Alert,
   Image,
+  type ListRenderItemInfo,
 } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import ReorderableList, {
+  reorderItems,
+  useIsActive,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
@@ -63,6 +69,55 @@ function validNextStatuses(current: ProfileStatus): ProfileStatus[] {
       return [];
   }
 }
+
+// ── Draggable cell ──────────────────────────────────────────────────────────
+
+interface ProfileDraggableRowProps {
+  profile: Profile;
+  onOpenEdit: (profile: Profile) => void;
+  onBadgeTap: (profile: Profile) => void;
+}
+
+const ProfileDraggableRow = memo(function ProfileDraggableRow({
+  profile,
+  onOpenEdit,
+  onBadgeTap,
+}: ProfileDraggableRowProps) {
+  const drag = useReorderableDrag();
+  const isActive = useIsActive();
+
+  return (
+    <View style={[styles.row, isActive && { backgroundColor: '#F5F5F5' }]}>
+      <TouchableOpacity onLongPress={drag} delayLongPress={150} style={styles.dragHandle}>
+        <Text style={styles.dragHandleText}>☰</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.rowContent} onPress={() => onOpenEdit(profile)}>
+        <View style={styles.avatarCircle}>
+          {profile.avatarUrl ? (
+            <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarInitial}>
+              {profile.displayName[0]?.toUpperCase() ?? '?'}
+            </Text>
+          )}
+        </View>
+        <View style={styles.rowInfo}>
+          <Text style={[styles.rowName, profile.status === 'inactive' && styles.rowNameInactive]}>
+            {profile.displayName}
+          </Text>
+          {profile.email && <Text style={styles.rowEmail}>{profile.email}</Text>}
+          <Text style={styles.rowRole}>{ROLE_LABEL[profile.role]}</Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.badge, { backgroundColor: STATUS_COLOR[profile.status] }]}
+        onPress={() => onBadgeTap(profile)}
+      >
+        <Text style={styles.badgeText}>{STATUS_LABEL[profile.status]}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 // ── Component ───────────────────────────────────────────────────────────────
 
@@ -478,41 +533,22 @@ export default function ProfilesScreen() {
     );
   }
 
-  function renderProfileItem({ item: profile, drag, isActive }: RenderItemParams<Profile>) {
-    return (
-      <ScaleDecorator>
-        <View style={[styles.row, isActive && { backgroundColor: '#F5F5F5' }]}>
-          <TouchableOpacity onLongPress={drag} delayLongPress={150} style={styles.dragHandle}>
-            <Text style={styles.dragHandleText}>☰</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.rowContent} onPress={() => openEdit(profile)}>
-            <View style={styles.avatarCircle}>
-              {profile.avatarUrl ? (
-                <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarInitial}>
-                  {profile.displayName[0]?.toUpperCase() ?? '?'}
-                </Text>
-              )}
-            </View>
-            <View style={styles.rowInfo}>
-              <Text style={[styles.rowName, profile.status === 'inactive' && styles.rowNameInactive]}>
-                {profile.displayName}
-              </Text>
-              {profile.email && <Text style={styles.rowEmail}>{profile.email}</Text>}
-              <Text style={styles.rowRole}>{ROLE_LABEL[profile.role]}</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.badge, { backgroundColor: STATUS_COLOR[profile.status] }]}
-            onPress={() => handleBadgeTap(profile)}
-          >
-            <Text style={styles.badgeText}>{STATUS_LABEL[profile.status]}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScaleDecorator>
-    );
-  }
+  const renderProfileItem = useCallback(
+    ({ item: profile }: ListRenderItemInfo<Profile>) => (
+      <ProfileDraggableRow profile={profile} onOpenEdit={openEdit} onBadgeTap={handleBadgeTap} />
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const handleReorderEvent = useCallback(
+    ({ from, to }: ReorderableListReorderEvent) => {
+      const reordered = reorderItems(profiles, from, to);
+      void handleReorder(reordered);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profiles],
+  );
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -521,11 +557,11 @@ export default function ProfilesScreen() {
       <View style={styles.content}>
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <DraggableFlatList
+        <ReorderableList
           data={profiles}
           keyExtractor={(item) => item.id}
           renderItem={renderProfileItem}
-          onDragEnd={({ data }) => handleReorder(data)}
+          onReorder={handleReorderEvent}
           ListEmptyComponent={<Text style={styles.empty}>Nenhum perfil encontrado.</Text>}
           ListFooterComponent={
             isAdmin ? (
@@ -534,6 +570,7 @@ export default function ProfilesScreen() {
               </TouchableOpacity>
             ) : null
           }
+          shouldUpdateActiveItem
         />
       </View>
 

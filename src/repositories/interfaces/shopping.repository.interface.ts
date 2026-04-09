@@ -8,5 +8,7 @@ export interface IShoppingRepository {
   setUrgent(id: string, isUrgent: boolean): Promise<ShoppingItem>;
   deleteItem(id: string): Promise<void>;
   getItems(familyId: string): Promise<ShoppingItem[]>;
+  getUnchecked(familyId: string): Promise<ShoppingItem[]>;
+  getCheckedPaginated(familyId: string, limit: number, offset: number): Promise<ShoppingItem[]>;
   findByName(familyId: string, name: string): Promise<ShoppingItem | null>;
 }

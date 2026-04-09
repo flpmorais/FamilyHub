@@ -10,7 +10,7 @@ export class SupabaseRecipeCommentRepository implements IRecipeCommentRepository
       .from('recipe_comments')
       .select('id, recipe_id, profile_id, content, created_at, updated_at, profiles(display_name, avatar_url)')
       .eq('recipe_id', recipeId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 

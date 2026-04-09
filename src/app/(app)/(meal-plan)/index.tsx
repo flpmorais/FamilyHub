@@ -7,7 +7,7 @@ import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useMealPlanStore, getMonday } from '../../../stores/meal-plan.store';
 import { MealAddForm, MealEditForm } from '../../../components/meal-plan';
-import { DishTag } from '../../../components/meal-plan/dish-tag';
+import { DishTypeTag } from '../../../components/common/dish-type-tag';
 import { AddDishModal } from '../../../components/meal-plan/add-dish-modal';
 import { LeftoverFromDishesForm } from '../../../components/leftovers/leftover-from-dishes-form';
 import { PageHeader } from '../../../components/page-header';
@@ -411,7 +411,13 @@ export default function MealPlanScreen() {
                     {dishesMap.get(entry.id)!.map((dish) => {
                       const display = getDishDisplay(dish);
                       return (
-                        <DishTag key={dish.id} name={display.name} category={display.category} />
+                        <DishTypeTag
+                          key={dish.id}
+                          typeKey={display.category}
+                          variant="filled"
+                          size="sm"
+                          label={display.name}
+                        />
                       );
                     })}
                   </View>
