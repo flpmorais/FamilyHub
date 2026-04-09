@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   Alert,
 } from "react-native";
 
@@ -35,6 +34,20 @@ export function ShoppingAddForm({
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKeyboardHeight(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardHeight(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   function resetForm() {
     setName("");
@@ -99,11 +112,8 @@ export function ShoppingAddForm({
       transparent
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        style={s.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={s.sheet}>
+      <View style={s.overlay}>
+        <View style={[s.sheet, { marginBottom: keyboardHeight }]}>
           <Text style={s.title}>Novo item</Text>
 
           <Text style={s.label}>Nome *</Text>
@@ -174,7 +184,7 @@ export function ShoppingAddForm({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

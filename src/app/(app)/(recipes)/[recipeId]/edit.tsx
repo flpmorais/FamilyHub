@@ -400,7 +400,7 @@ export default function EditRecipeScreen() {
     <GestureHandlerRootView style={s.flex}>
     <KeyboardAvoidingView
       style={s.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <PageHeader title="Editar Receita" showBack imageUri={imageUri} fallbackColor="#F5F5F5" />
 

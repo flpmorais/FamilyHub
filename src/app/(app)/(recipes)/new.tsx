@@ -341,7 +341,7 @@ export default function NewRecipeScreen() {
     <GestureHandlerRootView style={s.flex}>
     <KeyboardAvoidingView
       style={s.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}>
