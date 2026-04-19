@@ -23,6 +23,7 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
 import { compressAvatar } from '../../../utils/image.utils';
 import { COUNTRIES, countryFlag, countryIso2, findCountry } from '../../../utils/countries';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { VacationTemplate, VacationTemplateBag } from '../../../types/vacation.types';
 import type { Tag, BagTemplate } from '../../../types/packing.types';
 import type { Profile } from '../../../types/profile.types';
@@ -66,6 +67,10 @@ export default function VacationTemplateFormScreen() {
 
   // Existing template reference for edit
   const [existingTemplate, setExistingTemplate] = useState<VacationTemplate | null>(null);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle', 'countrySearch'],
+  });
 
   async function loadData() {
     if (!userAccount?.familyId) return;
@@ -305,11 +310,16 @@ export default function VacationTemplateFormScreen() {
         familyBannerUri={family?.bannerUrl}
       />
 
-      <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={[st.scrollContent, { paddingBottom: keyboardHeight }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {fieldErrors.general && <Text style={st.error}>{fieldErrors.general}</Text>}
 
         <Text style={st.label}>Nome *</Text>
         <TextInput
+          {...getInputProps('formTitle')}
           style={st.input}
           value={formTitle}
           onChangeText={setFormTitle}

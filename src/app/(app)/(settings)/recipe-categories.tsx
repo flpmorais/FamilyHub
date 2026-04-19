@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Modal,
@@ -16,6 +17,7 @@ import { useFamily } from '../../../hooks/use-family';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { RecipeCategory } from '../../../types/recipe.types';
 
 export default function RecipeCategoriesScreen() {
@@ -32,6 +34,10 @@ export default function RecipeCategoriesScreen() {
   const [nameError, setNameError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [successVisible, setSuccessVisible] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formName'],
+  });
 
   async function loadCategories() {
     if (!userAccount?.familyId) return;
@@ -161,10 +167,16 @@ export default function RecipeCategoriesScreen() {
         onRequestClose={() => setSheetVisible(false)}
       >
         <View style={s.modalOverlay}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={[s.sheetScroll, { paddingBottom: keyboardHeight }]}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={s.sheet}>
             <Text style={s.sheetTitle}>{editingCat ? 'Editar categoria' : 'Nova categoria'}</Text>
             <Text style={s.label}>Nome *</Text>
             <TextInput
+              {...getInputProps('formName')}
               style={[s.input, nameError ? s.inputError : null]}
               value={formName}
               onChangeText={(t) => {
@@ -218,6 +230,7 @@ export default function RecipeCategoriesScreen() {
               )}
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -252,6 +265,7 @@ const s = StyleSheet.create({
   fabText: { color: '#FFFFFF', fontSize: 28, fontWeight: '400', marginTop: -2 },
   successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheetScroll: { flexGrow: 1, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,

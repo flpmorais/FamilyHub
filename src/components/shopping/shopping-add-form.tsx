@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
   Keyboard,
   Alert,
+  ScrollView,
+  Platform,
 } from "react-native";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 interface ShoppingAddFormProps {
   visible: boolean;
@@ -34,20 +37,10 @@ export function ShoppingAddForm({
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", (e) =>
-      setKeyboardHeight(e.endCoordinates.height),
-    );
-    const hide = Keyboard.addListener("keyboardDidHide", () =>
-      setKeyboardHeight(0),
-    );
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ["name", "quantityNote"],
+  });
 
   function resetForm() {
     setName("");
@@ -113,55 +106,63 @@ export function ShoppingAddForm({
       onRequestClose={handleClose}
     >
       <View style={s.overlay}>
-        <View style={[s.sheet, { marginBottom: keyboardHeight }]}>
-          <Text style={s.title}>Novo item</Text>
+        <View style={s.sheet}>
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
+            <Text style={s.title}>Novo item</Text>
 
-          <Text style={s.label}>Nome *</Text>
-          <TextInput
-            style={[s.input, nameError ? s.inputError : null]}
-            value={name}
-            onChangeText={(t) => {
-              setName(t);
-              setNameError("");
-            }}
-            placeholder="ex: Leite"
-            autoCapitalize="sentences"
-            autoFocus
-            editable={!isSaving}
-          />
-          {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
+            <Text style={s.label}>Nome *</Text>
+            <TextInput
+              {...getInputProps("name")}
+              style={[s.input, nameError ? s.inputError : null]}
+              value={name}
+              onChangeText={(t) => {
+                setName(t);
+                setNameError("");
+              }}
+              placeholder="ex: Leite"
+              autoCapitalize="sentences"
+              autoFocus
+              editable={!isSaving}
+            />
+            {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
 
-          <Text style={s.label}>Quantidade (opcional)</Text>
-          <TextInput
-            style={s.input}
-            value={quantityNote}
-            onChangeText={setQuantityNote}
-            placeholder="ex: 3 pacotes"
-            autoCapitalize="sentences"
-            editable={!isSaving}
-          />
+            <Text style={s.label}>Quantidade (opcional)</Text>
+            <TextInput
+              {...getInputProps("quantityNote")}
+              style={s.input}
+              value={quantityNote}
+              onChangeText={setQuantityNote}
+              placeholder="ex: 3 pacotes"
+              autoCapitalize="sentences"
+              editable={!isSaving}
+            />
 
-          <Text style={s.label}>Prioridade</Text>
-          <View style={s.priorityRow}>
-            <TouchableOpacity
-              style={[s.priorityChip, !isUrgent && s.priorityChipComprar]}
-              onPress={() => setIsUrgent(false)}
-              disabled={isSaving}
-            >
-              <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
-                Comprar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.priorityChip, isUrgent && s.priorityChipUrgente]}
-              onPress={() => setIsUrgent(true)}
-              disabled={isSaving}
-            >
-              <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
-                Urgente
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <Text style={s.label}>Prioridade</Text>
+            <View style={s.priorityRow}>
+              <TouchableOpacity
+                style={[s.priorityChip, !isUrgent && s.priorityChipComprar]}
+                onPress={() => setIsUrgent(false)}
+                disabled={isSaving}
+              >
+                <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
+                  Comprar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.priorityChip, isUrgent && s.priorityChipUrgente]}
+                onPress={() => setIsUrgent(true)}
+                disabled={isSaving}
+              >
+                <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
+                  Urgente
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
 
           <View style={s.buttons}>
             <TouchableOpacity
@@ -201,6 +202,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
+    maxHeight: "85%",
   },
   title: {
     fontSize: 20,

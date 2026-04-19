@@ -19,6 +19,7 @@ import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
 import { countryFlag, countryIso2 } from '../../../utils/countries';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { VacationTemplate } from '../../../types/vacation.types';
 import type { Tag } from '../../../types/packing.types';
 
@@ -40,6 +41,10 @@ export default function VacationTemplatesScreen() {
   // Success toast
   const [successMsg, setSuccessMsg] = useState('');
   const [successVisible, setSuccessVisible] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['filterSearch'],
+  });
 
   async function loadAll() {
     if (!userAccount?.familyId) return;
@@ -163,7 +168,12 @@ export default function VacationTemplatesScreen() {
             activeOpacity={1}
           />
           <View style={s.filterPanel}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={{ paddingBottom: keyboardHeight }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <View style={s.filterPanelHeader}>
                 <Text style={s.filterPanelTitle}>Filtros</Text>
                 {filterCount > 0 && (
@@ -180,6 +190,7 @@ export default function VacationTemplatesScreen() {
 
               <Text style={s.label}>Nome</Text>
               <TextInput
+                {...getInputProps('filterSearch')}
                 style={s.input}
                 value={filterSearch}
                 onChangeText={setFilterSearch}

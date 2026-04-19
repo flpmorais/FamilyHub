@@ -29,6 +29,7 @@ import { RECIPE_TYPE_LIST, DEFAULT_SERVINGS } from '../../../constants/recipe-de
 import { logger } from '../../../utils/logger';
 import { IngredientRowCell, StepRowCell } from '../../../components/recipes/recipe-row-cells';
 import { DishTypeTag } from '../../../components/common/dish-type-tag';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { RecipeType, RecipeCategory, RecipeTag, ExtractedRecipe } from '../../../types/recipe.types';
 
 interface IngredientRow {
@@ -110,6 +111,10 @@ export default function NewRecipeScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['inlineName'],
+  });
 
   useEffect(() => {
     if (!familyId) return;
@@ -575,9 +580,15 @@ export default function NewRecipeScreen() {
         onRequestClose={() => setInlineCategoryModal(false)}
       >
         <View style={s.inlineModalOverlay}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={{ paddingBottom: keyboardHeight }}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={s.inlineSheet}>
             <Text style={s.inlineSheetTitle}>Nova Categoria</Text>
             <TextInput
+              {...getInputProps('inlineName')}
               style={s.input}
               value={inlineName}
               onChangeText={setInlineName}
@@ -595,6 +606,7 @@ export default function NewRecipeScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -606,9 +618,15 @@ export default function NewRecipeScreen() {
         onRequestClose={() => setInlineTagModal(false)}
       >
         <View style={s.inlineModalOverlay}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={{ paddingBottom: keyboardHeight }}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={s.inlineSheet}>
             <Text style={s.inlineSheetTitle}>Nova Etiqueta</Text>
             <TextInput
+              {...getInputProps('inlineName')}
               style={s.input}
               value={inlineName}
               onChangeText={setInlineName}
@@ -626,6 +644,7 @@ export default function NewRecipeScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
 

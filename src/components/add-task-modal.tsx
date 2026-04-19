@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  ScrollView,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { logger } from '../utils/logger';
+import { useModalKeyboardScroll } from '../hooks/use-modal-keyboard-scroll';
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-');
@@ -32,6 +34,10 @@ export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle'],
+  });
 
   function reset() {
     setFormTitle('');
@@ -74,38 +80,46 @@ export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.sheet}>
-          <Text style={styles.sheetTitle}>Nova tarefa</Text>
-          <Text style={styles.label}>Título *</Text>
-          <TextInput
-            style={styles.input}
-            value={formTitle}
-            onChangeText={setFormTitle}
-            placeholder="ex: Seguro de viagem"
-            autoCapitalize="sentences"
-            editable={!isSaving}
-          />
-          {error && error.includes('título') ? (
-            <Text style={styles.fieldError}>{error}</Text>
-          ) : null}
-          <Text style={styles.label}>Data limite *</Text>
-          <TouchableOpacity
-            style={styles.dateBtn}
-            onPress={() => setShowDatePicker(true)}
-            disabled={isSaving}
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
           >
-            <Text style={styles.dateBtnText}>{formatDate(toISODate(formDueDate))}</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={formDueDate}
-              mode="date"
-              display="default"
-              onChange={onDateChange}
+            <Text style={styles.sheetTitle}>Nova tarefa</Text>
+            <Text style={styles.label}>Título *</Text>
+            <TextInput
+              {...getInputProps('formTitle')}
+              style={styles.input}
+              value={formTitle}
+              onChangeText={setFormTitle}
+              placeholder="ex: Seguro de viagem"
+              autoCapitalize="sentences"
+              editable={!isSaving}
             />
-          )}
-          {error && !error.includes('título') ? (
-            <Text style={styles.formError}>{error}</Text>
-          ) : null}
+            {error && error.includes('título') ? (
+              <Text style={styles.fieldError}>{error}</Text>
+            ) : null}
+            <Text style={styles.label}>Data limite *</Text>
+            <TouchableOpacity
+              style={styles.dateBtn}
+              onPress={() => setShowDatePicker(true)}
+              disabled={isSaving}
+            >
+              <Text style={styles.dateBtnText}>{formatDate(toISODate(formDueDate))}</Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={formDueDate}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+              />
+            )}
+            {error && !error.includes('título') ? (
+              <Text style={styles.formError}>{error}</Text>
+            ) : null}
+          </ScrollView>
+
           <View style={styles.sheetBtns}>
             <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={isSaving}>
               <Text style={styles.cancelText}>Cancelar</Text>
@@ -136,6 +150,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
+    maxHeight: '85%',
   },
   sheetTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A', marginBottom: 20 },
   label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4 },

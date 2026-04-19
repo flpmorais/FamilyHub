@@ -14,6 +14,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { useAuthStore } from '../../../../stores/auth.store';
 import { logger } from '../../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../../hooks/use-modal-keyboard-scroll';
 import type { PackingItem, PackingStatus } from '../../../../types/packing.types';
 import type { Profile } from '../../../../types/profile.types';
 
@@ -48,6 +49,10 @@ export default function PackingListScreen() {
   const [formStatus, setFormStatus] = useState<PackingStatus>('new');
   const [formNotes, setFormNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formName', 'formQuantity', 'formNotes'],
+  });
 
   // Sticky last-used profile for sequential adds
   const [lastUsedProfileId, setLastUsedProfileId] = useState<string | null>(null);
@@ -237,96 +242,105 @@ export default function PackingListScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{editingItem ? 'Editar item' : 'Adicionar item'}</Text>
+            <ScrollView
+              ref={scrollViewRef}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+            >
+              <Text style={styles.sheetTitle}>{editingItem ? 'Editar item' : 'Adicionar item'}</Text>
 
-            <Text style={styles.label}>Nome *</Text>
-            <TextInput
-              style={styles.input}
-              value={formName}
-              onChangeText={setFormName}
-              placeholder="ex: T-shirts"
-              autoCapitalize="sentences"
-              editable={!isSaving}
-            />
+              <Text style={styles.label}>Nome *</Text>
+              <TextInput
+                {...getInputProps('formName')}
+                style={styles.input}
+                value={formName}
+                onChangeText={setFormName}
+                placeholder="ex: T-shirts"
+                autoCapitalize="sentences"
+                editable={!isSaving}
+              />
 
-            <Text style={styles.label}>Pessoa</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-              <TouchableOpacity
-                style={[styles.chip, formProfileId === null && styles.chipActive]}
-                onPress={() => setFormProfileId(null)}
-                disabled={isSaving}
-              >
-                <Text style={[styles.chipText, formProfileId === null && styles.chipTextActive]}>
-                  Nenhuma
-                </Text>
-              </TouchableOpacity>
-              {profiles.map((p) => (
+              <Text style={styles.label}>Pessoa</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
                 <TouchableOpacity
-                  key={p.id}
-                  style={[styles.chip, formProfileId === p.id && styles.chipActive]}
-                  onPress={() => setFormProfileId(p.id)}
+                  style={[styles.chip, formProfileId === null && styles.chipActive]}
+                  onPress={() => setFormProfileId(null)}
                   disabled={isSaving}
                 >
-                  <Text style={[styles.chipText, formProfileId === p.id && styles.chipTextActive]}>
-                    {p.displayName}
+                  <Text style={[styles.chipText, formProfileId === null && styles.chipTextActive]}>
+                    Nenhuma
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <View style={styles.row}>
-              <View style={styles.halfField}>
-                <Text style={styles.label}>Quantidade</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formQuantity}
-                  onChangeText={setFormQuantity}
-                  keyboardType="number-pad"
-                  editable={!isSaving}
-                />
-              </View>
-              {editingItem && (
-                <View style={styles.halfField}>
-                  <Text style={styles.label}>Estado</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.chipRow}
+                {profiles.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.chip, formProfileId === p.id && styles.chipActive]}
+                    onPress={() => setFormProfileId(p.id)}
+                    disabled={isSaving}
                   >
-                    {ALL_STATUSES.map((s) => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[styles.chip, formStatus === s && styles.chipActive]}
-                        onPress={() => setFormStatus(s)}
-                        disabled={isSaving}
-                      >
-                        <Text style={[styles.chipText, formStatus === s && styles.chipTextActive]}>
-                          {STATUS_LABELS[s]}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    <Text style={[styles.chipText, formProfileId === p.id && styles.chipTextActive]}>
+                      {p.displayName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={styles.row}>
+                <View style={styles.halfField}>
+                  <Text style={styles.label}>Quantidade</Text>
+                  <TextInput
+                    {...getInputProps('formQuantity')}
+                    style={styles.input}
+                    value={formQuantity}
+                    onChangeText={setFormQuantity}
+                    keyboardType="number-pad"
+                    editable={!isSaving}
+                  />
                 </View>
+                {editingItem && (
+                  <View style={styles.halfField}>
+                    <Text style={styles.label}>Estado</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.chipRow}
+                    >
+                      {ALL_STATUSES.map((s) => (
+                        <TouchableOpacity
+                          key={s}
+                          style={[styles.chip, formStatus === s && styles.chipActive]}
+                          onPress={() => setFormStatus(s)}
+                          disabled={isSaving}
+                        >
+                          <Text style={[styles.chipText, formStatus === s && styles.chipTextActive]}>
+                            {STATUS_LABELS[s]}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              {editingItem && (
+                <>
+                  <Text style={styles.label}>Notas</Text>
+                  <TextInput
+                    {...getInputProps('formNotes')}
+                    style={[styles.input, styles.notesInput]}
+                    value={formNotes}
+                    onChangeText={setFormNotes}
+                    placeholder="Notas adicionais"
+                    multiline
+                    editable={!isSaving}
+                  />
+                </>
               )}
-            </View>
 
-            {editingItem && (
-              <>
-                <Text style={styles.label}>Notas</Text>
-                <TextInput
-                  style={[styles.input, styles.notesInput]}
-                  value={formNotes}
-                  onChangeText={setFormNotes}
-                  placeholder="Notas adicionais"
-                  multiline
-                  editable={!isSaving}
-                />
-              </>
-            )}
+              <Text style={styles.labelDisabled}>Categoria (Épica 4)</Text>
 
-            <Text style={styles.labelDisabled}>Categoria (Épica 4)</Text>
-
-            {error && sheetVisible ? <Text style={styles.error}>{error}</Text> : null}
+              {error && sheetVisible ? <Text style={styles.error}>{error}</Text> : null}
+            </ScrollView>
 
             <View style={styles.sheetButtons}>
               <TouchableOpacity

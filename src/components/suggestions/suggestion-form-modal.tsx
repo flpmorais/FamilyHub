@@ -7,7 +7,9 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 interface SuggestionFormModalProps {
   visible: boolean;
@@ -30,6 +32,10 @@ export function SuggestionFormModal({
   const [description, setDescription] = useState(initialDescription);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ["title", "description"],
+  });
 
   useEffect(() => {
     if (visible) {
@@ -66,33 +72,41 @@ export function SuggestionFormModal({
     >
       <View style={s.overlay}>
         <View style={s.sheet}>
-          <Text style={s.sheetTitle}>
-            {isEditing ? "Editar sugestão" : "Nova sugestão"}
-          </Text>
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
+            <Text style={s.sheetTitle}>
+              {isEditing ? "Editar sugestão" : "Nova sugestão"}
+            </Text>
 
-          <Text style={s.label}>Título *</Text>
-          <TextInput
-            style={s.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="ex: Noite de jogos"
-            autoCapitalize="sentences"
-            editable={!isSaving}
-          />
+            <Text style={s.label}>Título *</Text>
+            <TextInput
+              {...getInputProps("title")}
+              style={s.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="ex: Noite de jogos"
+              autoCapitalize="sentences"
+              editable={!isSaving}
+            />
 
-          <Text style={s.label}>Descrição</Text>
-          <TextInput
-            style={[s.input, s.textArea]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Descreve a tua sugestão..."
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            editable={!isSaving}
-          />
+            <Text style={s.label}>Descrição</Text>
+            <TextInput
+              {...getInputProps("description")}
+              style={[s.input, s.textArea]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Descreve a tua sugestão..."
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              editable={!isSaving}
+            />
 
-          {error ? <Text style={s.error}>{error}</Text> : null}
+            {error ? <Text style={s.error}>{error}</Text> : null}
+          </ScrollView>
 
           <View style={s.buttons}>
             <TouchableOpacity
@@ -131,6 +145,7 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
+    maxHeight: "85%",
   },
   sheetTitle: {
     fontSize: 20,

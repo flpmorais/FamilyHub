@@ -7,8 +7,10 @@ import {
   FlatList,
   Modal,
   StyleSheet,
+  ScrollView,
 } from 'react-native';
 import { Icon } from 'react-native-paper';
+import { useModalKeyboardScroll } from '../hooks/use-modal-keyboard-scroll';
 import type { IconEntry } from '../types/packing.types';
 
 interface IconPickerProps {
@@ -23,6 +25,10 @@ const NUM_COLUMNS = 5;
 
 export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }: IconPickerProps) {
   const [search, setSearch] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['search'],
+  });
 
   const filtered = useMemo(() => {
     if (!search.trim()) return icons;
@@ -62,6 +68,7 @@ export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }
         <View style={s.searchWrap}>
           <Icon source="magnify" size={18} color="#888888" />
           <TextInput
+            {...getInputProps('search')}
             style={s.searchInput}
             value={search}
             onChangeText={setSearch}

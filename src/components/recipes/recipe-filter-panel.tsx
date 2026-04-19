@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
+import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
 import type { RecipeCategory, RecipeTag } from '../../types/recipe.types';
 
 export interface RecipeFilters {
@@ -58,6 +59,10 @@ export function RecipeFilterPanel({
 }: RecipeFilterPanelProps) {
   const [localFilters, setLocalFilters] = useState<RecipeFilters>(filters);
 
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['ingredientSearch', 'maxTotalTime', 'maxPrepTime', 'maxCookTime'],
+  });
+
   useEffect(() => {
     if (visible) setLocalFilters(filters);
   }, [visible, filters]);
@@ -96,7 +101,11 @@ export function RecipeFilterPanel({
       <View style={s.overlay}>
         <TouchableOpacity style={s.overlayTouch} onPress={onClose} activeOpacity={1} />
         <View style={s.panel}>
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            ref={scrollViewRef}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
             <View style={s.panelHeader}>
               <Text style={s.panelTitle}>Filtros</Text>
               {activeCount > 0 && (
@@ -109,6 +118,7 @@ export function RecipeFilterPanel({
             {/* Ingredient search */}
             <Text style={s.label}>Ingrediente</Text>
             <TextInput
+              {...getInputProps('ingredientSearch')}
               style={s.input}
               value={localFilters.ingredientSearch}
               onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, ingredientSearch: v }))}
@@ -160,6 +170,7 @@ export function RecipeFilterPanel({
             {/* Time filters */}
             <Text style={s.label}>Tempo total máximo (min)</Text>
             <TextInput
+              {...getInputProps('maxTotalTime')}
               style={s.input}
               value={localFilters.maxTotalTime}
               onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, maxTotalTime: v }))}
@@ -170,6 +181,7 @@ export function RecipeFilterPanel({
 
             <Text style={s.label}>Tempo de preparação máximo (min)</Text>
             <TextInput
+              {...getInputProps('maxPrepTime')}
               style={s.input}
               value={localFilters.maxPrepTime}
               onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, maxPrepTime: v }))}
@@ -180,6 +192,7 @@ export function RecipeFilterPanel({
 
             <Text style={s.label}>Tempo de cozinhar máximo (min)</Text>
             <TextInput
+              {...getInputProps('maxCookTime')}
               style={s.input}
               value={localFilters.maxCookTime}
               onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, maxCookTime: v }))}

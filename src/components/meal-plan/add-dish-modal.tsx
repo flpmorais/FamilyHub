@@ -8,15 +8,14 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useRepository } from '../../hooks/use-repository';
-import { useAuthStore } from '../../stores/auth.store';
+import { useAuthStore } from '../../hooks/use-auth.store';
 import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
 import { DishTypeTag } from '../common/dish-type-tag';
 import { logger } from '../../utils/logger';
+import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
 import type { Recipe, RecipeType } from '../../types/recipe.types';
 import type { MealEntryDish, CreateDishInput } from '../../types/meal-plan.types';
 import { getDishDisplay } from '../../types/meal-plan.types';
@@ -49,7 +48,7 @@ export function AddDishModal({ visible, familyId, mealDate, onSelect, onClose }:
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <KeyboardAvoidingView style={s.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={s.overlay}>
         <View style={s.panel}>
           <View style={s.header}>
             <Text style={s.title}>Adicionar Prato</Text>
@@ -83,7 +82,7 @@ export function AddDishModal({ visible, familyId, mealDate, onSelect, onClose }:
             <FridgeTab familyId={familyId} onSelect={onSelect} onClose={handleClose} />
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -96,6 +95,10 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
   const [isLoading, setIsLoading] = useState(true);
   const [activeType, setActiveType] = useState<RecipeType | null>(null);
   const [search, setSearch] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['search'],
+  });
 
   useEffect(() => {
     setIsLoading(true);
@@ -128,6 +131,7 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
   return (
     <View style={s.tabContent}>
       <TextInput
+        {...getInputProps('search')}
         style={s.search}
         value={search}
         onChangeText={setSearch}
@@ -179,6 +183,10 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
   const [category, setCategory] = useState<RecipeType>('meal');
   const [error, setError] = useState('');
 
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['name'],
+  });
+
   function handleSave() {
     const trimmed = name.trim();
     if (!trimmed) {
@@ -197,9 +205,14 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
   }
 
   return (
-    <View style={s.tabContent}>
+    <ScrollView
+      ref={scrollViewRef}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={[s.tabContent, { paddingBottom: keyboardHeight + 8 }]}
+    >
       <Text style={s.fieldLabel}>Prato *</Text>
       <TextInput
+        {...getInputProps('name')}
         style={[s.input, error ? s.inputError : null]}
         value={name}
         onChangeText={(t) => { setName(t); setError(''); }}
@@ -224,7 +237,7 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
       <TouchableOpacity style={s.saveBtn} onPress={handleSave}>
         <Text style={s.saveBtnText}>Adicionar</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 

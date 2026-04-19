@@ -19,6 +19,7 @@ import { useCurrentProfile } from "../../../hooks/use-current-profile";
 import { useFamily } from "../../../hooks/use-family";
 import { supabaseClient } from "../../../repositories/supabase/supabase.client";
 import { logger } from "../../../utils/logger";
+import { useModalKeyboardScroll } from "../../../hooks/use-modal-keyboard-scroll";
 import { PageHeader } from "../../../components/page-header";
 import { SuggestionFormModal } from "../../../components/suggestions/suggestion-form-modal";
 import { PAGE_SIZE } from "../../../constants/pagination";
@@ -133,6 +134,10 @@ export default function SuggestionsScreen() {
       void reloadFromStart(true);
     }, [reloadFromStart]),
   );
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['filterSearch'],
+  });
 
   // Reload when filters change
   useEffect(() => {
@@ -292,7 +297,12 @@ export default function SuggestionsScreen() {
             activeOpacity={1}
           />
           <View style={st.filterPanel}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={{ paddingBottom: keyboardHeight }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <View style={st.filterPanelHeader}>
                 <Text style={st.filterPanelTitle}>Filtros</Text>
                 {filterCount > 0 && (
@@ -304,6 +314,7 @@ export default function SuggestionsScreen() {
 
               <Text style={st.label}>Nome</Text>
               <TextInput
+                {...getInputProps('filterSearch')}
                 style={st.input}
                 value={filterSearch}
                 onChangeText={setFilterSearch}

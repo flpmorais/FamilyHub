@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState, createRef } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from "react-native";
 import DateTimePicker, {
@@ -18,6 +16,7 @@ import DateTimePicker, {
 import type { Leftover, LeftoverType } from "../../types/leftover.types";
 import { toISODate } from "../../utils/date.utils";
 import { DishTypeTag } from "../common/dish-type-tag";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 const TYPE_OPTIONS: LeftoverType[] = [
   "appetizer",
@@ -74,6 +73,10 @@ export function LeftoverEditForm({
   const [dosesError, setDosesError] = useState("");
   const [eatenError, setEatenError] = useState("");
   const [thrownError, setThrownError] = useState("");
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ["name", "doses", "eaten", "thrown"],
+  });
 
   useEffect(() => {
     if (item) {
@@ -188,16 +191,18 @@ export function LeftoverEditForm({
       transparent
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={s.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={s.overlay}>
         <View style={s.sheet}>
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[s.scrollContent, { paddingBottom: keyboardHeight + 8 }]}
+          >
             <Text style={s.title}>Editar resto</Text>
 
             <Text style={s.label}>Nome *</Text>
             <TextInput
+              {...getInputProps("name")}
               style={[s.input, nameError ? s.inputError : null]}
               value={name}
               onChangeText={(t) => {
@@ -223,6 +228,7 @@ export function LeftoverEditForm({
 
             <Text style={s.label}>Doses totais *</Text>
             <TextInput
+              {...getInputProps("doses")}
               style={[s.input, dosesError ? s.inputError : null]}
               value={totalDoses}
               onChangeText={(t) => {
@@ -257,6 +263,7 @@ export function LeftoverEditForm({
 
             <Text style={s.label}>Doses comidas</Text>
             <TextInput
+              {...getInputProps("eaten")}
               style={[s.input, eatenError ? s.inputError : null]}
               value={dosesEaten}
               onChangeText={(t) => {
@@ -273,6 +280,7 @@ export function LeftoverEditForm({
 
             <Text style={s.label}>Doses deitadas fora</Text>
             <TextInput
+              {...getInputProps("thrown")}
               style={[s.input, thrownError ? s.inputError : null]}
               value={dosesThrownOut}
               onChangeText={(t) => {
@@ -286,37 +294,37 @@ export function LeftoverEditForm({
             {thrownError ? (
               <Text style={s.fieldError}>{thrownError}</Text>
             ) : null}
-
-            <View style={s.buttons}>
-              <TouchableOpacity
-                style={s.deleteBtn}
-                onPress={handleDelete}
-                disabled={isSaving}
-              >
-                <Text style={s.deleteText}>Eliminar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={s.cancelBtn}
-                onPress={onClose}
-                disabled={isSaving}
-              >
-                <Text style={s.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={s.saveText}>Guardar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+
+          <View style={s.buttons}>
+            <TouchableOpacity
+              style={s.deleteBtn}
+              onPress={handleDelete}
+              disabled={isSaving}
+            >
+              <Text style={s.deleteText}>Eliminar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.cancelBtn}
+              onPress={onClose}
+              disabled={isSaving}
+            >
+              <Text style={s.cancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={s.saveText}>Guardar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -331,9 +339,13 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    padding: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
     maxHeight: "85%",
+  },
+  scrollContent: {
+    paddingBottom: 8,
   },
   title: {
     fontSize: 20,

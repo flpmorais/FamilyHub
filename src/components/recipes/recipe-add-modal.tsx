@@ -9,13 +9,12 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useRepository } from '../../hooks/use-repository';
 import { logger } from '../../utils/logger';
+import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
 import type { LlmModel } from '../../repositories/interfaces/recipe-import.repository.interface';
 
 type Step = 'choose' | 'url' | 'photo' | 'text';
@@ -44,6 +43,10 @@ export function RecipeAddModal({ visible, onClose }: RecipeAddModalProps) {
   const [imageMimeType, setImageMimeType] = useState('image/jpeg');
   const [isExtracting, setIsExtracting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['url', 'rawText'],
+  });
 
   function reset() {
     setStep('choose');
@@ -252,11 +255,16 @@ export function RecipeAddModal({ visible, onClose }: RecipeAddModalProps) {
     const isYoutube = !!url.trim().match(YOUTUBE_REGEX);
 
     return (
-      <>
+      <ScrollView
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+      >
         <Text style={s.sheetTitle}>Importar de URL</Text>
 
         <Text style={s.fieldLabel}>URL da Receita</Text>
         <TextInput
+          {...getInputProps('url')}
           style={s.input}
           value={url}
           onChangeText={setUrl}
@@ -296,13 +304,17 @@ export function RecipeAddModal({ visible, onClose }: RecipeAddModalProps) {
         <TouchableOpacity style={s.cancelBtn} onPress={handleClose} disabled={isExtracting}>
           <Text style={s.cancelBtnText}>Cancelar</Text>
         </TouchableOpacity>
-      </>
+      </ScrollView>
     );
   }
 
   function renderPhotoStep() {
     return (
-      <>
+      <ScrollView
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+      >
         <Text style={s.sheetTitle}>Importar de Foto</Text>
 
         {imageUri ? (
@@ -356,17 +368,24 @@ export function RecipeAddModal({ visible, onClose }: RecipeAddModalProps) {
         <TouchableOpacity style={s.cancelBtn} onPress={handleClose} disabled={isExtracting}>
           <Text style={s.cancelBtnText}>Cancelar</Text>
         </TouchableOpacity>
-      </>
+      </ScrollView>
     );
   }
 
   function renderTextStep() {
     return (
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={s.sheetTitle}>Importar de Texto</Text>
 
         <Text style={s.fieldLabel}>Texto da Receita</Text>
         <TextInput
+          {...getInputProps('rawText')}
           style={[s.input, s.textArea]}
           value={rawText}
           onChangeText={setRawText}

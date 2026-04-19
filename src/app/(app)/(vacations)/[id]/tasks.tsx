@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { useAuthStore } from '../../../../stores/auth.store';
 import { logger } from '../../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../../hooks/use-modal-keyboard-scroll';
 import type { BookingTask } from '../../../../types/vacation.types';
 
 function formatDate(iso: string): string {
@@ -54,6 +55,10 @@ export default function BookingTasksScreen() {
   const [formDueDate, setFormDueDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle'],
+  });
 
   async function loadTasks(showSpinner = false) {
     if (!vacationId) return;
@@ -210,36 +215,43 @@ export default function BookingTasksScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Nova tarefa</Text>
-
-            <Text style={styles.label}>Título *</Text>
-            <TextInput
-              style={styles.input}
-              value={formTitle}
-              onChangeText={setFormTitle}
-              placeholder="ex: Seguro de viagem"
-              autoCapitalize="sentences"
-              editable={!isSaving}
-            />
-
-            <Text style={styles.label}>Data limite *</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDatePicker(true)}
-              disabled={isSaving}
+            <ScrollView
+              ref={scrollViewRef}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
             >
-              <Text style={styles.dateButtonText}>{formatDate(toISODate(formDueDate))}</Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={formDueDate}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-              />
-            )}
+              <Text style={styles.sheetTitle}>Nova tarefa</Text>
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Text style={styles.label}>Título *</Text>
+              <TextInput
+                {...getInputProps('formTitle')}
+                style={styles.input}
+                value={formTitle}
+                onChangeText={setFormTitle}
+                placeholder="ex: Seguro de viagem"
+                autoCapitalize="sentences"
+                editable={!isSaving}
+              />
+
+              <Text style={styles.label}>Data limite *</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+                disabled={isSaving}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(toISODate(formDueDate))}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={formDueDate}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                />
+              )}
+
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+            </ScrollView>
 
             <View style={styles.sheetButtons}>
               <TouchableOpacity
@@ -336,6 +348,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
+    maxHeight: '85%',
   },
   sheetTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A', marginBottom: 20 },
   label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4 },

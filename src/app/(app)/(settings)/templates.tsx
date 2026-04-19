@@ -21,6 +21,7 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
 import { IconPicker } from '../../../components/icon-picker';
 import { useIconStore } from '../../../stores/icon.store';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { TemplateItem, CreateTemplateItemInput, Category, Tag } from '../../../types/packing.types';
 import type { Profile } from '../../../types/profile.types';
 
@@ -65,6 +66,10 @@ export default function TemplatesScreen() {
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle', 'formQuantity', 'filterSearch'],
+  });
 
   async function reloadTemplateItems() {
     if (!userAccount?.familyId) return;
@@ -330,7 +335,11 @@ export default function TemplatesScreen() {
           onRequestClose={() => setSheetVisible(false)}
         >
           <View style={s.modalOverlay}>
-            <ScrollView contentContainerStyle={s.sheetScroll} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={[s.sheetScroll, { paddingBottom: keyboardHeight }]}
+              keyboardShouldPersistTaps="handled"
+            >
               <View style={s.sheet}>
                 <Text style={s.sheetTitle}>
                   {editingItem ? 'Editar modelo' : 'Novo modelo'}
@@ -338,6 +347,7 @@ export default function TemplatesScreen() {
 
                 <Text style={s.label}>Título *</Text>
                 <TextInput
+                  {...getInputProps('formTitle')}
                   style={[s.input, titleError ? s.inputError : null]}
                   value={formTitle}
                   onChangeText={(t) => { setFormTitle(t); setTitleError(''); }}
@@ -408,6 +418,7 @@ export default function TemplatesScreen() {
 
                 <Text style={s.label}>Quantidade</Text>
                 <TextInput
+                  {...getInputProps('formQuantity')}
                   style={[s.input, { width: 80 }]}
                   value={formQuantity}
                   onChangeText={setFormQuantity}
@@ -501,7 +512,12 @@ export default function TemplatesScreen() {
               activeOpacity={1}
             />
             <View style={s.filterPanel}>
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView
+                ref={scrollViewRef}
+                contentContainerStyle={{ paddingBottom: keyboardHeight }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
               <View style={s.filterPanelHeader}>
                 <Text style={s.filterPanelTitle}>Filtros</Text>
                 {filterCount > 0 && (
@@ -513,6 +529,7 @@ export default function TemplatesScreen() {
 
               <Text style={s.label}>Nome</Text>
               <TextInput
+                {...getInputProps('filterSearch')}
                 style={s.input}
                 value={filterSearch}
                 onChangeText={setFilterSearch}

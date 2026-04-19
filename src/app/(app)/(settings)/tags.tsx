@@ -29,6 +29,7 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
 import { IconPicker } from '../../../components/icon-picker';
 import { useIconStore } from '../../../stores/icon.store';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { Tag } from '../../../types/packing.types';
 
 const TAG_COLORS = [
@@ -105,6 +106,10 @@ export default function TagsScreen() {
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formName', 'searchText'],
+  });
 
   async function loadTags() {
     if (!userAccount?.familyId) return;
@@ -336,10 +341,16 @@ export default function TagsScreen() {
           onRequestClose={() => setSheetVisible(false)}
         >
           <View style={s.modalOverlay}>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={[s.sheetScroll, { paddingBottom: keyboardHeight }]}
+              keyboardShouldPersistTaps="handled"
+            >
             <View style={s.sheet}>
               <Text style={s.sheetTitle}>{editingTag ? 'Editar etiqueta' : 'Nova etiqueta'}</Text>
               <Text style={s.label}>Nome *</Text>
               <TextInput
+                {...getInputProps('formName')}
                 style={[s.input, nameError ? s.inputError : null]}
                 value={formName}
                 onChangeText={(t) => {
@@ -428,6 +439,7 @@ export default function TagsScreen() {
                 )}
               </View>
             </View>
+            </ScrollView>
           </View>
         </Modal>
 
@@ -452,7 +464,12 @@ export default function TagsScreen() {
               activeOpacity={1}
             />
             <View style={s.filterPanel}>
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView
+                ref={scrollViewRef}
+                contentContainerStyle={{ paddingBottom: keyboardHeight }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
               <View style={s.filterPanelHeader}>
                 <Text style={s.filterPanelTitle}>Filtros</Text>
                 {filterCount > 0 && (
@@ -468,6 +485,7 @@ export default function TagsScreen() {
               </View>
               <Text style={s.label}>Nome</Text>
               <TextInput
+                {...getInputProps('searchText')}
                 style={s.input}
                 value={searchText}
                 onChangeText={setSearchText}
@@ -544,6 +562,7 @@ const s = StyleSheet.create({
   fabText: { color: '#FFFFFF', fontSize: 28, fontWeight: '400', marginTop: -2 },
   successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheetScroll: { flexGrow: 1, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,

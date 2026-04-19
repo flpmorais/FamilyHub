@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Image,
   StyleSheet,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import { supabaseClient } from "../../../repositories/supabase/supabase.client";
 import { logger } from "../../../utils/logger";
 import { SuggestionFormModal } from "../../../components/suggestions/suggestion-form-modal";
 import { SuggestionComments } from "../../../components/suggestions/suggestion-comments";
+import { KeyboardAwareScrollView } from "../../../components/common/keyboard-aware-scroll-view";
 import type {
   Suggestion,
   SuggestionStatus,
@@ -225,7 +225,7 @@ export default function SuggestionDetailScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={st.content}>
+      <KeyboardAwareScrollView contentContainerStyle={st.content}>
         {/* Creator & date */}
         <View style={st.creatorRow}>
           {creator?.avatarUrl ? (
@@ -282,7 +282,7 @@ export default function SuggestionDetailScreen() {
             ))}
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Status picker modal */}
       <Modal

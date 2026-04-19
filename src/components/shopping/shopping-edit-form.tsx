@@ -7,12 +7,11 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Alert,
 } from "react-native";
 import type { ShoppingItem, ShoppingCategory } from "../../types/shopping.types";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 interface ShoppingEditFormProps {
   visible: boolean;
@@ -40,6 +39,10 @@ export function ShoppingEditForm({
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ["name", "quantityNote"],
+  });
 
   useEffect(() => {
     if (item) {
@@ -100,16 +103,18 @@ export function ShoppingEditForm({
       transparent
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={s.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={s.overlay}>
         <View style={s.sheet}>
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
             <Text style={s.title}>Editar item</Text>
 
             <Text style={s.label}>Nome *</Text>
             <TextInput
+              {...getInputProps("name")}
               style={[s.input, nameError ? s.inputError : null]}
               value={name}
               onChangeText={(t) => {
@@ -147,6 +152,7 @@ export function ShoppingEditForm({
 
             <Text style={s.label}>Quantidade (opcional)</Text>
             <TextInput
+              {...getInputProps("quantityNote")}
               style={s.input}
               value={quantityNote}
               onChangeText={setQuantityNote}
@@ -180,37 +186,37 @@ export function ShoppingEditForm({
                 </View>
               </>
             )}
-
-            <View style={s.buttons}>
-              <TouchableOpacity
-                style={s.deleteBtn}
-                onPress={handleDelete}
-                disabled={isSaving}
-              >
-                <Text style={s.deleteText}>Eliminar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={s.cancelBtn}
-                onPress={onClose}
-                disabled={isSaving}
-              >
-                <Text style={s.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={s.saveText}>Guardar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+
+          <View style={s.buttons}>
+            <TouchableOpacity
+              style={s.deleteBtn}
+              onPress={handleDelete}
+              disabled={isSaving}
+            >
+              <Text style={s.deleteText}>Eliminar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.cancelBtn}
+              onPress={onClose}
+              disabled={isSaving}
+            >
+              <Text style={s.cancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={s.saveText}>Guardar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

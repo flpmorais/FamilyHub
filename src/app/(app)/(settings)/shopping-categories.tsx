@@ -27,6 +27,7 @@ import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { ShoppingCategory } from '../../../types/shopping.types';
 
 function mirrorCategory(payload: Record<string, unknown>) {
@@ -82,6 +83,10 @@ export default function ShoppingCategoriesScreen() {
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formName', 'searchText'],
+  });
 
   async function loadCategories() {
     if (!userAccount?.familyId) return;
@@ -296,10 +301,16 @@ export default function ShoppingCategoriesScreen() {
           onRequestClose={() => setSheetVisible(false)}
         >
           <View style={s.modalOverlay}>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={[s.sheetScroll, { paddingBottom: keyboardHeight }]}
+              keyboardShouldPersistTaps="handled"
+            >
             <View style={s.sheet}>
               <Text style={s.sheetTitle}>{editingCat ? 'Editar categoria' : 'Nova categoria'}</Text>
               <Text style={s.label}>Nome *</Text>
               <TextInput
+                {...getInputProps('formName')}
                 style={[s.input, nameError ? s.inputError : null]}
                 value={formName}
                 onChangeText={(t) => {
@@ -364,6 +375,7 @@ export default function ShoppingCategoriesScreen() {
                 )}
               </View>
             </View>
+            </ScrollView>
           </View>
         </Modal>
 
@@ -380,7 +392,12 @@ export default function ShoppingCategoriesScreen() {
               activeOpacity={1}
             />
             <View style={s.filterPanel}>
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView
+                ref={scrollViewRef}
+                contentContainerStyle={{ paddingBottom: keyboardHeight }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
               <View style={s.filterPanelHeader}>
                 <Text style={s.filterPanelTitle}>Filtros</Text>
                 {filterCount > 0 && (
@@ -396,6 +413,7 @@ export default function ShoppingCategoriesScreen() {
               </View>
               <Text style={s.label}>Nome</Text>
               <TextInput
+                {...getInputProps('searchText')}
                 style={s.input}
                 value={searchText}
                 onChangeText={setSearchText}
@@ -467,6 +485,7 @@ const s = StyleSheet.create({
   fabText: { color: '#FFFFFF', fontSize: 28, fontWeight: '400', marginTop: -2 },
   successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheetScroll: { flexGrow: 1, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,

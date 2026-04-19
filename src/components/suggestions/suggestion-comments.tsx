@@ -16,6 +16,7 @@ import type { SuggestionCommentWithProfile } from "../../types/suggestion.types"
 interface SuggestionCommentsProps {
   suggestionId: string;
   currentProfileId: string;
+  onInputFocus?: () => void;
 }
 
 function timeAgo(dateStr: string): string {
@@ -34,6 +35,7 @@ function timeAgo(dateStr: string): string {
 export function SuggestionComments({
   suggestionId,
   currentProfileId,
+  onInputFocus,
 }: SuggestionCommentsProps) {
   const suggestionRepo = useRepository("suggestion");
 

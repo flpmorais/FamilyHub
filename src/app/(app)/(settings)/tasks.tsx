@@ -18,6 +18,7 @@ import { useFamily } from '../../../hooks/use-family';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { TaskTemplate, CreateTaskTemplateInput } from '../../../types/vacation.types';
 import type { Tag } from '../../../types/packing.types';
 import type { Profile } from '../../../types/profile.types';
@@ -55,6 +56,10 @@ export default function TaskTemplatesScreen() {
   const [filterSearch, setFilterSearch] = useState('');
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [filterActiveOnly, setFilterActiveOnly] = useState(true);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle', 'formDeadlineDays', 'filterSearch'],
+  });
 
   async function loadAll() {
     if (!userAccount?.familyId) return;
@@ -233,18 +238,26 @@ export default function TaskTemplatesScreen() {
       {/* Form sheet */}
       <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
         <View style={s.modalOverlay}>
-          <ScrollView contentContainerStyle={s.sheetScroll} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={[s.sheetScroll, { paddingBottom: keyboardHeight }]}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={s.sheet}>
               <Text style={s.sheetTitle}>{editingItem ? 'Editar tarefa' : 'Nova tarefa'}</Text>
 
               <Text style={s.label}>Título *</Text>
-              <TextInput style={[s.input, titleError ? s.inputError : null]} value={formTitle}
+              <TextInput
+                {...getInputProps('formTitle')}
+                style={[s.input, titleError ? s.inputError : null]} value={formTitle}
                 onChangeText={(t) => { setFormTitle(t); setTitleError(''); }} placeholder="ex: Reservar voos"
                 autoCapitalize="sentences" editable={!isSaving} />
               {titleError ? <Text style={s.fieldError}>{titleError}</Text> : null}
 
               <Text style={s.label}>Dias antes da partida *</Text>
-              <TextInput style={[s.input, { width: 100 }]} value={formDeadlineDays}
+              <TextInput
+                {...getInputProps('formDeadlineDays')}
+                style={[s.input, { width: 100 }]} value={formDeadlineDays}
                 onChangeText={setFormDeadlineDays} keyboardType="number-pad" editable={!isSaving} />
 
               <View style={s.toggleRow}>
@@ -318,8 +331,13 @@ export default function TaskTemplatesScreen() {
       <Modal visible={filterPanelVisible} animationType="slide" transparent onRequestClose={() => setFilterPanelVisible(false)}>
         <View style={s.filterOverlay}>
           <TouchableOpacity style={s.filterOverlayTouch} onPress={() => setFilterPanelVisible(false)} activeOpacity={1} />
-          <View style={s.filterPanel}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={s.filterPanel}>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={{ paddingBottom: keyboardHeight }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
             <View style={s.filterPanelHeader}>
               <Text style={s.filterPanelTitle}>Filtros</Text>
               {filterCount > 0 && (
@@ -330,7 +348,9 @@ export default function TaskTemplatesScreen() {
             </View>
 
             <Text style={s.label}>Nome</Text>
-            <TextInput style={s.input} value={filterSearch} onChangeText={setFilterSearch} placeholder="Pesquisar..." autoCapitalize="none" />
+            <TextInput
+              {...getInputProps('filterSearch')}
+              style={s.input} value={filterSearch} onChangeText={setFilterSearch} placeholder="Pesquisar..." autoCapitalize="none" />
 
             <View style={s.toggleRow}>
               <Text style={s.toggleLabel}>Apenas activas</Text>

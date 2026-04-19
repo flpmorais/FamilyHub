@@ -25,6 +25,7 @@ import { compressAvatar } from '../../../utils/image.utils';
 import { COUNTRIES, countryFlag, countryIso2, findCountry } from '../../../utils/countries';
 import { formatDatePt } from '../../../utils/vacation.utils';
 import { PageHeader } from '../../../components/page-header';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { Vacation } from '../../../types/vacation.types';
 import type { Profile } from '../../../types/profile.types';
 import type { VacationTemplate } from '../../../types/vacation.types';
@@ -64,6 +65,10 @@ export default function CreateVacationScreen() {
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
   const [loadedTemplate, setLoadedTemplate] = useState<VacationTemplate | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle'],
+  });
 
   // Country picker
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
@@ -292,11 +297,16 @@ export default function CreateVacationScreen() {
   return (
     <View style={st.container}>
       <PageHeader title="Nova Viagem" showBack familyBannerUri={family?.bannerUrl} />
-      <ScrollView contentContainerStyle={st.content} keyboardShouldPersistTaps="handled">
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={st.content} 
+        keyboardShouldPersistTaps="handled"
+      >
         {fieldErrors.general ? <Text style={st.error}>{fieldErrors.general}</Text> : null}
 
         <Text style={st.label}>Nome *</Text>
         <TextInput
+          {...getInputProps('formTitle')}
           style={st.input}
           value={formTitle}
           onChangeText={setFormTitle}

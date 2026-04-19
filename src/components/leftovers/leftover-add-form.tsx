@@ -7,8 +7,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  ScrollView,
 } from "react-native";
 import {
   DEFAULT_EXPIRY_DAYS,
@@ -16,6 +15,7 @@ import {
 } from "../../constants/leftover-defaults";
 import type { LeftoverType } from "../../types/leftover.types";
 import { DishTypeTag } from "../common/dish-type-tag";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 const TYPE_OPTIONS: LeftoverType[] = [
   "appetizer",
@@ -51,6 +51,10 @@ export function LeftoverAddForm({
   const [nameError, setNameError] = useState("");
   const [dosesError, setDosesError] = useState("");
   const [expiryError, setExpiryError] = useState("");
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ["name", "doses", "expiry"],
+  });
 
   function resetForm() {
     setName("");
@@ -110,6 +114,10 @@ export function LeftoverAddForm({
     onClose();
   }
 
+  const nameInputProps = getInputProps("name");
+  const dosesInputProps = getInputProps("doses");
+  const expiryInputProps = getInputProps("expiry");
+
   return (
     <Modal
       visible={visible}
@@ -117,67 +125,73 @@ export function LeftoverAddForm({
       transparent
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        style={s.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={s.overlay}>
         <View style={s.sheet}>
-          <Text style={s.title}>Novo resto</Text>
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[s.scrollContent, { paddingBottom: keyboardHeight + 8 }]}
+          >
+            <Text style={s.title}>Novo resto</Text>
 
-          <Text style={s.label}>Nome *</Text>
-          <TextInput
-            style={[s.input, nameError ? s.inputError : null]}
-            value={name}
-            onChangeText={(t) => {
-              setName(t);
-              setNameError("");
-            }}
-            placeholder="ex: Lasanha"
-            autoCapitalize="sentences"
-            autoFocus
-            editable={!isSaving}
-          />
-          {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
+            <Text style={s.label}>Nome *</Text>
+            <TextInput
+              {...nameInputProps}
+              style={[s.input, nameError ? s.inputError : null]}
+              value={name}
+              onChangeText={(t) => {
+                setName(t);
+                setNameError("");
+              }}
+              placeholder="ex: Lasanha"
+              autoCapitalize="sentences"
+              autoFocus
+              editable={!isSaving}
+            />
+            {nameError ? <Text style={s.fieldError}>{nameError}</Text> : null}
 
-          <Text style={s.label}>Tipo</Text>
-          <View style={s.chipRow}>
-            {TYPE_OPTIONS.map((opt) => (
-              <DishTypeTag
-                key={opt}
-                typeKey={opt}
-                variant={type === opt ? "filled" : "outlined"}
-                size="md"
-                onPress={isSaving ? undefined : () => setType(opt)}
-              />
-            ))}
-          </View>
+            <Text style={s.label}>Tipo</Text>
+            <View style={s.chipRow}>
+              {TYPE_OPTIONS.map((opt) => (
+                <DishTypeTag
+                  key={opt}
+                  typeKey={opt}
+                  variant={type === opt ? "filled" : "outlined"}
+                  size="md"
+                  onPress={isSaving ? undefined : () => setType(opt)}
+                />
+              ))}
+            </View>
 
-          <Text style={s.label}>Doses *</Text>
-          <TextInput
-            style={[s.input, dosesError ? s.inputError : null]}
-            value={doses}
-            onChangeText={(t) => {
-              setDoses(t);
-              setDosesError("");
-            }}
-            placeholder="ex: 4"
-            keyboardType="number-pad"
-            editable={!isSaving}
-          />
-          {dosesError ? <Text style={s.fieldError}>{dosesError}</Text> : null}
+            <Text style={s.label}>Doses *</Text>
+            <TextInput
+              {...dosesInputProps}
+              style={[s.input, dosesError ? s.inputError : null]}
+              value={doses}
+              onChangeText={(t) => {
+                setDoses(t);
+                setDosesError("");
+              }}
+              placeholder="ex: 4"
+              keyboardType="number-pad"
+              editable={!isSaving}
+            />
+            {dosesError ? <Text style={s.fieldError}>{dosesError}</Text> : null}
 
-          <Text style={s.label}>Dias de validade *</Text>
-          <TextInput
-            style={[s.input, expiryError ? s.inputError : null]}
-            value={expiryDays}
-            onChangeText={(t) => {
-              setExpiryDays(t);
-              setExpiryError("");
-            }}
-            keyboardType="number-pad"
-            editable={!isSaving}
-          />
-          {expiryError ? <Text style={s.fieldError}>{expiryError}</Text> : null}
+            <Text style={s.label}>Dias de validade *</Text>
+            <TextInput
+              {...expiryInputProps}
+              style={[s.input, expiryError ? s.inputError : null]}
+              value={expiryDays}
+              onChangeText={(t) => {
+                setExpiryDays(t);
+                setExpiryError("");
+              }}
+              keyboardType="number-pad"
+              editable={!isSaving}
+            />
+            {expiryError ? <Text style={s.fieldError}>{expiryError}</Text> : null}
+          </ScrollView>
 
           <View style={s.buttons}>
             <TouchableOpacity
@@ -200,7 +214,7 @@ export function LeftoverAddForm({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -215,8 +229,13 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    padding: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    maxHeight: "85%",
+  },
+  scrollContent: {
+    paddingBottom: 8,
   },
   title: {
     fontSize: 20,

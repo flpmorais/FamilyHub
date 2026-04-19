@@ -7,8 +7,6 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
   ScrollView,
 } from 'react-native';
@@ -17,6 +15,7 @@ import { DishesSection } from './dishes-section';
 import { ParticipantToggle } from './participant-toggle';
 import { useRepository } from '../../hooks/use-repository';
 import { logger } from '../../utils/logger';
+import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
 import type { MealEntry, MealEntryDish, MealSlot, MealType } from '../../types/meal-plan.types';
 import type { Profile } from '../../types/profile.types';
 
@@ -51,6 +50,10 @@ export function MealEditForm({ visible, meal, familyId, mealDate, profiles, dish
   const [participants, setParticipants] = useState<string[]>([]);
   const [nameError, setNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['name'],
+  });
 
   const needsName = mealType === 'eating_out' || mealType === 'takeaway';
 
@@ -163,66 +166,74 @@ export function MealEditForm({ visible, meal, familyId, mealDate, profiles, dish
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.overlay}>
         <View style={styles.container}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>Editar refeição</Text>
-            {onAddAsLeftover && mealType === 'home_cooked' && (
-              <IconButton
-                icon="recycle-variant"
-                size={22}
-                iconColor="#B5451B"
-                style={styles.leftoverBtn}
-                onPress={() => onAddAsLeftover(dishes)}
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Editar refeição</Text>
+              {onAddAsLeftover && mealType === 'home_cooked' && (
+                <IconButton
+                  icon="recycle-variant"
+                  size={22}
+                  iconColor="#B5451B"
+                  style={styles.leftoverBtn}
+                  onPress={() => onAddAsLeftover(dishes)}
+                />
+              )}
+            </View>
+
+            <Text style={styles.label}>Tipo</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
+              {MEAL_TYPE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.typeChip, mealType === opt.value && styles.typeChipSelected]}
+                  onPress={() => handleTypeChange(opt.value)}
+                >
+                  <Text style={[styles.typeChipText, mealType === opt.value && styles.typeChipTextSelected]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {needsName && (
+              <>
+                <Text style={styles.label}>Nome *</Text>
+                <TextInput
+                  {...getInputProps('name')}
+                  style={[styles.input, nameError ? styles.inputError : null]}
+                  value={name}
+                  onChangeText={(t) => { setName(t); setNameError(''); }}
+                  placeholder="Ex: Restaurante O Manel"
+                  editable={!isSaving}
+                />
+              </>
+            )}
+
+            {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
+
+            {meal && mealType === 'home_cooked' && (
+              <DishesSection
+                mealEntryId={meal.id}
+                dishes={dishes}
+                onChanged={onDishChanged}
+                onOpenAddDish={onOpenAddDish}
               />
             )}
-          </View>
 
-          <Text style={styles.label}>Tipo</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
-            {MEAL_TYPE_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[styles.typeChip, mealType === opt.value && styles.typeChipSelected]}
-                onPress={() => handleTypeChange(opt.value)}
-              >
-                <Text style={[styles.typeChipText, mealType === opt.value && styles.typeChipTextSelected]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {needsName && (
-            <>
-              <Text style={styles.label}>Nome *</Text>
-              <TextInput
-                style={[styles.input, nameError ? styles.inputError : null]}
-                value={name}
-                onChangeText={(t) => { setName(t); setNameError(''); }}
-                placeholder="Ex: Restaurante O Manel"
-              />
-            </>
-          )}
-
-          {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
-
-          {meal && mealType === 'home_cooked' && (
-            <DishesSection
-              mealEntryId={meal.id}
-              dishes={dishes}
-              onChanged={onDishChanged}
-              onOpenAddDish={onOpenAddDish}
+            <Text style={[styles.label, { marginTop: 16 }]}>Participantes</Text>
+            <ParticipantToggle
+              profiles={profiles}
+              selectedIds={participants}
+              onToggle={toggleParticipant}
+              disabled={isSaving}
             />
-          )}
-
-          <Text style={[styles.label, { marginTop: 16 }]}>Participantes</Text>
-          <ParticipantToggle
-            profiles={profiles}
-            selectedIds={participants}
-            onToggle={toggleParticipant}
-            disabled={isSaving}
-          />
+          </ScrollView>
 
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={isSaving}>
@@ -243,7 +254,7 @@ export function MealEditForm({ visible, meal, familyId, mealDate, profiles, dish
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -256,6 +267,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
+    maxHeight: '85%',
   },
   titleRow: {
     flexDirection: 'row',

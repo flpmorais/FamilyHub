@@ -28,6 +28,7 @@ import { supabaseClient } from '../../../repositories/supabase/supabase.client';
 import { logger } from '../../../utils/logger';
 import { compressAvatar } from '../../../utils/image.utils';
 import { PageHeader } from '../../../components/page-header';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import type { Profile, ProfileStatus, UserRole, Family } from '../../../types/profile.types';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
@@ -156,6 +157,10 @@ export default function ProfilesScreen() {
   const [emailPromptProfile, setEmailPromptProfile] = useState<Profile | null>(null);
   const [emailPromptValue, setEmailPromptValue] = useState('');
   const [emailPromptRole, setEmailPromptRole] = useState<UserRole>('admin');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['familyName', 'formName', 'formEmail', 'emailPromptValue'],
+  });
 
   async function loadData(showSpinner = false) {
     if (!userAccount?.familyId) return;
@@ -582,6 +587,11 @@ export default function ProfilesScreen() {
         onRequestClose={() => setBottomSheetVisible(false)}
       >
         <View style={styles.modalOverlay}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={{ paddingBottom: keyboardHeight }}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>
               {editingProfile ? 'Editar perfil' : 'Novo perfil'}
@@ -605,6 +615,7 @@ export default function ProfilesScreen() {
 
             <Text style={styles.label}>Nome *</Text>
             <TextInput
+              {...getInputProps('formName')}
               style={styles.input}
               value={formName}
               onChangeText={setFormName}
@@ -616,6 +627,7 @@ export default function ProfilesScreen() {
 
             <Text style={styles.label}>Email</Text>
             <TextInput
+              {...getInputProps('formEmail')}
               style={styles.input}
               value={formEmail}
               onChangeText={setFormEmail}
@@ -684,6 +696,7 @@ export default function ProfilesScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -771,6 +784,7 @@ export default function ProfilesScreen() {
 
                 <Text style={styles.label}>Email *</Text>
                 <TextInput
+                  {...getInputProps('emailPromptValue')}
                   style={styles.input}
                   value={emailPromptValue}
                   onChangeText={setEmailPromptValue}
@@ -825,11 +839,18 @@ export default function ProfilesScreen() {
       {/* ── Family edit modal ────────────────────────────────────────── */}
       <Modal visible={familyEditVisible} animationType="slide" transparent onRequestClose={() => setFamilyEditVisible(false)}>
         <View style={styles.modalOverlay}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={{ paddingBottom: keyboardHeight }}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Editar família</Text>
 
             <Text style={styles.label}>Nome *</Text>
-            <TextInput style={[styles.input, familyNameError ? styles.inputError : null]} value={familyName}
+            <TextInput
+              {...getInputProps('familyName')}
+              style={[styles.input, familyNameError ? styles.inputError : null]} value={familyName}
               onChangeText={(t) => { setFamilyName(t); setFamilyNameError(''); }} placeholder="ex: Morais" editable={!isSavingFamily} />
             {familyNameError ? <Text style={styles.fieldError}>{familyNameError}</Text> : null}
 
@@ -853,6 +874,7 @@ export default function ProfilesScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
     </GestureHandlerRootView>

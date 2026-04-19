@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,6 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { Icon } from 'react-native-paper';
@@ -18,6 +16,7 @@ import { getDishDisplay } from '../../types/meal-plan.types';
 import type { MealEntryDish } from '../../types/meal-plan.types';
 import type { RecipeType } from '../../types/recipe.types';
 import type { LeftoverType } from '../../types/leftover.types';
+import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
 
 interface DishLeftoverEntry {
   dishId: string;
@@ -39,6 +38,10 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
   const [entries, setEntries] = useState<DishLeftoverEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: entries.map((e) => `doses-${e.dishId}`).concat(entries.map((e) => `expiry-${e.dishId}`)),
+  });
 
   useEffect(() => {
     if (visible && dishes.length > 0) {
@@ -113,12 +116,17 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={s.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={s.overlay}>
         <View style={s.sheet}>
           <Text style={s.title}>Guardar como restos</Text>
           <Text style={s.subtitle}>Selecione os pratos que sobraram</Text>
 
-          <ScrollView style={s.scroll}>
+          <ScrollView 
+            ref={scrollViewRef} 
+            style={s.scroll} 
+            keyboardShouldPersistTaps="handled" 
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
             {entries.length === 0 ? (
               <Text style={s.emptyText}>Sem pratos elegíveis.</Text>
             ) : (
@@ -140,6 +148,7 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
                         <View style={s.fieldGroup}>
                           <Text style={s.fieldLabel}>Doses</Text>
                           <TextInput
+                            {...getInputProps(`doses-${entry.dishId}`)}
                             style={s.fieldInput}
                             value={entry.doses}
                             onChangeText={(t) => updateField(entry.dishId, 'doses', t)}
@@ -150,6 +159,7 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
                         <View style={s.fieldGroup}>
                           <Text style={s.fieldLabel}>Dias validade</Text>
                           <TextInput
+                            {...getInputProps(`expiry-${entry.dishId}`)}
                             style={s.fieldInput}
                             value={entry.expiryDays}
                             onChangeText={(t) => updateField(entry.dishId, 'expiryDays', t)}
@@ -180,7 +190,7 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

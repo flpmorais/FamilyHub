@@ -20,6 +20,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { useAuthStore } from '../../../../stores/auth.store';
 import { logger } from '../../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../../hooks/use-modal-keyboard-scroll';
 import { compressAvatar } from '../../../../utils/image.utils';
 import { COUNTRIES, countryFlag, countryIso2, findCountry } from '../../../../utils/countries';
 import { formatDatePt } from '../../../../utils/vacation.utils';
@@ -64,6 +65,10 @@ export default function EditVacationScreen() {
   // Country picker
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['formTitle'],
+  });
 
   useEffect(() => {
     void loadData();
@@ -249,9 +254,14 @@ export default function EditVacationScreen() {
         imageUri={vacation?.coverImageUrl}
         showBack
       />
-      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={[s.content, { paddingBottom: keyboardHeight }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={s.label}>Nome *</Text>
         <TextInput
+          {...getInputProps('formTitle')}
           style={[s.input, fieldErrors.title && s.inputError]}
           value={formTitle}
           onChangeText={(t) => {

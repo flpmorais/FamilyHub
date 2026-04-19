@@ -16,6 +16,7 @@ import { useCallback } from 'react';
 import { useRepository } from '../../../hooks/use-repository';
 import { useAuthStore } from '../../../stores/auth.store';
 import { logger } from '../../../utils/logger';
+import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
 import { VacationHeroCard } from '../../../components/vacation-hero-card';
 import { PageHeader } from '../../../components/page-header';
 import { useFamily } from '../../../hooks/use-family';
@@ -140,6 +141,10 @@ export default function VacationsScreen() {
 
   const filterCount = (filterSearch ? 1 : 0) + (filterProfile ? 1 : 0) + (filterTag ? 1 : 0);
 
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['filterSearch'],
+  });
+
   function clearFilters() {
     setFilterSearch('');
     setFilterProfile(null);
@@ -235,7 +240,12 @@ export default function VacationsScreen() {
             activeOpacity={1}
           />
           <View style={st.filterPanel}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={{ paddingBottom: keyboardHeight }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <View style={st.filterPanelHeader}>
                 <Text style={st.filterPanelTitle}>Filtros</Text>
                 {filterCount > 0 && (
@@ -247,6 +257,7 @@ export default function VacationsScreen() {
 
               <Text style={st.label}>Nome</Text>
               <TextInput
+                {...getInputProps('filterSearch')}
                 style={st.input}
                 value={filterSearch}
                 onChangeText={setFilterSearch}

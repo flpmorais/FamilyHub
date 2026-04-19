@@ -8,12 +8,14 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useRepository } from '../../hooks/use-repository';
-import { useAuthStore } from '../../stores/auth.store';
+import { useAuthStore } from '../../hooks/use-auth.store';
 import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
 import { DishTypeTag } from '../common/dish-type-tag';
 import { logger } from '../../utils/logger';
+import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
 import type { Recipe, RecipeType } from '../../types/recipe.types';
 
 interface RecipeBrowserModalProps {
@@ -30,6 +32,10 @@ export function RecipeBrowserModal({ visible, onSelect, onClose }: RecipeBrowser
   const [isLoading, setIsLoading] = useState(true);
   const [activeType, setActiveType] = useState<RecipeType | null>(null);
   const [search, setSearch] = useState('');
+
+  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
+    inputKeys: ['search'],
+  });
 
   useEffect(() => {
     if (!visible || !userAccount?.familyId) return;
@@ -72,59 +78,66 @@ export function RecipeBrowserModal({ visible, onSelect, onClose }: RecipeBrowser
             </TouchableOpacity>
           </View>
 
-          <TextInput
-            style={s.search}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Pesquisar receita..."
-            placeholderTextColor="#CCCCCC"
-            autoCapitalize="none"
-          />
-
-          {/* Type tabs */}
-          <View style={s.typeScroll}>
-            <FlatList
-              horizontal
-              data={RECIPE_TYPE_LIST}
-              keyExtractor={(item) => item.key}
-              ListHeaderComponent={
-                <TouchableOpacity
-                  style={[s.allChip, !activeType && s.allChipActive]}
-                  onPress={() => setActiveType(null)}
-                >
-                  <Text style={[s.allChipText, !activeType && s.allChipTextActive]}>Todos</Text>
-                </TouchableOpacity>
-              }
-              renderItem={({ item }) => (
-                <DishTypeTag
-                  typeKey={item.key}
-                  variant={activeType === item.key ? 'filled' : 'outlined'}
-                  size="md"
-                  onPress={() => setActiveType(item.key)}
-                />
-              )}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.typeRow}
+          <ScrollView
+            ref={scrollViewRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
+          >
+            <TextInput
+              {...getInputProps('search')}
+              style={s.search}
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Pesquisar receita..."
+              placeholderTextColor="#CCCCCC"
+              autoCapitalize="none"
             />
-          </View>
 
-          {isLoading ? (
-            <View style={s.centered}><ActivityIndicator /></View>
-          ) : filtered.length === 0 ? (
-            <View style={s.centered}><Text style={s.empty}>Nenhuma receita encontrada.</Text></View>
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={s.recipeRow} onPress={() => handleSelect(item)}>
-                  <Text style={s.recipeName} numberOfLines={1}>{item.name}</Text>
-                  <DishTypeTag typeKey={item.type} variant="filled" size="sm" />
-                </TouchableOpacity>
-              )}
-              contentContainerStyle={s.list}
-            />
-          )}
+            {/* Type tabs */}
+            <View style={s.typeScroll}>
+              <FlatList
+                horizontal
+                data={RECIPE_TYPE_LIST}
+                keyExtractor={(item) => item.key}
+                ListHeaderComponent={
+                  <TouchableOpacity
+                    style={[s.allChip, !activeType && s.allChipActive]}
+                    onPress={() => setActiveType(null)}
+                  >
+                    <Text style={[s.allChipText, !activeType && s.allChipTextActive]}>Todos</Text>
+                  </TouchableOpacity>
+                }
+                renderItem={({ item }) => (
+                  <DishTypeTag
+                    typeKey={item.key}
+                    variant={activeType === item.key ? 'filled' : 'outlined'}
+                    size="md"
+                    onPress={() => setActiveType(item.key)}
+                  />
+                )}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.typeRow}
+              />
+            </View>
+
+            {isLoading ? (
+              <View style={s.centered}><ActivityIndicator /></View>
+            ) : filtered.length === 0 ? (
+              <View style={s.centered}><Text style={s.empty}>Nenhuma receita encontrada.</Text></View>
+            ) : (
+              <FlatList
+                data={filtered}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={s.recipeRow} onPress={() => handleSelect(item)}>
+                    <Text style={s.recipeName} numberOfLines={1}>{item.name}</Text>
+                    <DishTypeTag typeKey={item.type} variant="filled" size="sm" />
+                  </TouchableOpacity>
+                )}
+                contentContainerStyle={s.list}
+              />
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -158,6 +171,7 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 15,
     color: '#1A1A1A',
+    marginBottom: 8,
   },
   typeScroll: { maxHeight: 44 },
   typeRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: 'center' },
