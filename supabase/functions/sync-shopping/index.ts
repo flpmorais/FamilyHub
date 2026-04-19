@@ -11,8 +11,9 @@ let cachedFamilyId: string | null = null;
 
 async function getFamilyId(): Promise<string> {
   if (cachedFamilyId) return cachedFamilyId;
-  const { data } = await supabase.from("families").select("id").limit(1).single();
-  if (!data) throw new Error("Family not found");
+  const { data, error } = await supabase.from("families").select("id").limit(1).maybeSingle();
+  if (error) throw new Error(`Family query error: ${error.message}`);
+  if (!data) throw new Error("No family found in database");
   cachedFamilyId = data.id;
   return data.id;
 }

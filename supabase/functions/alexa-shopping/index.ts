@@ -79,8 +79,9 @@ async function getFamilyId(): Promise<string> {
     .from("families")
     .select("id")
     .limit(1)
-    .single();
-  if (error || !data) throw new Error("Family not found");
+    .maybeSingle();
+  if (error) throw new Error(`Family query error: ${error.message}`);
+  if (!data) throw new Error("No family found in database");
   cachedFamilyId = data.id;
   return data.id;
 }
