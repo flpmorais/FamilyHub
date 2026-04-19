@@ -528,15 +528,7 @@ export default function ProfilesScreen() {
 
   const sheetAvatarUri = pendingAvatarUri ?? currentAvatarUrl;
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  // ── Callbacks (must be before any conditional returns) ────────────────────
 
   const renderProfileItem = useCallback(
     ({ item: profile }: ListRenderItemInfo<Profile>) => (
@@ -554,6 +546,16 @@ export default function ProfilesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [profiles],
   );
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={styles.container}>
