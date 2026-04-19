@@ -1,12 +1,15 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
   Image,
   StyleSheet,
   ActivityIndicator,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
@@ -16,7 +19,6 @@ import { supabaseClient } from "../../../repositories/supabase/supabase.client";
 import { logger } from "../../../utils/logger";
 import { SuggestionFormModal } from "../../../components/suggestions/suggestion-form-modal";
 import { SuggestionComments } from "../../../components/suggestions/suggestion-comments";
-import { KeyboardAwareScrollView } from "../../../components/common/keyboard-aware-scroll-view";
 import type {
   Suggestion,
   SuggestionStatus,
@@ -225,7 +227,12 @@ export default function SuggestionDetailScreen() {
         </View>
       </View>
 
-      <KeyboardAwareScrollView contentContainerStyle={st.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView contentContainerStyle={st.content} keyboardShouldPersistTaps="handled">
         {/* Creator & date */}
         <View style={st.creatorRow}>
           {creator?.avatarUrl ? (
@@ -282,7 +289,8 @@ export default function SuggestionDetailScreen() {
             ))}
           </View>
         )}
-      </KeyboardAwareScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Status picker modal */}
       <Modal
