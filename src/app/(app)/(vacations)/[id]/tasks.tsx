@@ -17,6 +17,7 @@ import { useAuthStore } from '../../../../stores/auth.store';
 import { logger } from '../../../../utils/logger';
 import { useModalKeyboardScroll } from '../../../../hooks/use-modal-keyboard-scroll';
 import type { BookingTask } from '../../../../types/vacation.types';
+import type { Profile } from '../../../../types/profile.types';
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-');
@@ -43,9 +44,11 @@ function toISODate(d: Date): string {
 export default function BookingTasksScreen() {
   const { id: vacationId } = useLocalSearchParams<{ id: string }>();
   const vacationRepository = useRepository('vacation');
+  const profileRepo = useRepository('profile');
   const { userAccount } = useAuthStore();
 
   const [tasks, setTasks] = useState<BookingTask[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +56,7 @@ export default function BookingTasksScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [formTitle, setFormTitle] = useState('');
   const [formDueDate, setFormDueDate] = useState(new Date());
+  const [formProfileId, setFormProfileId] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -61,11 +65,15 @@ export default function BookingTasksScreen() {
   });
 
   async function loadTasks(showSpinner = false) {
-    if (!vacationId) return;
+    if (!vacationId || !userAccount?.familyId) return;
     if (showSpinner) setIsLoading(true);
     try {
-      const list = await vacationRepository.getBookingTasks(vacationId);
+      const [list, profList] = await Promise.all([
+        vacationRepository.getBookingTasks(vacationId),
+        profileRepo.getProfilesByFamily(userAccount.familyId),
+      ]);
       setTasks(list);
+      setProfiles(profList);
     } catch (err) {
       logger.error('BookingTasksScreen', 'loadTasks failed', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar tarefas.');
@@ -94,6 +102,7 @@ export default function BookingTasksScreen() {
   function openAddTask() {
     setFormTitle('');
     setFormDueDate(new Date());
+    setFormProfileId(null);
     setShowDatePicker(false);
     setError(null);
     setSheetVisible(true);
@@ -119,6 +128,7 @@ export default function BookingTasksScreen() {
         title,
         taskType: 'custom',
         dueDate: toISODate(formDueDate),
+        profileId: formProfileId ?? undefined,
       });
       setSheetVisible(false);
       await loadTasks();
@@ -158,6 +168,9 @@ export default function BookingTasksScreen() {
 
         {incomplete.map((task) => {
           const days = task.dueDate ? daysRemaining(task.dueDate) : null;
+          const assigneeName = task.profileId
+            ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
+            : 'Família';
           return (
             <TouchableOpacity
               key={task.id}
@@ -167,7 +180,10 @@ export default function BookingTasksScreen() {
               <Text style={styles.taskCheck}>☐</Text>
               <View style={styles.taskInfo}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
-                {task.dueDate && <Text style={styles.taskDueDate}>{formatDate(task.dueDate)}</Text>}
+                <View style={styles.taskMetaRow}>
+                  {task.dueDate && <Text style={styles.taskDueDate}>{formatDate(task.dueDate)}</Text>}
+                  <Text style={styles.taskAssignee}>{assigneeName}</Text>
+                </View>
               </View>
               {days !== null && (
                 <View style={[styles.daysBadge, { backgroundColor: daysColor(days) + '18' }]}>
@@ -183,21 +199,24 @@ export default function BookingTasksScreen() {
         {completed.length > 0 && (
           <>
             <Text style={styles.sectionHeader}>Concluídas</Text>
-            {completed.map((task) => (
-              <TouchableOpacity
-                key={task.id}
-                style={styles.taskRow}
-                onPress={() => toggleComplete(task)}
-              >
-                <Text style={styles.taskCheck}>☑</Text>
-                <View style={styles.taskInfo}>
-                  <Text style={styles.taskTitleDone}>{task.title}</Text>
-                  {task.dueDate && (
-                    <Text style={styles.taskDueDateDone}>{formatDate(task.dueDate)}</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
+            {completed.map((task) => {
+              const assigneeName = task.profileId
+                ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
+                : 'Família';
+              return (
+                <TouchableOpacity
+                  key={task.id}
+                  style={styles.taskRow}
+                  onPress={() => toggleComplete(task)}
+                >
+                  <Text style={styles.taskCheck}>☑</Text>
+                  <View style={styles.taskInfo}>
+                    <Text style={styles.taskTitleDone}>{task.title}</Text>
+                    <Text style={styles.taskDueDateDone}>{assigneeName}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </>
         )}
 
@@ -249,6 +268,47 @@ export default function BookingTasksScreen() {
                   onChange={onDateChange}
                 />
               )}
+
+              <Text style={styles.label}>Atribuir a</Text>
+              <View style={styles.profileList}>
+                <TouchableOpacity
+                  style={[
+                    styles.profileChip,
+                    formProfileId === null && styles.profileChipSelected,
+                  ]}
+                  onPress={() => setFormProfileId(null)}
+                  disabled={isSaving}
+                >
+                  <Text
+                    style={[
+                      styles.profileChipText,
+                      formProfileId === null && styles.profileChipTextSelected,
+                    ]}
+                  >
+                    Toda a família
+                  </Text>
+                </TouchableOpacity>
+                {profiles.map((profile) => (
+                  <TouchableOpacity
+                    key={profile.id}
+                    style={[
+                      styles.profileChip,
+                      formProfileId === profile.id && styles.profileChipSelected,
+                    ]}
+                    onPress={() => setFormProfileId(profile.id)}
+                    disabled={isSaving}
+                  >
+                    <Text
+                      style={[
+                        styles.profileChipText,
+                        formProfileId === profile.id && styles.profileChipTextSelected,
+                      ]}
+                    >
+                      {profile.displayName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
             </ScrollView>
@@ -305,13 +365,14 @@ const styles = StyleSheet.create({
     color: '#AAAAAA',
     textDecorationLine: 'line-through',
   },
-  taskDueDate: { fontSize: 12, color: '#888888', marginTop: 2 },
+  taskMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
+  taskDueDate: { fontSize: 12, color: '#888888' },
   taskDueDateDone: {
     fontSize: 12,
     color: '#CCCCCC',
     marginTop: 2,
-    textDecorationLine: 'line-through',
   },
+  taskAssignee: { fontSize: 12, color: '#B5451B' },
   daysBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -390,4 +451,16 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  profileList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  profileChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFFFFF',
+  },
+  profileChipSelected: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
+  profileChipText: { fontSize: 14, color: '#555555' },
+  profileChipTextSelected: { color: '#FFFFFF', fontWeight: '500' },
 });

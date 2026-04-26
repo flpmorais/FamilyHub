@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { Snackbar } from 'react-native-paper';
 import { AddTaskModal } from './add-task-modal';
 import type { BookingTask } from '../types/vacation.types';
+import type { Profile } from '../types/profile.types';
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-');
@@ -22,11 +23,12 @@ function daysColor(days: number): string {
 
 interface BookingTaskListProps {
   tasks: BookingTask[];
+  profiles: Profile[];
   onToggleComplete: (task: BookingTask) => Promise<void>;
-  onCreateTask: (title: string, dueDate: string) => Promise<void>;
+  onCreateTask: (title: string, dueDate: string, profileId: string | null) => Promise<void>;
 }
 
-export function BookingTaskList({ tasks, onToggleComplete, onCreateTask }: BookingTaskListProps) {
+export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTask }: BookingTaskListProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
 
@@ -41,6 +43,9 @@ export function BookingTaskList({ tasks, onToggleComplete, onCreateTask }: Booki
         )}
         {incomplete.map((task) => {
           const days = task.dueDate ? daysRemaining(task.dueDate) : null;
+          const assigneeName = task.profileId
+            ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
+            : 'Família';
           return (
             <TouchableOpacity
               key={task.id}
@@ -50,7 +55,10 @@ export function BookingTaskList({ tasks, onToggleComplete, onCreateTask }: Booki
               <Text style={s.check}>☐</Text>
               <View style={s.info}>
                 <Text style={s.title}>{task.title}</Text>
-                {task.dueDate && <Text style={s.dueDate}>{formatDate(task.dueDate)}</Text>}
+                <View style={s.metaRow}>
+                  {task.dueDate && <Text style={s.dueDate}>{formatDate(task.dueDate)}</Text>}
+                  <Text style={s.assigneeName}>{assigneeName}</Text>
+                </View>
               </View>
               {days !== null && (
                 <View style={[s.daysBadge, { backgroundColor: daysColor(days) + '18' }]}>
@@ -65,18 +73,24 @@ export function BookingTaskList({ tasks, onToggleComplete, onCreateTask }: Booki
         {completed.length > 0 && (
           <>
             <Text style={s.sectionHeader}>Concluídas</Text>
-            {completed.map((task) => (
-              <TouchableOpacity
-                key={task.id}
-                style={s.taskRow}
-                onPress={() => onToggleComplete(task)}
-              >
-                <Text style={s.check}>☑</Text>
-                <View style={s.info}>
-                  <Text style={s.titleDone}>{task.title}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {completed.map((task) => {
+              const assigneeName = task.profileId
+                ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
+                : 'Família';
+              return (
+                <TouchableOpacity
+                  key={task.id}
+                  style={s.taskRow}
+                  onPress={() => onToggleComplete(task)}
+                >
+                  <Text style={s.check}>☑</Text>
+                  <View style={s.info}>
+                    <Text style={s.titleDone}>{task.title}</Text>
+                    <Text style={s.dueDateDone}>{assigneeName}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </>
         )}
       </ScrollView>
@@ -98,8 +112,9 @@ export function BookingTaskList({ tasks, onToggleComplete, onCreateTask }: Booki
       <AddTaskModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onSave={async (title, dueDate) => {
-          await onCreateTask(title, dueDate);
+        profiles={profiles}
+        onSave={async (title, dueDate, profileId) => {
+          await onCreateTask(title, dueDate, profileId);
           setSuccessVisible(true);
         }}
       />
@@ -122,7 +137,10 @@ const s = StyleSheet.create({
   info: { flex: 1 },
   title: { fontSize: 15, color: '#1A1A1A' },
   titleDone: { fontSize: 15, color: '#AAAAAA', textDecorationLine: 'line-through' },
-  dueDate: { fontSize: 12, color: '#888888', marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
+  dueDate: { fontSize: 12, color: '#888888' },
+  dueDateDone: { fontSize: 12, color: '#CCCCCC' },
+  assigneeName: { fontSize: 12, color: '#B5451B' },
   daysBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 8 },
   daysBadgeText: { fontSize: 12, fontWeight: '600' },
   sectionHeader: {

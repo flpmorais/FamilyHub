@@ -426,13 +426,14 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async updateBookingTask(
     id: string,
-    data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete'>>
+    data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete' | 'profileId'>>
   ): Promise<BookingTask> {
     try {
       const updates: Record<string, unknown> = {};
       if (data.title !== undefined) updates.title = data.title;
       if (data.dueDate !== undefined) updates.due_date = data.dueDate;
       if (data.isComplete !== undefined) updates.is_complete = data.isComplete;
+      if (data.profileId !== undefined) updates.profile_id = data.profileId;
 
       const { data: rows, error } = await this.client
         .from('booking_tasks')

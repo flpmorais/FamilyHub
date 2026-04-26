@@ -132,13 +132,14 @@ export default function VacationDetailScreen() {
     await reloadTasks();
   }
 
-  async function handleCreateTask(title: string, dueDate: string) {
+  async function handleCreateTask(title: string, dueDate: string, profileId: string | null) {
     await vacationRepo.createBookingTask({
       vacationId: vacationId!,
       familyId: userAccount!.familyId,
       title,
       taskType: 'custom',
       dueDate,
+      profileId: profileId ?? undefined,
     });
     await reloadTasks();
   }
@@ -333,6 +334,7 @@ export default function VacationDetailScreen() {
       {activeTab === 'tasks' ? (
         <BookingTaskList
           tasks={tasks}
+          profiles={profiles}
           onToggleComplete={handleToggleTask}
           onCreateTask={handleCreateTask}
         />

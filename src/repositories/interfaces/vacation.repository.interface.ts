@@ -36,7 +36,7 @@ export interface IVacationRepository {
   createBookingTask(data: CreateBookingTaskInput): Promise<BookingTask>;
   updateBookingTask(
     id: string,
-    data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete'>>
+    data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete' | 'profileId'>>
   ): Promise<BookingTask>;
   deleteBookingTask(id: string): Promise<void>;
   getVacationBags(vacationId: string): Promise<VacationBag[]>;

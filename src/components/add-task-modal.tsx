@@ -13,6 +13,7 @@ import {
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { logger } from '../utils/logger';
 import { useModalKeyboardScroll } from '../hooks/use-modal-keyboard-scroll';
+import type { Profile } from '../types/profile.types';
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-');
@@ -25,12 +26,14 @@ function toISODate(d: Date): string {
 interface AddTaskModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (title: string, dueDate: string) => Promise<void>;
+  profiles: Profile[];
+  onSave: (title: string, dueDate: string, profileId: string | null) => Promise<void>;
 }
 
-export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
+export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModalProps) {
   const [formTitle, setFormTitle] = useState('');
   const [formDueDate, setFormDueDate] = useState(new Date());
+  const [formProfileId, setFormProfileId] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +45,7 @@ export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
   function reset() {
     setFormTitle('');
     setFormDueDate(new Date());
+    setFormProfileId(null);
     setShowDatePicker(false);
     setError(null);
   }
@@ -60,7 +64,7 @@ export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
     setError(null);
     setIsSaving(true);
     try {
-      await onSave(title, toISODate(formDueDate));
+      await onSave(title, toISODate(formDueDate), formProfileId);
       reset();
       onClose();
     } catch (err) {
@@ -115,6 +119,45 @@ export function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
                 onChange={onDateChange}
               />
             )}
+
+            <Text style={styles.label}>Atribuir a</Text>
+            <View style={styles.profileList}>
+              <TouchableOpacity
+                style={[styles.profileChip, formProfileId === null && styles.profileChipSelected]}
+                onPress={() => setFormProfileId(null)}
+                disabled={isSaving}
+              >
+                <Text
+                  style={[
+                    styles.profileChipText,
+                    formProfileId === null && styles.profileChipTextSelected,
+                  ]}
+                >
+                  Toda a família
+                </Text>
+              </TouchableOpacity>
+              {profiles.map((profile) => (
+                <TouchableOpacity
+                  key={profile.id}
+                  style={[
+                    styles.profileChip,
+                    formProfileId === profile.id && styles.profileChipSelected,
+                  ]}
+                  onPress={() => setFormProfileId(profile.id)}
+                  disabled={isSaving}
+                >
+                  <Text
+                    style={[
+                      styles.profileChipText,
+                      formProfileId === profile.id && styles.profileChipTextSelected,
+                    ]}
+                  >
+                    {profile.displayName}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             {error && !error.includes('título') ? (
               <Text style={styles.formError}>{error}</Text>
             ) : null}
@@ -194,4 +237,16 @@ const styles = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  profileList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  profileChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFFFFF',
+  },
+  profileChipSelected: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
+  profileChipText: { fontSize: 14, color: '#555555' },
+  profileChipTextSelected: { color: '#FFFFFF', fontWeight: '500' },
 });
