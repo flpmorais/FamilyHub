@@ -92,7 +92,7 @@ const ProfileDraggableRow = memo(function ProfileDraggableRow({
       <TouchableOpacity onLongPress={drag} delayLongPress={150} style={styles.dragHandle}>
         <Text style={styles.dragHandleText}>☰</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.rowContent} onPress={() => onOpenEdit(profile)}>
+      <TouchableOpacity style={styles.rowContent} onPress={() => onOpenEdit(profile)} onLongPress={() => onOpenEdit(profile)}>
         <View style={styles.avatarCircle}>
           {profile.avatarUrl ? (
             <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />

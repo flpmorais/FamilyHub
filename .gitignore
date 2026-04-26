@@ -42,7 +42,7 @@ yarn-error.*
 /ios
 /android
 
-# Claude / BMad cache
+# Claude / BMad cache / Agent instructions
 .claude/
 .bmad/
 _bmad/

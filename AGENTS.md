@@ -36,3 +36,88 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
+
+---
+
+## What Is This
+
+FamilyHub is a family management mobile app built with React Native (Expo 55) targeting **Android only**. It uses Supabase (PostgreSQL + Auth + Storage + Realtime + Edge Functions) as the backend. The UI is **Portuguese-language** throughout.
+
+## Commands
+
+```bash
+# Development
+npm start                        # Start Expo dev server
+npm run android                  # Run on Android device/emulator
+npm run lint                     # ESLint (src/ only)
+npm run lint:fix                 # ESLint with auto-fix
+npm run format                   # Prettier
+npm run type-check               # TypeScript (tsc --noEmit)
+
+# Building (EAS cloud builds)
+npm run build:dev                # Development APK (debug, dev client)
+npm run build:preview            # Preview APK
+npm run build:production         # Production APK
+
+# OTA Updates (EAS Update) — message is the first positional arg
+npm run ota:dev "fix: login crash"
+npm run ota:production "feat: new recipe import"
+
+# Database (Supabase CLI)
+supabase start                   # Start local Supabase stack
+supabase db push                 # Apply migrations to linked remote project
+supabase db reset                # Reset local DB (migrations + seed)
+```
+
+## Architecture
+
+```
+Routes (Expo Router) → Hooks → Stores (Zustand) + Repositories → Supabase
+                                         ↕
+                                     Services
+```
+
+- **Expo Router** (`src/app/`): File-based routing. `(app)/` contains authenticated tab screens, `(auth)/` has sign-in. Route groups map to feature modules: `(home)`, `(meal-plan)`, `(shopping)`, `(leftovers)`, `(recipes)`, `(vacations)`, `(settings)`.
+- **Repository pattern** (`src/repositories/`): Interfaces in `interfaces/`, Supabase implementations in `supabase/`. All repositories are provided via React Context (`repository.context.tsx`). Access them with `useRepository()` hook.
+- **Zustand stores** (`src/stores/`): Lightweight client state per domain. No persistence — state resets on app restart.
+- **Services** (`src/services/`): Stateless business logic — recipe scaling, shopping list generation/merge, PDF export.
+- **Path alias**: `@/*` maps to `src/*`.
+
+### Authentication Flow
+
+Google OAuth → Supabase Auth → session stored in `expo-secure-store` (encrypted on-device) → hydrated on cold launch via `supabase.client.ts` custom storage adapter.
+
+## Database & Backend
+
+- **Migrations**: `supabase/migrations/` — applied in filename order. There is no test suite; verify migrations by running `supabase db reset` locally.
+- **Before `supabase db push`**: Always run `supabase projects list` and confirm the linked project is the **dev** environment (`familyhub-dev` / `vblyzgjvseodveypmxdz`). Never push to production without explicit user confirmation.
+- **Edge Functions**: `supabase/functions/` — recipe import (URL, YouTube, photo extraction), item classification, sync handlers.
+- **Local stack ports**: API 54321, DB 54322, Studio 54323, Inbucket 54324.
+- **Seed data**: `supabase/seed.sql` runs automatically on `supabase db reset`.
+
+## Build & Deploy Quirks
+
+- **Android only**: `platforms: ['android']` in `app.config.ts`. No iOS build config.
+- **Dynamic config**: `app.config.ts` reads `APP_ENV` to switch app name, package, scheme, and icons between dev/prod. Static `app.json` is the base.
+- **Env sourcing for OTA**: `ota:dev` and `ota:production` scripts source `.env.development` / `.env.production` via bash to load env vars before invoking `eas update`.
+- **`.env` is a symlink** to `.env.development`. Do not edit `.env` directly; edit the target file.
+- **Metro workaround**: `metro.config.js` redirects `@powersync/op-sqlite` and its internal `.js` imports to the CommonJS build because Metro cannot resolve its ESM exports.
+- **Three EAS profiles** with different Supabase projects and Google Web Client IDs:
+  - `development` / `preview` → dev Supabase (`vblyzgjvseodveypmxdz`)
+  - `production` → prod Supabase (`xedvtgdcnnsgpqixrzib`)
+
+## Style & Conventions
+
+- **UI framework**: React Native Paper (Material Design).
+- **ESLint**: Uses `eslint-config-expo/flat` + `eslint-plugin-prettier/recommended`.
+- **No tests exist** in this repo. There is no Jest, Vitest, or other test runner configured.
+- **Language**: All user-facing strings are Portuguese.
+
+## Supabase Storage Buckets
+
+`avatars`, `family-banners`, `vacation-covers` — all public, authenticated access.
+
+## References
+
+- `CLAUDE.md` — more detailed architecture and feature module breakdown (not in git; local reference only).
+- `.cursorrules` / `.windsurfrules` / `GEMINI.md` — duplicates of the MCP tools section only.

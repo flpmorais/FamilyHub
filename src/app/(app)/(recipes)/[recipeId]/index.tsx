@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { Snackbar } from 'react-native-paper';
+import { Snackbar, Icon } from 'react-native-paper';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useRepository } from '../../../../hooks/use-repository';
 import { supabaseClient } from '../../../../repositories/supabase/supabase.client';
 import { DishTypeTag } from '../../../../components/common/dish-type-tag';
 import { RecipeSource } from '../../../../components/recipes/recipe-source';
 import { scaleQuantity } from '../../../../services/recipe-scaling.service';
+import { generateShoppingList } from '../../../../services/shopping-list-generator.service';
 import { generateRecipePdf } from '../../../../services/recipe-pdf.service';
 import { ServingsScaler } from '../../../../components/recipes/servings-scaler';
 import { StarRating } from '../../../../components/recipes/star-rating';
@@ -35,6 +36,7 @@ export default function RecipeDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [targetServings, setTargetServings] = useState(0);
   const [isSharing, setIsSharing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [errorVisible, setErrorVisible] = useState(false);
   const [ratingSummary, setRatingSummary] = useState<RecipeRatingSummary>({ average: null, count: 0 });
@@ -122,6 +124,41 @@ export default function RecipeDetailScreen() {
     }
   }
 
+  async function handleAddToShoppingList() {
+    if (!recipe) return;
+
+    if (!recipe.ingredients || recipe.ingredients.length === 0) {
+      setErrorMsg('Esta receita não tem ingredientes');
+      setErrorVisible(true);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const items = generateShoppingList(
+        [{ recipeId: recipe.id, servingsOverride: targetServings || recipe.servings }],
+        new Map([[recipe.id, recipe]]),
+      );
+
+      if (items.length === 0) {
+        setErrorMsg('Nenhum ingrediente encontrado');
+        setErrorVisible(true);
+        return;
+      }
+
+      router.push({
+        pathname: "/(app)/(recipes)/shopping-list-review",
+        params: { itemsJson: JSON.stringify(items) },
+      } as any);
+    } catch (err) {
+      logger.error('RecipeDetailScreen', 'generate shopping list failed', err);
+      setErrorMsg('Erro ao gerar a lista de compras');
+      setErrorVisible(true);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <View style={s.centered}>
@@ -177,7 +214,20 @@ export default function RecipeDetailScreen() {
 
       <View style={s.content}>
         {/* Name and type */}
-        <Text style={s.name}>{recipe.name}</Text>
+        <View style={s.titleRow}>
+          <Text style={[s.name, { marginBottom: 0, flex: 1 }]}>{recipe.name}</Text>
+          <TouchableOpacity
+            style={[s.cartBtn, isGenerating && s.cartBtnDisabled]}
+            onPress={handleAddToShoppingList}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Icon source="cart-plus" size={18} color="#FFFFFF" />
+            )}
+          </TouchableOpacity>
+        </View>
         <View style={s.typeRatingRow}>
           <DishTypeTag typeKey={recipe.type} variant="filled" size="md" />
           <TouchableOpacity
@@ -364,11 +414,27 @@ const s = StyleSheet.create({
   content: {
     padding: 16,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   name: {
     fontSize: 22,
     fontWeight: '700',
     color: '#1A1A1A',
-    marginBottom: 8,
+  },
+  cartBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#B5451B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  cartBtnDisabled: {
+    opacity: 0.5,
   },
   typeRatingRow: {
     flexDirection: 'row',
