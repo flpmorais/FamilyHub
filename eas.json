@@ -8,12 +8,6 @@
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
-      "env": {
-        "APP_ENV": "development",
-        "SUPABASE_URL": "https://vblyzgjvseodveypmxdz.supabase.co",
-        "SUPABASE_ANON_KEY": "sb_publishable_NZY86Arw9a6Q6Ct_Wz1RFw_htXlXAg2",
-        "GOOGLE_WEB_CLIENT_ID": "19946395703-j0gfhpu3ibm8hupu885s50p0rqvdnm5n.apps.googleusercontent.com"
-      },
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
@@ -22,11 +16,6 @@
     "preview": {
       "environment": "preview",
       "distribution": "internal",
-      "env": {
-        "SUPABASE_URL": "https://vblyzgjvseodveypmxdz.supabase.co",
-        "SUPABASE_ANON_KEY": "sb_publishable_NZY86Arw9a6Q6Ct_Wz1RFw_htXlXAg2",
-        "GOOGLE_WEB_CLIENT_ID": "19946395703-j0gfhpu3ibm8hupu885s50p0rqvdnm5n.apps.googleusercontent.com"
-      },
       "android": {
         "buildType": "apk"
       }
@@ -34,12 +23,6 @@
     "production": {
       "environment": "production",
       "distribution": "internal",
-      "env": {
-        "APP_ENV": "production",
-        "SUPABASE_URL": "https://xedvtgdcnnsgpqixrzib.supabase.co",
-        "SUPABASE_ANON_KEY": "sb_publishable_LP6bneEJDPPWDE-CKziN0A_RfEhMF6L",
-        "GOOGLE_WEB_CLIENT_ID": "18056280584-77l813uvj6tuvi7r68lnpc24q9htvurl.apps.googleusercontent.com"
-      },
       "android": {
         "buildType": "apk"
       },
