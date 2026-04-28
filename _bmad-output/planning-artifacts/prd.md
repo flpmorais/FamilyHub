@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4', 'step-e-01-discovery-5', 'step-e-02-review-5', 'step-e-03-edit-5', 'step-e-01-discovery-6', 'step-e-02-review-6', 'step-e-03-edit-6']
+stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-02b-vision', 'step-02c-executive-summary', 'step-03-success', 'step-04-journeys', 'step-05-domain', 'step-06-innovation', 'step-07-project-type', 'step-08-scoping', 'step-09-functional', 'step-10-nonfunctional', 'step-11-polish', 'step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit', 'step-e-01-discovery-2', 'step-e-02-review-2', 'step-e-03-edit-2', 'step-e-01-discovery-3', 'step-e-02-review-3', 'step-e-03-edit-3', 'step-e-01-discovery-4', 'step-e-02-review-4', 'step-e-03-edit-4', 'step-e-01-discovery-5', 'step-e-02-review-5', 'step-e-03-edit-5', 'step-e-01-discovery-6', 'step-e-02-review-6', 'step-e-03-edit-6', 'step-e-01-discovery-7', 'step-e-02-review-7', 'step-e-03-edit-7']]
 classification:
   projectType: 'mobile_app'
   domain: 'general'
@@ -13,7 +13,7 @@ briefCount: 1
 brainstormingCount: 1
 researchCount: 0
 projectDocsCount: 0
-lastEdited: '2026-04-04'
+lastEdited: '2026-04-28'
 editHistory:
   - date: '2026-03-27'
     changes: 'V2 Leftovers module expansion — added user journey, full functional requirements, success criteria, product scope, phased development, offline scope, NFR'
@@ -24,9 +24,11 @@ editHistory:
   - date: '2026-04-01'
     changes: 'V3 Meal Plan full expansion — added Journey 8 (weekly meal planning), V3 success criteria signal, expanded Product Scope and Phase 3 descriptions. Replaced 2 placeholder FRs (FR81-82) with 19 detailed FRs (FR81-FR99): meal plan configuration (3), core CRUD (8), participant management (3), leftovers integration (2), dashboard widget (3). Renumbered future module FRs to FR100-FR105. Added 2 NFRs (NFR25 week view load, NFR26 default config propagation). Total FRs: 105. Total NFRs: 26.'
   - date: '2026-04-02'
-    changes: 'V4 Language Learning (Greek) — replaced V4 Recipes with Language Learning module. Version rebrand: Recipes V4→V5, Finances V5→V6, Maid V6→V7, Intelligence V7+→V8+. Added Journey 9 (Greek learning with voice via Pi + WebSocket + TTS/STT). Replaced 2 Recipes placeholder FRs (FR100-FR101) with 14 Language Learning FRs (FR100-FR113): session service (4), WebSocket + TTS (3), voice input (2), skill system (2), onboarding (2), learning profiles (1). Added 4 NFRs (NFR27-NFR30: session service response, WebSocket TTS latency, STT transcription time, TTS double-speak timing). Updated Executive Summary, Success Criteria, Product Scope, Device Permissions, Phased Development, Risk Mitigation. Added 2 FRs from validation (FR114 connection status, FR115 skill-complete signal). Renumbered future module FRs to FR116-FR121. Total FRs: 121. Total NFRs: 30.'
+    changes: 'V4 Language Learning (Greek) — replaced V4 Recipes with Language Learning module. Version rebrand: Recipes V4→V5, Finances V5→V6, Maid V6→V7, Intelligence V7+→V8+. Added Journey 9 (Greek learning with voice via Pi + WebSocket + TTS). Replaced 2 Recipes placeholder FRs (FR100-FR101) with 14 Language Learning FRs (FR100-FR113): session service (4), WebSocket + TTS (3), voice input (2), skill system (2), onboarding (2), learning profiles (1). Added 4 NFRs (NFR27-NFR30: session service response, WebSocket TTS latency, STT transcription time, TTS double-speak timing). Updated Executive Summary, Success Criteria, Product Scope, Device Permissions, Phased Development, Risk Mitigation. Added 2 FRs from validation (FR114 connection status, FR115 skill-complete signal). Renumbered future module FRs to FR114-FR115. Total FRs: 121. Total NFRs: 30.'
   - date: '2026-04-04'
-    changes: 'V5 Recipes full expansion — added Journey 10 (recipe collection, import, cooking from plan, shopping list generation). Replaced 2 placeholder FRs (FR116-FR117) with 34 detailed FRs (FR116-FR149): recipe CRUD (6), URL import (2), YouTube import (3), photo OCR import (2), manual entry (1), browse & search (4), scaling (2), meal plan integration (5), shopping list generation (6), sharing (2), sync (1). Added 7 NFRs (NFR31-NFR37: URL/YouTube/OCR import times, search speed, shopping list generation, PDF generation, LLM cost cap). Updated Success Criteria (V5 signal), Measurable Outcomes (V5 row), Product Scope (V5 expanded), Device Permissions (CAMERA extended pulled to V5), Phased Development (V5 full paragraph + new infrastructure), Risk Mitigation (5 V5-specific risks), Journey Requirements Summary (Journey 10 row). Renumbered future module FRs to FR150-FR153. Total FRs: 153. Total NFRs: 37.'
+    changes: 'V5 Recipes full expansion — added Journey 10 (recipe collection, import, cooking from plan, shopping list generation). Replaced 2 placeholder FRs (FR114-FR115) with 34 detailed FRs (FR114-FR115): recipe CRUD (6), URL import (2), YouTube import (3), photo OCR import (2), manual entry (1), browse & search (4), scaling (2), meal plan integration (5), shopping list generation (6), sharing (2), sync (1). Added 7 NFRs (NFR31-NFR37: URL/YouTube/OCR import times, search speed, shopping list generation, PDF generation, LLM cost cap). Updated Success Criteria (V5 signal), Measurable Outcomes (V5 row), Product Scope (V5 expanded), Device Permissions (CAMERA extended pulled to V5), Phased Development (V5 full paragraph + new infrastructure), Risk Mitigation (5 V5-specific risks), Journey Requirements Summary (Journey 10 row). Renumbered future module FRs to FR114-FR115. Total FRs: 153. Total NFRs: 37.'
+  - date: '2026-04-28'
+    changes: 'V4 Language Learning architecture migration — replaced Claude Code with OpenCode as the AI engine. Removed onboarding section entirely (FR111-FR112 deleted: setup-complete gate and Claude OAuth WebView). Switched from Tailscale to Cloudflare Tunnel (api.fh-morais.party / wss://ws.fh-morais.party). Added Podman containerization for session service (dev and prod). Added automatic per-user Linux user provisioning on first connection. Per-user isolation now runs OpenCode in separate home directories with Fluent skill progress tracked in md files. Updated all FRs, NFRs, Journey 9, Product Scope, Phased Development, Risk Mitigation, and Device Permissions. Renumbered FRs: FR111/FR112 removed, FR113→FR111, FR114→FR112, FR115→FR113, V5+ FRs shifted down by 2. Total FRs: 151. Total NFRs: 37.'
 ---
 
 # Product Requirements Document - FamilyHub
@@ -46,7 +48,7 @@ V1 shipped Vacation and Leftovers together — both modules are in active family
 
 **One family, perfectly served.** No market fit to validate, no onboarding funnel, no generic defaults. Every design decision — budget category names, shopping list sections, UI language, the maid's purpose-built experience, private spending envelopes for each spouse — reflects the exact reality of this household.
 
-**Modules that integrate meaningfully.** Vacation status adjusts household budget proportionally. Maid salary auto-posts as a household expense. Recipes generate a deduplicated shopping list from the meal plan. Leftovers surface in meal planning before expiry. Shopping list integrates with meal planning and recipes. Language learning bridges Claude Code on a Raspberry Pi with the mobile app — Greek phrases spoken aloud on the phone via WebSocket, voice responses captured via STT. The system behaves as a coherent whole, not a collection of features.
+**Modules that integrate meaningfully.** Vacation status adjusts household budget proportionally. Maid salary auto-posts as a household expense. Recipes generate a deduplicated shopping list from the meal plan. Leftovers surface in meal planning before expiry. Shopping list integrates with meal planning and recipes. Language learning bridges OpenCode on a Raspberry Pi with the mobile app via a Cloudflare Tunnel — Greek phrases spoken aloud on the phone via WebSocket, voice responses captured via STT. No VPN needed on the phone; the tunnel keeps the connection always-on. The system behaves as a coherent whole, not a collection of features.
 
 **Built by the person who lives the problem.** The builder's prior OutSystems app validated the vacation module concept but was constrained by licensing. FamilyHub is the unconstrained successor — full-stack, properly architected, designed to grow with the family over years.
 
@@ -85,7 +87,7 @@ Within one month of V2 shipping, both admins use the shared shopping list for ev
 Within one month of V3 shipping, both admins use the weekly meal plan consistently. The plan is prepared before the week starts, adjusted as reality changes, and the family stops asking "what are we eating tonight?" The subjective test: does the family eat better and waste less because meals are planned?
 
 **V4 signal — Greek learning sessions used regularly with voice.**
-Within one month of V4 shipping, both admins use the language learning module for Greek practice at least twice per week. Voice playback works reliably — phrases spoken aloud on the phone without manual intervention. At least one admin uses the mic for voice input regularly. The subjective test: is Greek improving faster with audio reinforcement than with text-only learning?
+Within one month of V4 shipping, both admins use the language learning module for Greek practice at least twice per week. Voice playback works reliably via Cloudflare Tunnel — phrases spoken aloud on the phone without manual intervention. At least one admin uses the mic for voice input regularly. The session service is accessible without VPN. The subjective test: is Greek improving faster with audio reinforcement than with text-only learning?
 
 **V5 signal — recipes used for meal planning and shopping list generation.**
 Within one month of V5 shipping, both admins use the Recipes module to plan home-cooked meals. At least half of home-cooked meals in the weekly plan are linked to recipes rather than free-text entries. Shopping list generation from the meal plan is used weekly — the manual "check what ingredients I need" step is eliminated. The subjective test: does having recipes linked to the meal plan make cooking and shopping easier, or does it feel like admin overhead?
@@ -128,7 +130,7 @@ N/A — no commercial objectives, no revenue targets, no user growth goals.
 | V1 | Vacation & Leftovers | Packing lists, booking tasks, templates; fridge inventory with dose tracking, per-item expiry, eaten/thrown-out counters, dashboard widget, full list with infinite scroll | ✅ Shipped |
 | V2 | Shopping | Living shared list (tick/untick), Alexa Skill voice input, AI categorization (cheap LLM), category-grouped display, real-time sync, dashboard widget (open item count) | Next |
 | V3 | Meal Plan | 7-day week grid (lunch + dinner), configurable default participants per slot, meal types (home-cooked, eating out, takeaway, leftovers), per-meal participant overrides, slot skip/enable overrides, leftovers linking to previous meals, dashboard widget (next meal + planning reminders) | Planned |
-| V4 | Language Learning (Greek) | Greek learning via Claude Code on Raspberry Pi, WebSocket voice bridge to phone, TTS playback (el-GR, double-speak), STT voice input as keyboard replacement, Pi-side session service (start/resume/end), skill system (/learn, /review, /vocab, /writing, /speaking, /reading, /progress), per-user isolation (separate Linux users on Pi), Claude OAuth onboarding via in-app WebView, Tailscale connectivity | Planned |
+| V4 | Language Learning (Greek) | Greek learning via OpenCode on a Raspberry Pi, bridged to the mobile app via Cloudflare Tunnel (no VPN required on phone). Containerised session service (Podman) manages session lifecycle (start/resume/end/status) via HTTP. Fluent learning skills (Learn, Review, Vocab, Writing, Speaking, Reading, Progress) run inside separate home directories per user — complete session, credential, and progress isolation. TTS playback (el-GR, double-speak) via WebSocket, STT voice input as keyboard replacement. Per-user Linux accounts provisioned automatically on first connection. No onboarding gate — users land on the skill menu directly | Planned |
 | V5 | Recipes | Recipe CRUD (name, type, structured steps, ingredients with quantities, servings, prep/cook time, cost, image), static recipe types (meal, main, side, soup, dessert, other — shared with meal plan), import from URL (LLM parsing), YouTube (transcript via Data API + LLM extraction), photo OCR (camera + LLM structuring), manual entry, user-defined categories and tags, browse by type with filters (categories, tags, ingredients, total/prep/cook time), servings scaling with auto-calculated ingredient quantities, meal plan integration (link multiple recipes per meal slot, free-text fallback, per-recipe servings override), shopping list generation from weekly plan (review screen with checkboxes, checked items merge deduplicated into shopping list), share recipe as PDF via Android share sheet | Planned |
 | V6 | Finances | Budgets, envelopes, expense tracking | Planned |
 | V7 | Maid | Hours logging, billing, payment register, PDF payslips, maid salary as household expense | Planned |
@@ -282,31 +284,25 @@ The following Sunday, Filipe hasn't opened the meal plan yet. The widget reads: 
 
 ### Journey 9: Filipe & Angela — Greek Learning with Voice (Language Learning, V4)
 
-Filipe opens FamilyHub and taps the Language Learning module for the first time. The app checks Supabase for a setup-complete flag — none found. No skill menu is shown. The app calls `POST /session/start?userId=filipe&skill=setup` on the Pi's session service (reachable via Tailscale). The service starts a tmux session under Filipe's Linux user, launches Claude Code with `/setup`, and returns success. The app connects `ws://pi:3001?userId=filipe` and displays the terminal output.
+Filipe opens FamilyHub and taps the Language Learning module for the first time. The app connects to the Pi's session service via Cloudflare Tunnel (`https://api.fh-morais.party`) — no VPN required. Since no user directory exists for Filipe on the Pi yet, the session service provisions it automatically: creates a Linux user, sets up a home directory with OpenCode and Fluent skill files, and allocates an isolated data directory. The app calls `POST /session/start?userId=filipe&skill=learn`.
 
-Claude runs `/setup` — collecting Filipe's learning profile: goals (read, write, and speak Greek), current level (beginner), preferred session length. Filipe types his answers in the terminal. When setup completes, Claude sends a "setup complete" signal via WebSocket. The app stores the flag in Supabase and the full skill menu unlocks.
+The session service spins up an OpenCode process under Filipe's home directory with the Fluent Learn skill. The terminal output streams to Filipe's phone via WebSocket (`wss://ws.fh-morais.party`). Filipe sees the lesson begin immediately — no onboarding, no OAuth, no setup gate. The skill menu is available from the start.
 
-Filipe sees the skill selection screen: **Learn** (default, highlighted), Review, Vocab, Writing, Speaking, Reading, Progress. He taps Learn. The app calls `POST /session/start?userId=filipe&skill=learn`. The Pi service spins up a tmux session, launches Claude with `/learn`. The terminal appears — the lesson begins.
+OpenCode (running the Fluent Learn skill) presents an exercise and calls the session service's `/speak` endpoint with `userId=filipe` and phrases `["Καλημέρα", "Με λένε"]`. The phone receives the phrases via WebSocket. It speaks "Καλημέρα", pauses, speaks "Καλημέρα" again, pauses, then speaks "Με λένε", pauses, speaks "Με λίνε" again. Filipe reads the exercise on the terminal, hears the new vocabulary twice each on his phone.
 
-Claude prints an exercise in the terminal and calls `speak-greek.sh filipe "Καλημέρα" "Με λένε"`. The phone receives two strings via WebSocket. It speaks "Καλημέρα", pauses, speaks "Καλημέρα" again, pauses, then speaks "Με λένε", pauses, speaks "Με λένε" again. Filipe reads the exercise on the terminal, hears the new vocabulary twice each on his phone.
+He types his answer in the terminal. The Fluent skill evaluates it — incorrect. It prints the correction and calls `/speak` with the correct answer. The phone speaks "Με λίνε Φίλιππε" twice. Filipe tries again, this time correctly. The correct answer is spoken twice regardless of whether he got it right or wrong.
 
-He types his answer in the terminal. Claude evaluates it — incorrect. Claude prints the correction and calls `speak-greek.sh filipe "Με λένε Φίλιππε"`. The phone speaks the correct answer twice. Filipe tries again, this time correctly. Claude calls `speak-greek.sh filipe "Με λένε Φίλιππε"` — the correct answer spoken twice regardless of whether he got it right or wrong.
+Next exercise. Instead of typing, Filipe taps the mic button on his phone. He speaks his answer in Greek. Android's speech-to-text transcribes it and the app sends the transcript as a text message via WebSocket — no enter key needed. The Fluent skill receives plain text and evaluates it exactly as if Filipe had typed it. The skill is unaware of which input method was used.
 
-Next exercise. Claude introduces a new phrase, prints it in the terminal, and calls `speak-greek.sh filipe "Πώς σε λένε;"`. Instead of typing, Filipe taps the mic button on his phone. He speaks his answer in Greek. Android's speech-to-text transcribes it and the app sends the transcript directly to the terminal as text input — no enter key needed. Claude receives plain text and evaluates it exactly as if Filipe had typed it. Claude is unaware of which input method was used.
+Mid-lesson, Filipe decides he wants vocabulary drills. He navigates to the skill menu and taps Vocab. The app calls `POST /session/start?userId=filipe&skill=vocab`. The session service ends the existing Learn session and starts a fresh OpenCode process with the Fluent Vocab skill. Switching skills always starts fresh.
 
-Mid-lesson, Filipe decides he wants vocabulary drills. He navigates to the skill menu and taps Vocab. The app calls `POST /session/start?userId=filipe&skill=vocab`. The Pi service kills the existing `/learn` tmux session and starts a fresh Claude session with `/vocab`. Switching skills always starts fresh.
+After fifteen minutes of flashcards, the Fluent skill sends a "skill complete" signal. The app closes the session and returns Filipe to the skill selection screen.
 
-After fifteen minutes of flashcards, Claude sends a "skill complete" signal. The app closes the session and returns Filipe to the skill selection screen.
+The next evening, Angela opens Language Learning. No Linux user or Fluent data directory exists for her on the Pi yet. The session service provisions her account automatically on first connection — separate Linux user, separate home directory with OpenCode and Fluent, isolated data. Angela taps Learn. Her session is completely isolated — separate home directory, separate Fluent progress files (md-based skill tracking), separate OpenCode history. The terminal is visible but Angela focuses on the audio. The Fluent skill calls `/speak` with `userId=angela` and the phrase "Γεια σου". She hears it twice. She taps the mic, speaks her answer, the transcript goes to the terminal via WebSocket. For Angela, the mic is how she interacts — she rarely touches the keyboard.
 
-The next evening, Angela opens Language Learning. No setup-complete flag for her. The app shows "Connect your account". She taps it. The app triggers `claude login` on the Pi under Angela's Linux user, captures the OAuth URL, and opens it in an in-app WebView. She sees a standard login screen — no terminal, no Pi visible. She signs in. One-time authentication done.
+The next morning, Filipe opens the app on the bus. `GET /session/status?userId=filipe` returns an active session for Learn from last night — he closed the app mid-lesson. Learn is highlighted with a "Resume" badge. He taps Learn and sees "Resume" or "New Session". He taps Resume — `POST /session/resume?userId=filipe`. The OpenCode session reconnects, WebSocket re-established. He picks up mid-lesson through his earbuds. If he'd selected a different skill, the old session would have been ended.
 
-The app auto-starts `/setup`. Claude collects Angela's profile: speaking only — no reading, no writing. Setup completes, flag stored, skill menu unlocks.
-
-Angela taps Learn. Her session is completely isolated — separate Linux user, separate Claude credentials, separate history. The terminal is visible but Angela focuses on the audio. Claude prints exercises and calls `speak-greek.sh angela "Γεια σου"`. She hears it twice. She taps the mic, speaks her answer, the transcript goes to the terminal. For Angela, the mic is how she interacts — she rarely touches the keyboard.
-
-The next morning, Filipe opens the app on the bus. `GET /session/status?userId=filipe` returns an active tmux session for `/learn` from last night — he closed the app mid-lesson. Learn is highlighted with a "Resume" badge. He taps Learn and sees "Resume" or "New Session". He taps Resume — `POST /session/resume?userId=filipe`. The tmux session reattaches, WebSocket reconnects. He picks up mid-lesson through his earbuds. If he'd selected a different skill, the old session would have been killed.
-
-**Capabilities revealed:** Pi-side session service over HTTP (start/resume/end/status with skill parameter), per-user WebSocket routing (userId-based, zero cross-talk), terminal display of Claude session output, first-launch /setup gating (onboarding before any other skill), setup-complete flag in Supabase, skill selection screen (learn/review/vocab/writing/speaking/reading/progress), one session at a time per user (switching kills existing), resume only within same skill, tmux-based session persistence (survives app close), Claude OAuth onboarding via in-app WebView (one-time per user, non-technical), TTS playback via WebSocket (el-GR, each phrase spoken twice with pause, multiple phrases in sequence), mic button as keyboard replacement (STT transcript sent as terminal text input, no enter key, Claude unaware of input method), speak command triggered by Claude after presenting exercises (new vocabulary + Greek questions) and after evaluating answers (correct answer always spoken), Tailscale connectivity (no public IP), connection status visibility, separate Linux users per person on Pi (complete isolation).
+**Capabilities revealed:** Containerised session service (Podman) over HTTPS via Cloudflare Tunnel (no VPN, no public IP, always-on), automatic per-user Linux provisioning on first connection (separate home directory, isolated Fluent progress files, separate OpenCode history), per-user WebSocket routing via Cloudflare (`wss://ws.fh-morais.party?userId=...`, zero cross-talk), terminal display of OpenCode session output, Fluent skill selection screen (Learn, Review, Vocab, Writing, Speaking, Reading, Progress) available immediately — no onboarding gate, one session at a time per user (switching kills existing), resume only within same skill, session persistence (survives app close), TTS playback via WebSocket (el-GR, each phrase spoken twice with pause, multiple phrases in sequence, timing matches Fluent speak-greek timing), mic button as keyboard replacement (STT transcript sent as WebSocket text message, no enter key, Fluent skill unaware of input method), speak command triggered by Fluent skill after presenting exercises and after evaluating answers (correct answer always spoken), connection status visibility, configurable dev/prod deployment (Podman + env vars).
 
 ---
 
@@ -375,7 +371,7 @@ Quantities are summed where the same ingredient appears in multiple recipes (e.g
 | 6. Alexa voice input (V2) | V2 Shopping | Alexa Skill (add/remove/query/set quantity), AI categorization (cheap LLM) for unknown items, untick for known items, category reclassification, free-text quantity |
 | 7. Supermarket shopping (V2) | V2 Shopping | Living list (tick/untick, no lifecycle), category-grouped display, real-time sync, ticked items greyed, carry-over, dashboard widget (open item count) |
 | 8. Weekly meal planning (V3) | V3 Meal Plan | 7-day week grid (lunch + dinner), configurable default participants, meal types (home-cooked, eating out, takeaway, leftovers), leftovers linking, participant overrides, slot skip/enable overrides, dashboard widget (next meal + planning reminder), real-time sync |
-| 9. Greek learning with voice (V4) | V4 Language Learning | Pi-side session service (start/resume/end/status with skill parameter), per-user WebSocket routing, terminal display, /setup gating, setup-complete flag in Supabase, skill selection (learn/review/vocab/writing/speaking/reading/progress), one session at a time, resume within same skill, tmux persistence, Claude OAuth onboarding via WebView, TTS double-speak (el-GR), mic as keyboard replacement (STT → terminal text), speak command on exercises and answers, Tailscale connectivity, per-user Linux isolation on Pi |
+| 9. Greek learning with voice (V4) | V4 Language Learning | Containerised session service (Podman) over HTTPS via Cloudflare Tunnel (start/resume/end/status with skill parameter), per-user WebSocket routing via Cloudflare, terminal display, Fluent skill selection (Learn/Review/Vocab/Writing/Speaking/Reading/Progress) available immediately — no onboarding gate, one session at a time, resume within same skill, session persistence (survives app close), automatic per-user Linux provisioning on first connection (separate home directory, isolated Fluent progress md files, separate OpenCode history), TTS double-speak (el-GR) via /speak endpoint, mic as keyboard replacement (STT → WebSocket text message), speak command on exercises and answers, connection status visibility, configurable dev/prod deployment (Podman + env vars) |
 | 10. Recipe collection & meal plan cooking (V5) | V5 Recipes | Recipe CRUD (name, type, steps, ingredients+quantities, servings, prep/cook time, cost, categories, tags, image), static types (meal/main/side/soup/dessert/other), import from URL (LLM parsing), YouTube import (transcript + LLM), photo OCR import (camera + OCR + LLM), manual entry (structured steps + ingredient rows), user-defined categories + tags, browse by type, filter (categories/tags/ingredients/time), ingredient search, servings scaling (proportional ingredient recalc), meal plan integration (multiple recipes per slot, per-recipe servings, free-text fallback), shopping list generation (ingredient aggregation, quantity summing, review screen with checkboxes, dedup merge into shopping list), PDF share via Android share sheet |
 
 ---
@@ -521,7 +517,7 @@ No app store compliance requirements apply.
 
 **V3 — Meal Plan:** 7-day week grid with lunch and dinner slots. Configurable default participants per slot (which profiles eat at which day+meal). Slots can be marked "don't plan" by default (e.g., Thursday lunch — everyone eats at work). Four meal types: home-cooked (free text), eating out (with optional restaurant detail), takeaway (with optional order detail), leftovers (linked to a previous home-cooked meal in the plan). Per-meal participant overrides — add/remove profiles, enable skipped slots (public holidays), disable active slots (change of plans). Dashboard widget shows next upcoming meal; warns if no meal set or if next week is unplanned. Foundation for recipe-driven shopping list generation in V4.
 
-**V4 — Language Learning (Greek):** Greek learning via Claude Code running on a Raspberry Pi, bridged to the mobile app via WebSocket over Tailscale. A Pi-side session service manages session lifecycle (start/resume/end/status) via HTTP. Claude Code runs learning skills (/learn, /review, /vocab, /writing, /speaking, /reading, /progress) inside tmux sessions — one per user, one at a time. Claude calls `speak-greek.sh` to send Greek text to the phone via WebSocket; the phone speaks each phrase aloud twice via TTS (el-GR). Users interact via the terminal — typing answers on the keyboard or tapping a mic button on the phone (STT transcribes speech and sends it as terminal text input; Claude is unaware of input method). First launch gates on `/setup` (learning profile onboarding) before unlocking the skill menu. Claude OAuth authentication is handled via in-app WebView (one-time, non-technical). Each admin is a separate Linux user on the Pi — complete session and credential isolation. No dependency on V3 Meal Plan.
+**V4 — Language Learning (Greek):** Greek learning via OpenCode running on a Raspberry Pi, bridged to the mobile app via Cloudflare Tunnel over HTTPS and WSS (no VPN required on the phone — the tunnel is always-on). A containerised session service (Podman) manages session lifecycle (start/resume/end/status) via HTTP. OpenCode runs Fluent learning skills (Learn, Review, Vocab, Writing, Speaking, Reading, Progress) inside separate home directories per user — complete session, credential, and progress isolation. Fluent tracks learning progress in per-user md files. Per-user Linux accounts are provisioned automatically on first connection — no manual setup or OAuth onboarding. The session service calls a /speak endpoint to send Greek text to the phone via WebSocket; the phone speaks each phrase aloud twice via TTS (el-GR). Users interact via the terminal — typing answers on the keyboard or tapping a mic button on the phone (STT transcribes speech and sends it as a WebSocket text message; OpenCode is unaware of input method). The containerised service runs in Podman for both dev (this machine) and prod (Pi), configurable via environment variables. No dependency on V3 Meal Plan.
 
 **V5 — Recipes:** Full recipe management with multi-source import and meal plan integration. Recipes are structured: name, type (meal/main/side/soup/dessert/other — static enum shared with meal plan), ingredients with quantities, step-by-step instructions, servings, prep time, cook time, cost, image, user-defined categories and tags. Four import paths: URL scraping (fetch page HTML, LLM extracts recipe), YouTube (pull transcript via YouTube Data API, LLM extracts recipe — falls back to comments if transcript has no recipe content), photo OCR (camera capture, OCR text extraction, LLM structures into recipe fields), and manual entry (full form with structured steps and ingredient rows). Browse by type as primary grouping; filter by categories, tags, ingredients, total time, prep time, cook time. Servings scaling recalculates ingredient quantities proportionally — available when browsing and when linking to a meal plan slot. Meal plan integration enhances V3: each meal slot supports multiple linked recipes (e.g., soup + main + side + dessert), with per-recipe servings override and free-text fallback for meals without a recipe. Shopping list generation: a button in the meal plan scans all linked recipes for the week, scales ingredients to specified servings, sums quantities across recipes for shared ingredients, and presents a review screen with checkboxes — checked items merge into the existing shopping list (deduplicated, quantities updated). Share any recipe as a formatted PDF via Android share sheet. Requires V3 Meal Plan as prerequisite.
 
@@ -549,9 +545,10 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 
 **Resource Risks:**
 - *Scope creep (solo developer).* Mitigation: strict version gates. Nothing from V3+ is added to V2, even if implementation seems easy. The gate is behavioural, not feature-based.
-- *Tailscale dependency (V4).* Language learning requires the phone to reach the Pi over Tailscale. If Tailscale is down or the Pi is unreachable, the module is unusable. Mitigation: Tailscale is highly reliable for personal use (free tier, up to 100 devices). Pi runs headless with auto-start. App shows clear connection status so the user knows immediately if the Pi is unreachable.
+- *Cloudflare Tunnel dependency (V4).* Language learning requires the phone to reach the Pi via Cloudflare Tunnel (https://api.fh-morais.party and wss://ws.fh-morais.party). If Cloudflare or the tunnel is down, the module is unusable. Mitigation: Cloudflare Tunnel is highly reliable for personal use (free tier). The tunnel is always-on — no VPN toggle required on the phone. Pi runs headless with Podman auto-restart. App shows clear connection status so the user knows immediately if the service is unreachable.
 - *Greek TTS quality (V4).* expo-speech el-GR voice quality varies by Android device and OS version. Some devices may lack a Greek TTS voice entirely. Mitigation: test on both admins' devices before shipping. Fallback: install Google TTS engine (free) which includes high-quality Greek voices.
-- *Pi availability (V4).* Raspberry Pi must be powered on and running the session service and WebSocket server (via pm2). Power outage or SD card failure kills all sessions. Mitigation: pm2 auto-restarts services on boot. tmux sessions survive service restarts. SD card backup strategy recommended.
+- *Pi availability (V4).* Raspberry Pi must be powered on and running the containerised session service (Podman). Power outage or SD card failure kills all sessions. Mitigation: Podman restarts the container automatically on boot. OpenCode sessions can be resumed after restart. SD card backup strategy recommended. Dev testing on this machine via Podman provides a fast feedback loop before deploying to Pi.
+- *Per-user provisioning (V4).* First-time users must have a Linux account and Fluent directory provisioned on the Pi. Mitigation: the session service provisions accounts automatically on first connection — no manual setup required.
 - *V4/V5 independence.* V4 Language Learning has no dependency on V3 Meal Plan — unlike the previous V4 Recipes. V5 Recipes still depends on V3.
 - *URL scraping fragility (V5).* Recipe websites change their HTML structure without notice — LLM extraction may fail or produce incomplete results. Mitigation: LLM-based extraction is inherently adaptive (no hard-coded selectors). Failed extraction presents an error; the admin can retry or fall back to manual entry. No recipe is saved without admin review.
 - *YouTube transcript availability (V5).* Not all YouTube videos have transcripts — auto-generated captions may be absent or inaccurate, especially for non-English content. Mitigation: fallback to video comments. If neither yields a recipe, the system reports extraction failure clearly. Admin can fall back to manual entry.
@@ -726,116 +723,108 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 
 ### Language Learning — Session Service (V4)
 
-- **FR100:** App can start a new learning session on the Pi by calling the session service with a userId and skill parameter — the service creates a tmux session under the user's Linux account, launches Claude Code with the specified skill, and returns success (V4)
-- **FR101:** App can resume an existing tmux session for a user by calling the session service — the service reattaches to the tmux session and returns success (V4)
-- **FR102:** App can end an active session by calling the session service — the service terminates the tmux session and returns success (V4)
-- **FR103:** App can query session status for a user — the service returns whether a tmux session exists and which skill is running (V4)
+- **FR100:** App can start a new learning session on the Pi by calling the session service with a userId and skill parameter — the service provisions a per-user Linux account on first connection (home directory, OpenCode binary, Fluent skill files, isolated data directory), then starts an OpenCode process with the specified Fluent skill and returns success (V4)
+- **FR101:** App can resume an existing session for a user by calling the session service — the service reconnects to the OpenCode process and returns success (V4)
+- **FR102:** App can end an active session by calling the session service — the service terminates the OpenCode process and returns success (V4)
+- **FR103:** App can query session status for a user — the service returns whether an active session exists and which skill is running (V4)
 
 ### Language Learning — WebSocket & TTS (V4)
 
-- **FR104:** App connects to the Pi's WebSocket server with a userId parameter and receives only messages routed to that user — zero cross-talk between users (V4)
+- **FR104:** App connects to the WebSocket server via Cloudflare Tunnel (`wss://ws.fh-morais.party`) with a userId parameter and receives only messages routed to that user — zero cross-talk between users (V4)
 - **FR105:** When the app receives Greek text via WebSocket, it speaks each phrase aloud twice via TTS (el-GR) with a pause between repetitions; multiple phrases received in a single message are spoken in sequence (V4)
 - **FR106:** App displays received Greek text on screen alongside TTS playback so the user can read while listening (V4)
 
 ### Language Learning — Voice Input (V4)
 
-- **FR107:** App provides a mic button that captures spoken Greek via Android's built-in speech-to-text (el-GR locale), transcribes it, and sends the transcript to the terminal session as text input — no enter key required (V4)
-- **FR108:** Claude receives voice-originated text input identically to keyboard-originated text input — the input method is invisible to Claude (V4)
+- **FR107:** App provides a mic button that captures spoken Greek via Android's built-in speech-to-text (el-GR locale), transcribes it, and sends the transcript as a WebSocket text message — no enter key required (V4)
+- **FR108:** OpenCode receives voice-originated text input identically to keyboard-originated text input — the input method is invisible to the Fluent skill (V4)
 
 ### Language Learning — Skill System (V4)
 
-- **FR109:** App presents a skill selection screen with available learning skills: Learn (default), Review, Vocab, Writing, Speaking, Reading, Progress — each starts a new session with the corresponding skill parameter (V4)
-- **FR110:** Only one session per user is active at any time — selecting a different skill kills the existing session and starts a fresh one; resume is only offered within the same skill (V4)
+- **FR109:** App presents a skill selection screen with available Fluent learning skills: Learn (default), Review, Vocab, Writing, Speaking, Reading, Progress — each starts a new session with the corresponding skill parameter (V4)
+- **FR110:** Only one session per user is active at any time — selecting a different skill ends the existing session and starts a fresh one; resume is only offered within the same skill (V4)
 
-### Language Learning — Onboarding (V4)
+### Language Learning — User Isolation & Provisioning (V4)
 
-- **FR111:** On first launch, the app checks Supabase for a setup-complete flag for the user; if absent, the app auto-starts a session with the `/setup` skill — no other skills are available until setup completes (V4)
-- **FR112:** For users who have not authenticated Claude on the Pi, the app triggers `claude login` via the session service, captures the OAuth URL, and opens it in an in-app WebView — the user sees a standard login screen with no terminal or SSH visible; one-time setup per user (V4)
-
-### Language Learning — Learning Profiles (V4)
-
-- **FR113:** Each admin's learning profile (goals, preferred input method, level) is stored per-user and determines the app's input mode — keyboard+mic for read/write/speak learners, mic-only for speak-only learners (V4)
-
-### Language Learning — Connection & Signals (V4)
-
-- **FR114:** App displays connection status to the Pi — connected, disconnected, or reconnecting — so the user knows immediately if the Pi is unreachable (V4)
-- **FR115:** When Claude sends a skill-complete signal via WebSocket, the app automatically calls the session end endpoint and returns the user to the skill selection screen (V4)
+- **FR111:** Each admin is a separate Linux user on the Pi with an isolated home directory containing their own OpenCode installation, Fluent skill files, and md-based progress tracking — one user's learning data and session history are never visible to another user (V4)
+- **FR112:** App displays connection status to the session service — connected, disconnected, or reconnecting — so the user knows immediately if the service is unreachable (V4)
+- **FR113:** When the Fluent skill sends a skill-complete signal via WebSocket, the app automatically calls the session end endpoint and returns the user to the skill selection screen (V4)
 
 ### Recipe Management (V5)
 
 #### Recipe CRUD
 
-- **FR116:** Admin can create a recipe with: name, type, ingredients (each with name and quantity), step-by-step instructions (ordered list of individual steps), servings, prep time (minutes), cook time (minutes), cost (manual entry), image, categories, and tags (V5)
-- **FR117:** Admin can edit any recipe's fields — name, type, ingredients, steps, servings, times, cost, image, categories, tags (V5)
-- **FR118:** Admin can delete a recipe (V5)
-- **FR119:** Recipe type is a static enum shared with the meal plan: meal, main, side, soup, dessert, other — defined at development time, not user-configurable (V5)
-- **FR120:** Admin can create, edit, and delete recipe categories — user-defined at runtime (V5)
-- **FR121:** Admin can create, edit, and delete recipe tags — user-defined at runtime (V5)
+- **FR114:** Admin can create a recipe with: name, type, ingredients (each with name and quantity), step-by-step instructions (ordered list of individual steps), servings, prep time (minutes), cook time (minutes), cost (manual entry), image, categories, and tags (V5)
+- **FR115:** Admin can edit any recipe's fields — name, type, ingredients, steps, servings, times, cost, image, categories, tags (V5)
+- **FR116:** Admin can delete a recipe (V5)
+- **FR117:** Recipe type is a static enum shared with the meal plan: meal, main, side, soup, dessert, other — defined at development time, not user-configurable (V5)
+- **FR118:** Admin can create, edit, and delete recipe categories — user-defined at runtime (V5)
+- **FR119:** Admin can create, edit, and delete recipe tags — user-defined at runtime (V5)
 
 #### Recipe Import — URL
 
-- **FR122:** Admin can import a recipe by pasting a URL; the system fetches the page HTML and sends it to an LLM to extract recipe fields (name, ingredients with quantities, steps, servings, prep time, cook time, image URL) (V5)
-- **FR123:** After LLM extraction, the system presents the extracted recipe for admin review and editing before saving — no recipe is saved without admin confirmation (V5)
+- **FR120:** Admin can import a recipe by pasting a URL; the system fetches the page HTML and sends it to an LLM to extract recipe fields (name, ingredients with quantities, steps, servings, prep time, cook time, image URL) (V5)
+- **FR121:** After LLM extraction, the system presents the extracted recipe for admin review and editing before saving — no recipe is saved without admin confirmation (V5)
 
 #### Recipe Import — YouTube
 
-- **FR124:** Admin can import a recipe by pasting a YouTube URL; the system retrieves the video transcript via YouTube Data API and sends it to an LLM to extract recipe fields (V5)
-- **FR125:** If the transcript contains no extractable recipe content, the system retrieves the video's top-level comments and sends them to the LLM as a fallback source (V5)
-- **FR126:** If neither transcript nor comments yield a recipe, the system informs the admin that extraction failed — no empty recipe is created (V5)
+- **FR122:** Admin can import a recipe by pasting a YouTube URL; the system retrieves the video transcript via YouTube Data API and sends it to an LLM to extract recipe fields (V5)
+- **FR123:** If the transcript contains no extractable recipe content, the system retrieves the video's top-level comments and sends them to the LLM as a fallback source (V5)
+- **FR124:** If neither transcript nor comments yield a recipe, the system informs the admin that extraction failed — no empty recipe is created (V5)
 
 #### Recipe Import — Photo OCR
 
-- **FR127:** Admin can import a recipe by capturing a photo (camera) or selecting an image from the gallery; the system runs OCR to extract text, then sends the text to an LLM to structure it into recipe fields (V5)
-- **FR128:** After OCR + LLM structuring, the system presents the extracted recipe for admin review and editing before saving (V5)
+- **FR125:** Admin can import a recipe by capturing a photo (camera) or selecting an image from the gallery; the system runs OCR to extract text, then sends the text to an LLM to structure it into recipe fields (V5)
+- **FR126:** After OCR + LLM structuring, the system presents the extracted recipe for admin review and editing before saving (V5)
 
 #### Recipe Import — Manual Entry
 
-- **FR129:** Admin can create a recipe via manual entry with a structured form: name, type, ingredients (add/remove/reorder rows, each with name and quantity), steps (add/remove/reorder, each a separate text input), servings, prep time, cook time, cost, image (camera capture or gallery selection), categories, tags (V5)
+- **FR127:** Admin can create a recipe via manual entry with a structured form: name, type, ingredients (add/remove/reorder rows, each with name and quantity), steps (add/remove/reorder, each a separate text input), servings, prep time, cook time, cost, image (camera capture or gallery selection), categories, tags (V5)
 
 #### Recipe Browse & Search
 
-- **FR130:** Recipe list displays recipes grouped by type as the primary browsing view (V5)
-- **FR131:** Admin can filter recipes by: categories, tags, ingredients (text match against ingredient names), total time (prep + cook), prep time, cook time (V5)
-- **FR132:** Admin can search recipes by ingredient — the system matches the search term against ingredient names across all recipes and returns matching recipes (V5)
-- **FR133:** Filters are combinable — admin can apply multiple filters simultaneously (e.g., type "Soup" + category "Portuguese" + total time under 30 min) (V5)
+- **FR128:** Recipe list displays recipes grouped by type as the primary browsing view (V5)
+- **FR129:** Admin can filter recipes by: categories, tags, ingredients (text match against ingredient names), total time (prep + cook), prep time, cook time (V5)
+- **FR130:** Admin can search recipes by ingredient — the system matches the search term against ingredient names across all recipes and returns matching recipes (V5)
+- **FR131:** Filters are combinable — admin can apply multiple filters simultaneously (e.g., type "Soup" + category "Portuguese" + total time under 30 min) (V5)
 
 #### Recipe Scaling
 
-- **FR134:** Admin can adjust a recipe's servings when viewing it; all ingredient quantities recalculate proportionally based on the ratio of new servings to original servings (V5)
-- **FR135:** Scaling is non-destructive — the original recipe retains its saved servings and quantities; scaling is applied as a view-time adjustment (V5)
+- **FR132:** Admin can adjust a recipe's servings when viewing it; all ingredient quantities recalculate proportionally based on the ratio of new servings to original servings (V5)
+- **FR133:** Scaling is non-destructive — the original recipe retains its saved servings and quantities; scaling is applied as a view-time adjustment (V5)
 
 #### Meal Plan Integration (V5 Enhancement on V3)
 
-- **FR136:** Admin can link one or more recipes to a single meal plan slot — each linked recipe appears as a separate entry within the slot (e.g., a soup, a main, and a dessert in one dinner slot) (V5)
-- **FR137:** Admin can set the servings for each linked recipe independently within a meal slot — ingredient scaling follows the specified servings (V5)
-- **FR138:** Admin can add a free-text entry to a meal slot alongside or instead of linked recipes — free-text is the fallback when no recipe exists or the admin lacks time to create one (V5)
-- **FR139:** Admin can remove a linked recipe from a meal slot without affecting the recipe itself (V5)
-- **FR140:** When linking a recipe to a meal slot, the system opens the recipe browser filtered to the slot's meal type context — admin can browse and select from the full recipe collection (V5)
+- **FR134:** Admin can link one or more recipes to a single meal plan slot — each linked recipe appears as a separate entry within the slot (e.g., a soup, a main, and a dessert in one dinner slot) (V5)
+- **FR135:** Admin can set the servings for each linked recipe independently within a meal slot — ingredient scaling follows the specified servings (V5)
+- **FR136:** Admin can add a free-text entry to a meal slot alongside or instead of linked recipes — free-text is the fallback when no recipe exists or the admin lacks time to create one (V5)
+- **FR137:** Admin can remove a linked recipe from a meal slot without affecting the recipe itself (V5)
+- **FR138:** When linking a recipe to a meal slot, the system opens the recipe browser filtered to the slot's meal type context — admin can browse and select from the full recipe collection (V5)
 
 #### Shopping List Generation
 
-- **FR141:** Admin can tap "Generate Shopping List" in the meal plan view; the system scans all linked recipes for the displayed week, scales each recipe's ingredients to the specified servings for that meal, and produces a consolidated ingredient list (V5)
-- **FR142:** Shopping list generation sums quantities for the same ingredient across multiple recipes (e.g., onion: 1 from recipe A + 2 from recipe B = 3 onions) (V5)
-- **FR143:** The system presents a review screen showing each ingredient, its total quantity, and a checkbox — all items are unchecked by default (V5)
-- **FR144:** Admin checks the items they need and taps "Add to Shopping List"; only checked items are added (V5)
-- **FR145:** Checked items merge into the existing shopping list deduplicated: if the ingredient already exists and is ticked (shopped), it is unticked with the new quantity; if already unticked, the quantity is updated; if not present, a new item is created (V5)
-- **FR146:** Free-text meal entries (meals without linked recipes) are excluded from shopping list generation — only linked recipes contribute ingredients (V5)
+- **FR139:** Admin can tap "Generate Shopping List" in the meal plan view; the system scans all linked recipes for the displayed week, scales each recipe's ingredients to the specified servings for that meal, and produces a consolidated ingredient list (V5)
+- **FR140:** Shopping list generation sums quantities for the same ingredient across multiple recipes (e.g., onion: 1 from recipe A + 2 from recipe B = 3 onions) (V5)
+- **FR141:** The system presents a review screen showing each ingredient, its total quantity, and a checkbox — all items are unchecked by default (V5)
+- **FR142:** Admin checks the items they need and taps "Add to Shopping List"; only checked items are added (V5)
+- **FR143:** Checked items merge into the existing shopping list deduplicated: if the ingredient already exists and is ticked (shopped), it is unticked with the new quantity; if already unticked, the quantity is updated; if not present, a new item is created (V5)
+- **FR144:** Free-text meal entries (meals without linked recipes) are excluded from shopping list generation — only linked recipes contribute ingredients (V5)
 
 #### Recipe Sharing
 
-- **FR147:** Admin can share any recipe as a PDF; the system generates a formatted PDF on-device containing the recipe name, image, type, ingredients with quantities, steps, servings, prep time, cook time, and cost (V5)
-- **FR148:** After PDF generation, the system opens the Android share sheet so the admin can send the PDF via any installed app (WhatsApp, email, etc.) (V5)
+- **FR145:** Admin can share any recipe as a PDF; the system generates a formatted PDF on-device containing the recipe name, image, type, ingredients with quantities, steps, servings, prep time, cook time, and cost (V5)
+- **FR146:** After PDF generation, the system opens the Android share sheet so the admin can send the PDF via any installed app (WhatsApp, email, etc.) (V5)
 
 #### Recipe Sync
 
-- **FR149:** System propagates recipe changes (create, edit, delete) from one Admin to all other connected Admin devices in real-time (V5)
+- **FR147:** System propagates recipe changes (create, edit, delete) from one Admin to all other connected Admin devices in real-time (V5)
 
 ### Future Module Capabilities (V6–V7)
 
-- **FR150:** Admin can record household income and expenses against budget categories and envelopes (V6)
-- **FR151:** Maid can log daily work hours with a single-tap interaction (V7)
-- **FR152:** Admin can generate a billing statement and payslip for the Maid for any period (V7)
-- **FR153:** Maid salary auto-posts as a household expense in the Finances module (V7)
+- **FR148:** Admin can record household income and expenses against budget categories and envelopes (V6)
+- **FR149:** Maid can log daily work hours with a single-tap interaction (V7)
+- **FR150:** Admin can generate a billing statement and payslip for the Maid for any period (V7)
+- **FR151:** Maid salary auto-posts as a household expense in the Finances module (V7)
 
 ---
 
@@ -884,10 +873,10 @@ AI features (receipt OCR, recipe URL/video/photo import), push notifications, ba
 
 ### Language Learning (V4)
 
-- **NFR27:** Session service endpoints (start/resume/end/status) must respond within 5 seconds — session start includes tmux creation and Claude launch (V4)
+- **NFR27:** Session service endpoints (start/resume/end/status) must respond within 5 seconds — session start includes OpenCode process creation and Fluent skill loading (V4)
 - **NFR28:** Greek text received via WebSocket must begin TTS playback within 500ms of message arrival on the phone (V4)
-- **NFR29:** Android STT transcription must complete and send the transcript to the terminal within 2 seconds of the user finishing speech (V4)
-- **NFR30:** TTS double-speak must play each phrase twice with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases, matching the Pi-side `speak-greek.sh` timing (V4)
+- **NFR29:** Android STT transcription must complete and send the transcript via WebSocket within 2 seconds of the user finishing speech (V4)
+- **NFR30:** TTS double-speak must play each phrase twice with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases, matching the Fluent skill speak timing (V4)
 
 ### Recipes (V5)
 
