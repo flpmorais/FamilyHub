@@ -1,6 +1,6 @@
 # Story 13.2: API Key Configuration & User Provisioning
 
-Status: review
+Status: done
 
 branch: feature/13-2-api-key-configuration
 
@@ -203,6 +203,40 @@ glm-5.1
 - harness/tests/conftest.py (new)
 - harness/tests/test_auth_provisioning.py (new)
 
+## Review Findings
+
+### Decision Needed
+
+- [x] [Review][Decision → Patch] Re-provisioning silently overwrites user data — Resolved: reject re-provisioning with 409 if api_key.json already exists. [blind+edge]
+- [x] [Review][Decision → Patch] Error messages in English vs Portuguese — Resolved: translated all error messages to Portuguese per Mandate #8. [auditor]
+
+### Patch
+
+- [x] [Review][Patch] Path traversal via unsanitized `user_id` [`harness/dependencies.py`, `harness/services/user_provisioner.py`] — Fixed: validate user_id matches safe pattern in dependency layer (HTTP 400) + defense-in-depth in service. [blind+edge]
+- [x] [Review][Patch] Network/rate-limit errors treated as invalid API key [`harness/services/user_provisioner.py`] — Fixed: `KeyValidationResult` enum distinguishes VALID/INVALID/UNAVAILABLE. Router returns 400 for invalid, 503 for unavailable. [blind+edge+auditor]
+- [x] [Review][Patch] Synchronous blocking I/O in async handler [`harness/routers/auth.py`] — Fixed: wrapped `provision_user` in `asyncio.to_thread()`. [blind]
+- [x] [Review][Patch] Fluent data files and user directory lack restrictive permissions [`harness/services/user_provisioner.py`] — Fixed: `chmod 700` on user dir, `chmod 600` on all Fluent data files. [auditor]
+- [x] [Review][Patch] Fragile setup_complete placeholder detection [`harness/services/user_provisioner.py`] — Fixed: now checks `"{YOUR_NAME}" not in name` instead of `not name.startswith("{")`. [blind+edge+auditor]
+- [x] [Review][Patch] chmod failure propagates as unhandled 500 [`harness/services/user_provisioner.py`] — Fixed: wrapped in try/except with warning log. [edge]
+- [x] [Review][Patch] provision_user always returns True, never signals failure [`harness/services/user_provisioner.py`] — Fixed: now raises `FileExistsError`, `FileNotFoundError`, or `OSError` with meaningful messages. Router catches each. [blind]
+- [x] [Review][Patch] Half-provisioned user appears "configured" [`harness/services/user_provisioner.py`] — Fixed: `configured` now requires both `api_key.json` existence AND fluent directory existence. [edge]
+
+### Deferred
+
+- [x] [Review][Defer] Wildcard CORS on authenticated API [`harness/main.py:27-31`] — deferred, pre-existing from 13-1 skeleton. Containerized behind Cloudflare Tunnel mitigates risk.
+- [x] [Review][Defer] No JWT audience/issuer validation [`harness/dependencies.py:26-30`] — deferred, pre-existing from 13-1 skeleton. Story explicitly noted "No changes needed" for dependencies.py.
+- [x] [Review][Defer] Race condition on concurrent provisioning [`harness/services/user_provisioner.py:57-78`] — deferred, family scale (2 users) makes this practically impossible.
+- [x] [Review][Defer] FLUENT_DATA_DIR missing/unwritable gives cryptic 500 [`harness/services/user_provisioner.py:62`] — deferred, environment configuration issue.
+
+### Dismissed (4)
+
+- Module-level `Settings()` crashes on missing config — standard Python pattern, conftest.py handles it correctly.
+- `email` None coerced to empty string — latent defect, no current consumer of `user.email`.
+- API key stored in plaintext on disk — spec explicitly states "At family scale (2 users in a single container), file permissions are sufficient."
+- `validate_api_key` makes real paid API call — by design per AC-1: "validates the key by making a test API call to the LLM provider."
+
 ## Change Log
 
 - 2026-05-03: Implemented Story 13.2 — API Key Configuration & User Provisioning (POST /auth/configure, GET /auth/status, per-user directory provisioning with Fluent templates, 12 tests all passing)
+- 2026-05-03: Code review — 2 decision-needed, 8 patch, 4 deferred, 4 dismissed
+- 2026-05-03: All patches applied — 15 tests passing. Story → done.

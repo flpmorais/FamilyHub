@@ -1,6 +1,7 @@
 import json
 import os
 import stat
+import time
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -17,8 +18,6 @@ def _make_jwt(sub: str = "user-123", email: str = "test@test.com") -> str:
 
 
 def _make_expired_jwt(sub: str = "user-123") -> str:
-    import time
-
     return pyjwt.encode(
         {"sub": sub, "email": "test@test.com", "exp": int(time.time()) - 3600},
         JWT_SECRET,
@@ -87,8 +86,11 @@ async def test_auth_status_expired_jwt(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("routers.auth.validate_api_key", new_callable=AsyncMock, return_value=True)
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
 async def test_configure_api_key_success(mock_validate, client: AsyncClient, auth_headers, tmp_path):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.VALID
+
     resp = await client.post(
         "/auth/configure",
         json={"api_key": "sk-test-valid-key"},
@@ -123,20 +125,41 @@ async def test_configure_api_key_success(mock_validate, client: AsyncClient, aut
 
 
 @pytest.mark.asyncio
-@patch("routers.auth.validate_api_key", new_callable=AsyncMock, return_value=False)
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
 async def test_configure_api_key_invalid(mock_validate, client: AsyncClient, auth_headers):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.INVALID
+
     resp = await client.post(
         "/auth/configure",
         json={"api_key": "sk-invalid-key"},
         headers=auth_headers,
     )
     assert resp.status_code == 400
-    assert "API key validation failed" in resp.json()["detail"]
+    assert "Falha na validação" in resp.json()["detail"]
 
 
 @pytest.mark.asyncio
-@patch("routers.auth.validate_api_key", new_callable=AsyncMock, return_value=True)
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
+async def test_configure_api_key_service_unavailable(mock_validate, client: AsyncClient, auth_headers):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.UNAVAILABLE
+
+    resp = await client.post(
+        "/auth/configure",
+        json={"api_key": "sk-test-key"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 503
+    assert "indisponível" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
 async def test_auth_status_after_configure(mock_validate, client: AsyncClient, auth_headers):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.VALID
+
     await client.post(
         "/auth/configure",
         json={"api_key": "sk-test-key"},
@@ -150,8 +173,11 @@ async def test_auth_status_after_configure(mock_validate, client: AsyncClient, a
 
 
 @pytest.mark.asyncio
-@patch("routers.auth.validate_api_key", new_callable=AsyncMock, return_value=True)
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
 async def test_auth_status_setup_complete(mock_validate, client: AsyncClient, auth_headers, tmp_path):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.VALID
+
     await client.post(
         "/auth/configure",
         json={"api_key": "sk-test-key"},
@@ -171,8 +197,11 @@ async def test_auth_status_setup_complete(mock_validate, client: AsyncClient, au
 
 
 @pytest.mark.asyncio
-@patch("routers.auth.validate_api_key", new_callable=AsyncMock, return_value=True)
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
 async def test_per_user_isolation(mock_validate, client: AsyncClient, auth_headers, auth_headers_user2, tmp_path):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.VALID
+
     await client.post(
         "/auth/configure",
         json={"api_key": "sk-filipe-key"},
@@ -210,3 +239,38 @@ async def test_configure_empty_api_key(client: AsyncClient, auth_headers):
         headers=auth_headers,
     )
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+@patch("routers.auth.validate_api_key", new_callable=AsyncMock)
+async def test_reconfigure_rejected(mock_validate, client: AsyncClient, auth_headers):
+    from services.user_provisioner import KeyValidationResult
+    mock_validate.return_value = KeyValidationResult.VALID
+
+    resp = await client.post(
+        "/auth/configure",
+        json={"api_key": "sk-first-key"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+
+    resp = await client.post(
+        "/auth/configure",
+        json={"api_key": "sk-second-key"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 409
+    assert "já configurada" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_path_traversal_rejected(client: AsyncClient):
+    malicious_jwt = pyjwt.encode(
+        {"sub": "../../etc", "email": "evil@test.com"}, JWT_SECRET, algorithm="HS256"
+    )
+    resp = await client.get(
+        "/auth/status",
+        headers={"Authorization": f"Bearer {malicious_jwt}"},
+    )
+    assert resp.status_code == 400
+    assert "inválido" in resp.json()["detail"]

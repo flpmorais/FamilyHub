@@ -144,7 +144,7 @@ development_status:
   # ─── Epic 13: Service Connection & API Key Setup (V4) ────────────────────
   epic-13: in-progress
   13-1-harness-api-foundation: done
-  13-2-api-key-configuration-and-user-provisioning: review
+  13-2-api-key-configuration-and-user-provisioning: done
   13-3-mobile-language-learning-route-shell-and-connection-status: backlog
   13-4-mobile-api-key-setup-screen: backlog
   epic-13-retrospective: optional
