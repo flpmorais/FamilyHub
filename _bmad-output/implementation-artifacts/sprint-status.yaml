@@ -1,6 +1,6 @@
 # generated: 2026-03-25
-# last_updated: 2026-04-05
-# project: FamilyHub-v5.0
+# last_updated: 2026-05-02
+# project: FamilyHub
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
@@ -31,12 +31,12 @@
 # ===============
 # - Epic transitions to 'in-progress' automatically when first story is created
 # - Stories can be worked in parallel if team capacity allows
-# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-25
-last_updated: 2026-04-06
-project: FamilyHub-v5.0
+last_updated: 2026-05-03
+project: FamilyHub
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -141,32 +141,30 @@ development_status:
   12-3-planning-reminder-next-week: done
   epic-12-retrospective: optional
 
-  # ─── Epic 13: Language Learning — Data Layer & Pi Connection (V4) ──────
+  # ─── Epic 13: Service Connection & API Key Setup (V4) ────────────────────
   epic-13: in-progress
-  13-1-language-learning-foundation-migration-repositories-store-and-route-shell: in-progress
-  13-2-websocket-service-and-connection-status: done
-  13-3-session-lifecycle-start-resume-end-and-status: done
+  13-1-harness-api-foundation: done
+  13-2-api-key-configuration-and-user-provisioning: review
+  13-3-mobile-language-learning-route-shell-and-connection-status: backlog
+  13-4-mobile-api-key-setup-screen: backlog
   epic-13-retrospective: optional
 
-  # ─── Epic 14: Language Learning — Onboarding & Skill Selection (V4) ────
-  epic-14: in-progress
-  14-1-claude-oauth-onboarding-via-webview: ready-for-dev
-  14-2-first-launch-setup-gate-and-learning-profile: backlog
-  14-3-skill-selection-screen-with-resume: backlog
+  # ─── Epic 14: Learning Sessions & Skill Selection (V4) ──────────────────
+  epic-14: backlog
+  14-1-langgraph-agent-and-fluent-skill-integration: backlog
+  14-2-session-lifecycle-endpoints: backlog
+  14-3-sse-streaming-and-event-emission: backlog
+  14-4-mobile-sse-client-and-session-hooks: backlog
+  14-5-skill-selection-screen: backlog
+  14-6-chat-interface: backlog
   epic-14-retrospective: optional
 
-  # ─── Epic 15: Language Learning — TTS Playback & Terminal Display (V4) ─
+  # ─── Epic 15: Interactive Learning — Voice & Audio (V4) ────────────────
   epic-15: backlog
-  15-1-tts-queue-with-double-speak-pattern: backlog
-  15-2-terminal-display-greek-text-alongside-audio: backlog
-  15-3-skill-complete-signal-handling: backlog
+  15-1-tts-double-speak-queue: backlog
+  15-2-greek-text-styling: backlog
+  15-3-stt-voice-input: backlog
   epic-15-retrospective: optional
-
-  # ─── Epic 16: Language Learning — Voice Input (V4) ─────────────────────
-  epic-16: backlog
-  16-1-mic-button-and-speech-to-text-capture: backlog
-  16-2-transcript-delivery-to-terminal: backlog
-  epic-16-retrospective: optional
 
   # ─── Epic 17: Recipe Foundation & Manual Entry (V5) ────────────────────
   epic-17: in-progress
