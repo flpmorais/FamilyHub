@@ -5,7 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import auth, health
+from routers import auth, health, session
+from services.session_manager import session_manager
 
 logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO))
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):
     logger.info("harness api starting — fluent_data_dir=%s", settings.FLUENT_DATA_DIR)
     yield
     logger.info("harness api shutting down")
+    session_manager.close()
 
 
 app = FastAPI(
@@ -33,3 +35,4 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(session.router)

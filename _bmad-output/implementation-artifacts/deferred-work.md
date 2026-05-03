@@ -32,3 +32,10 @@
 
 - Model and base_url hardcoded in `create_agent` — `glm-4-flash` and `https://open.bigmodel.cn/api/paas/v4` are hardcoded; not specified as configurable in this story. Future enhancement.
 - `sys.path` thread-safety during `_import_fluent_update_functions` — theoretical race condition in async server; GIL makes this practically impossible. No action needed at family scale.
+
+## Deferred from: code review of 14-2-session-lifecycle-endpoints.md (2026-05-03)
+
+- TOCTOU race condition between session state check and action in session router — theoretical at family scale (2 users). Would need locking for multi-user scale.
+- SQLite connection shared across threads (main event loop + worker threads via asyncio.to_thread) — needs verification with langgraph-checkpoint-sqlite version for `check_same_thread` setting.
+- `load_user_fluent_data` dead code in session_manager — utility method not called by any code path; may be useful for future stories that need eager data loading.
+- Skill validation in router — already handled by `session_manager.create_agent` raising `ValueError` on unknown skills. Router-level validation would be redundant.

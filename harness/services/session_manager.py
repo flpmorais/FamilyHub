@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import uuid
@@ -56,7 +57,7 @@ class SessionManager:
             logger.warning("replacing existing agent for user=%s", user_id)
             await self.end_session(user_id)
 
-        system_prompt = load_skill_prompt(skill)
+        system_prompt = await asyncio.to_thread(load_skill_prompt, skill)
 
         llm = ChatOpenAI(
             model="glm-4-flash",
@@ -127,20 +128,46 @@ class SessionManager:
 
         messages: list[dict] = []
         if checkpoint_tuple and checkpoint_tuple.checkpoint:
-            channel_values = checkpoint_tuple.checkpoint.get("channel_values", {})
-            raw_messages = channel_values.get("messages", [])
-            import uuid as _uuid
+            try:
+                checkpoint_data = checkpoint_tuple.checkpoint
+                if isinstance(checkpoint_data, dict):
+                    channel_values = checkpoint_data.get("channel_values") or {}
+                elif hasattr(checkpoint_data, "channel_values"):
+                    channel_values = getattr(checkpoint_data, "channel_values", None) or {}
+                else:
+                    channel_values = {}
+                raw_messages = channel_values.get("messages", []) if isinstance(channel_values, dict) else []
+            except (AttributeError, TypeError):
+                logger.warning("unexpected checkpoint format for user=%s", user_id)
+                raw_messages = []
+
             for msg in raw_messages:
                 role = "agent"
                 if hasattr(msg, "type"):
                     role = "user" if msg.type == "human" else "agent"
                 elif hasattr(msg, "role"):
                     role = "user" if msg.role == "user" else "agent"
+
+                ts = int(datetime.now().timestamp() * 1000)
+                if hasattr(msg, "additional_kwargs"):
+                    ts_meta = msg.additional_kwargs.get("timestamp")
+                    if isinstance(ts_meta, (int, float)):
+                        ts = int(ts_meta)
+                    elif isinstance(ts_meta, str):
+                        try:
+                            ts = int(datetime.fromisoformat(ts_meta).timestamp() * 1000)
+                        except (ValueError, TypeError):
+                            pass
+                elif hasattr(msg, "response_metadata"):
+                    ts_meta = msg.response_metadata.get("timestamp")
+                    if isinstance(ts_meta, (int, float)):
+                        ts = int(ts_meta * 1000)
+
                 messages.append({
-                    "id": str(_uuid.uuid4()),
+                    "id": str(uuid.uuid4()),
                     "role": role,
                     "content": str(msg.content) if hasattr(msg, "content") else str(msg),
-                    "timestamp": int(datetime.now().timestamp() * 1000),
+                    "timestamp": ts,
                 })
 
         logger.info("resumed session for user=%s, %d messages", user_id, len(messages))
@@ -152,9 +179,12 @@ class SessionManager:
             logger.warning("no active session to end for user=%s", user_id)
             return
 
-        self.write_session_result(user_id, info)
         self._agents.pop(user_id, None)
         self._sessions.pop(user_id, None)
+        try:
+            await asyncio.to_thread(self.write_session_result, user_id, info)
+        except Exception:
+            logger.exception("failed to write session result for user=%s", user_id)
         logger.info("ended session for user=%s session=%s", user_id, info.session_id)
 
     def write_session_result(self, user_id: str, info: SessionInfo) -> None:

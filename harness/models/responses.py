@@ -26,3 +26,7 @@ class SessionStatusResponse(BaseModel):
 
 class ResumeSessionResponse(BaseModel):
     messages: list[dict]
+
+
+class SessionEndResponse(BaseModel):
+    ended: bool = True
