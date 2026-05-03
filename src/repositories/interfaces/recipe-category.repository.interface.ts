@@ -1,4 +1,8 @@
-import type { RecipeCategory, CreateRecipeCategoryInput, UpdateRecipeCategoryInput } from '../../types/recipe.types';
+import type {
+  RecipeCategory,
+  CreateRecipeCategoryInput,
+  UpdateRecipeCategoryInput,
+} from "../../types/recipe.types";
 
 export interface IRecipeCategoryRepository {
   getAll(familyId: string): Promise<RecipeCategory[]>;

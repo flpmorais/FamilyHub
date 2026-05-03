@@ -141,3 +141,14 @@ def get_auth_status(user_id: str) -> AuthStatusResponse:
             except (json.JSONDecodeError, KeyError):
                 pass
     return AuthStatusResponse(configured=configured, setup_complete=setup_complete)
+
+
+def load_user_api_key(user_id: str) -> str:
+    key_path = _api_key_path(user_id)
+    if not key_path.exists():
+        raise FileNotFoundError(f"api key not configured for user {user_id}")
+    data = json.loads(key_path.read_text(encoding="utf-8"))
+    api_key = data["api_key"]
+    if not api_key or not api_key.strip():
+        raise ValueError(f"api key is empty for user {user_id}")
+    return api_key

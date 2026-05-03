@@ -1,4 +1,4 @@
-import { IconEntry } from '../../types/packing.types';
+import { IconEntry } from "../../types/packing.types";
 
 export interface IIconRepository {
   getIcons(): Promise<IconEntry[]>;

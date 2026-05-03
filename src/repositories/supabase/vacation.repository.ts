@@ -1,6 +1,6 @@
-import * as FileSystem from 'expo-file-system/legacy';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IVacationRepository } from '../interfaces/vacation.repository.interface';
+import * as FileSystem from "expo-file-system/legacy";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IVacationRepository } from "../interfaces/vacation.repository.interface";
 import {
   Vacation,
   VacationLifecycle,
@@ -10,18 +10,18 @@ import {
   BookingTask,
   CreateBookingTaskInput,
   VacationBag,
-} from '../../types/vacation.types';
-import { logger } from '../../utils/logger';
-import { uuid } from '../../utils/uuid';
+} from "../../types/vacation.types";
+import { logger } from "../../utils/logger";
+import { uuid } from "../../utils/uuid";
 
 function subtractDays(isoDate: string, days: number): string {
-  const d = new Date(isoDate + 'T00:00:00');
+  const d = new Date(isoDate + "T00:00:00");
   d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 }
 
 const VACATION_COLS =
-  'id, family_id, title, country_code, destination, cover_image_url, departure_date, return_date, lifecycle, is_pinned, created_at, updated_at';
+  "id, family_id, title, country_code, destination, cover_image_url, departure_date, return_date, lifecycle, is_pinned, created_at, updated_at";
 
 function mapVacation(row: {
   id: string;
@@ -54,7 +54,7 @@ function mapVacation(row: {
 }
 
 const TASK_COLS =
-  'id, vacation_id, family_id, title, task_type, deadline_days, due_date, is_complete, profile_id, created_at, updated_at';
+  "id, vacation_id, family_id, title, task_type, deadline_days, due_date, is_complete, profile_id, created_at, updated_at";
 
 function mapTask(row: {
   id: string;
@@ -89,13 +89,13 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async getVacations(familyId: string): Promise<Vacation[]> {
     const { data, error } = await this.client
-      .from('vacations')
+      .from("vacations")
       .select(VACATION_COLS)
-      .eq('family_id', familyId)
-      .order('departure_date');
+      .eq("family_id", familyId)
+      .order("departure_date");
 
     if (error) {
-      logger.error('VacationRepository', 'getVacations failed', error);
+      logger.error("VacationRepository", "getVacations failed", error);
       throw new Error(`Erro ao carregar viagens: ${error.message}`);
     }
 
@@ -126,35 +126,39 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
       if (filters.profileId) {
         const { data, error } = await this.client
-          .from('vacation_participants')
-          .select('vacation_id')
-          .eq('profile_id', filters.profileId);
+          .from("vacation_participants")
+          .select("vacation_id")
+          .eq("profile_id", filters.profileId);
         if (error) throw error;
-        intersect(Array.from(new Set((data ?? []).map((r: any) => r.vacation_id))));
+        intersect(
+          Array.from(new Set((data ?? []).map((r: any) => r.vacation_id))),
+        );
         if (restrictIds!.length === 0) return [];
       }
 
       if (filters.tagId) {
         const { data, error } = await this.client
-          .from('vacation_tags')
-          .select('vacation_id')
-          .eq('tag_id', filters.tagId);
+          .from("vacation_tags")
+          .select("vacation_id")
+          .eq("tag_id", filters.tagId);
         if (error) throw error;
-        intersect(Array.from(new Set((data ?? []).map((r: any) => r.vacation_id))));
+        intersect(
+          Array.from(new Set((data ?? []).map((r: any) => r.vacation_id))),
+        );
         if (restrictIds!.length === 0) return [];
       }
 
       let query = this.client
-        .from('vacations')
+        .from("vacations")
         .select(VACATION_COLS)
-        .eq('family_id', familyId)
-        .order('lifecycle_sort', { ascending: true })
-        .order('departure_date', { ascending: false });
+        .eq("family_id", familyId)
+        .order("lifecycle_sort", { ascending: true })
+        .order("departure_date", { ascending: false });
 
       if (filters.search && filters.search.trim()) {
-        query = query.ilike('title', `%${filters.search.trim()}%`);
+        query = query.ilike("title", `%${filters.search.trim()}%`);
       }
-      if (restrictIds !== null) query = query.in('id', restrictIds);
+      if (restrictIds !== null) query = query.in("id", restrictIds);
 
       query = query.range(offset, offset + limit - 1);
 
@@ -162,16 +166,16 @@ export class SupabaseVacationRepository implements IVacationRepository {
       if (error) throw error;
       return (data ?? []).map(mapVacation);
     } catch (err) {
-      logger.error('VacationRepository', 'getVacationsPaginated failed', err);
+      logger.error("VacationRepository", "getVacationsPaginated failed", err);
       throw new Error(
-        `Erro ao carregar viagens: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Erro ao carregar viagens: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
 
   async createVacation(input: CreateVacationInput): Promise<Vacation> {
     const { data, error } = await this.client
-      .from('vacations')
+      .from("vacations")
       .insert({
         family_id: input.familyId,
         title: input.title,
@@ -179,14 +183,16 @@ export class SupabaseVacationRepository implements IVacationRepository {
         destination: input.destination,
         departure_date: input.departureDate,
         return_date: input.returnDate,
-        lifecycle: 'planning',
+        lifecycle: "planning",
         is_pinned: false,
       })
       .select(VACATION_COLS);
 
     if (error || !data || data.length === 0) {
-      logger.error('VacationRepository', 'createVacation failed', error);
-      throw new Error(`Erro ao criar viagem: ${error?.message ?? 'Sem resposta'}`);
+      logger.error("VacationRepository", "createVacation failed", error);
+      throw new Error(
+        `Erro ao criar viagem: ${error?.message ?? "Sem resposta"}`,
+      );
     }
 
     const vacation = mapVacation(data[0]);
@@ -199,12 +205,18 @@ export class SupabaseVacationRepository implements IVacationRepository {
       }));
 
       const { error: partError } = await this.client
-        .from('vacation_participants')
+        .from("vacation_participants")
         .insert(participantRows);
 
       if (partError) {
-        logger.error('VacationRepository', 'createVacation: participants failed', partError);
-        throw new Error(`Erro ao adicionar participantes: ${partError.message}`);
+        logger.error(
+          "VacationRepository",
+          "createVacation: participants failed",
+          partError,
+        );
+        throw new Error(
+          `Erro ao adicionar participantes: ${partError.message}`,
+        );
       }
     }
 
@@ -215,9 +227,15 @@ export class SupabaseVacationRepository implements IVacationRepository {
         vacation_id: vacation.id,
         tag_id: tagId,
       }));
-      const { error: tagError } = await this.client.from('vacation_tags').insert(tagRows);
+      const { error: tagError } = await this.client
+        .from("vacation_tags")
+        .insert(tagRows);
       if (tagError) {
-        logger.error('VacationRepository', 'createVacation: tags failed', tagError);
+        logger.error(
+          "VacationRepository",
+          "createVacation: tags failed",
+          tagError,
+        );
       }
     }
 
@@ -228,44 +246,54 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async updateVacation(
     id: string,
-    data: Partial<Omit<Vacation, 'id' | 'createdAt' | 'updatedAt'>>,
+    data: Partial<Omit<Vacation, "id" | "createdAt" | "updatedAt">>,
     participantProfileIds?: string[],
-    tagIds?: string[]
+    tagIds?: string[],
   ): Promise<Vacation> {
     const updates: Record<string, unknown> = {};
-    if (data.title !== undefined) updates['title'] = data.title;
-    if (data.countryCode !== undefined) updates['country_code'] = data.countryCode;
-    if (data.destination !== undefined) updates['destination'] = data.destination;
-    if (data.coverImageUrl !== undefined) updates['cover_image_url'] = data.coverImageUrl;
-    if (data.departureDate !== undefined) updates['departure_date'] = data.departureDate;
-    if (data.returnDate !== undefined) updates['return_date'] = data.returnDate;
-    if (data.lifecycle !== undefined) updates['lifecycle'] = data.lifecycle;
-    if (data.isPinned !== undefined) updates['is_pinned'] = data.isPinned;
+    if (data.title !== undefined) updates["title"] = data.title;
+    if (data.countryCode !== undefined)
+      updates["country_code"] = data.countryCode;
+    if (data.destination !== undefined)
+      updates["destination"] = data.destination;
+    if (data.coverImageUrl !== undefined)
+      updates["cover_image_url"] = data.coverImageUrl;
+    if (data.departureDate !== undefined)
+      updates["departure_date"] = data.departureDate;
+    if (data.returnDate !== undefined) updates["return_date"] = data.returnDate;
+    if (data.lifecycle !== undefined) updates["lifecycle"] = data.lifecycle;
+    if (data.isPinned !== undefined) updates["is_pinned"] = data.isPinned;
 
     const { data: rows, error } = await this.client
-      .from('vacations')
+      .from("vacations")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select(VACATION_COLS);
 
     if (error || !rows || rows.length === 0) {
-      logger.error('VacationRepository', 'updateVacation failed', {
+      logger.error("VacationRepository", "updateVacation failed", {
         error,
         rowCount: rows?.length,
       });
-      throw new Error(`Erro ao actualizar viagem: ${error?.message ?? 'Viagem não encontrada'}`);
+      throw new Error(
+        `Erro ao actualizar viagem: ${error?.message ?? "Viagem não encontrada"}`,
+      );
     }
 
     // Sync participants if provided
     if (participantProfileIds !== undefined) {
       // Delete all existing
       const { error: delError } = await this.client
-        .from('vacation_participants')
+        .from("vacation_participants")
         .delete()
-        .eq('vacation_id', id);
+        .eq("vacation_id", id);
 
       if (delError) {
-        logger.error('VacationRepository', 'updateVacation: delete participants failed', delError);
+        logger.error(
+          "VacationRepository",
+          "updateVacation: delete participants failed",
+          delError,
+        );
       }
 
       // Re-insert
@@ -276,14 +304,14 @@ export class SupabaseVacationRepository implements IVacationRepository {
         }));
 
         const { error: insError } = await this.client
-          .from('vacation_participants')
+          .from("vacation_participants")
           .insert(participantRows);
 
         if (insError) {
           logger.error(
-            'VacationRepository',
-            'updateVacation: insert participants failed',
-            insError
+            "VacationRepository",
+            "updateVacation: insert participants failed",
+            insError,
           );
         }
       }
@@ -291,10 +319,14 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
     // Sync tags if provided
     if (tagIds !== undefined) {
-      await this.client.from('vacation_tags').delete().eq('vacation_id', id);
+      await this.client.from("vacation_tags").delete().eq("vacation_id", id);
       if (tagIds.length > 0) {
-        const tagRows = tagIds.map((tagId) => ({ id: uuid(), vacation_id: id, tag_id: tagId }));
-        await this.client.from('vacation_tags').insert(tagRows);
+        const tagRows = tagIds.map((tagId) => ({
+          id: uuid(),
+          vacation_id: id,
+          tag_id: tagId,
+        }));
+        await this.client.from("vacation_tags").insert(tagRows);
       }
     }
 
@@ -304,34 +336,36 @@ export class SupabaseVacationRepository implements IVacationRepository {
   async getVacationTags(vacationId: string): Promise<string[]> {
     try {
       const { data, error } = await this.client
-        .from('vacation_tags')
-        .select('tag_id')
-        .eq('vacation_id', vacationId);
+        .from("vacation_tags")
+        .select("tag_id")
+        .eq("vacation_id", vacationId);
       if (error) throw error;
       return (data ?? []).map((r) => r.tag_id as string);
     } catch (err) {
-      logger.error('VacationRepository', 'getVacationTags failed', err);
-      throw new Error(`Erro ao carregar etiquetas da viagem: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("VacationRepository", "getVacationTags failed", err);
+      throw new Error(
+        `Erro ao carregar etiquetas da viagem: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async deleteVacation(id: string): Promise<void> {
     // Supabase CASCADE handles cleanup of related tables
-    const { error } = await this.client.from('vacations').delete().eq('id', id);
+    const { error } = await this.client.from("vacations").delete().eq("id", id);
     if (error) {
-      logger.error('VacationRepository', 'deleteVacation failed', error);
+      logger.error("VacationRepository", "deleteVacation failed", error);
       throw new Error(`Erro ao eliminar viagem: ${error.message}`);
     }
   }
 
   async getParticipants(vacationId: string): Promise<VacationParticipant[]> {
     const { data, error } = await this.client
-      .from('vacation_participants')
-      .select('vacation_id, profile_id, created_at')
-      .eq('vacation_id', vacationId);
+      .from("vacation_participants")
+      .select("vacation_id, profile_id, created_at")
+      .eq("vacation_id", vacationId);
 
     if (error) {
-      logger.error('VacationRepository', 'getParticipants failed', error);
+      logger.error("VacationRepository", "getParticipants failed", error);
       throw new Error(`Erro ao carregar participantes: ${error.message}`);
     }
 
@@ -342,10 +376,18 @@ export class SupabaseVacationRepository implements IVacationRepository {
     }));
   }
 
-  async uploadCoverImage(vacationId: string, familyId: string, localUri: string): Promise<string> {
+  async uploadCoverImage(
+    vacationId: string,
+    familyId: string,
+    localUri: string,
+  ): Promise<string> {
     // Check if old image is used elsewhere before deleting
-    const { data: oldRows } = await this.client.from('vacations').select('cover_image_url').eq('id', vacationId);
-    const oldUrl = oldRows && oldRows.length > 0 ? oldRows[0].cover_image_url : null;
+    const { data: oldRows } = await this.client
+      .from("vacations")
+      .select("cover_image_url")
+      .eq("id", vacationId);
+    const oldUrl =
+      oldRows && oldRows.length > 0 ? oldRows[0].cover_image_url : null;
 
     const storagePath = `${familyId}/${vacationId}.jpg`;
 
@@ -353,10 +395,10 @@ export class SupabaseVacationRepository implements IVacationRepository {
     if (oldUrl) {
       const inUse = await this.isImageInUse(oldUrl, vacationId);
       if (!inUse) {
-        await this.client.storage.from('vacation-covers').remove([storagePath]);
+        await this.client.storage.from("vacation-covers").remove([storagePath]);
       }
     } else {
-      await this.client.storage.from('vacation-covers').remove([storagePath]);
+      await this.client.storage.from("vacation-covers").remove([storagePath]);
     }
 
     const base64 = await FileSystem.readAsStringAsync(localUri, {
@@ -369,15 +411,17 @@ export class SupabaseVacationRepository implements IVacationRepository {
     }
 
     const { error } = await this.client.storage
-      .from('vacation-covers')
-      .upload(storagePath, bytes, { contentType: 'image/jpeg', upsert: true });
+      .from("vacation-covers")
+      .upload(storagePath, bytes, { contentType: "image/jpeg", upsert: true });
 
     if (error) {
-      logger.error('VacationRepository', 'uploadCoverImage failed', error);
+      logger.error("VacationRepository", "uploadCoverImage failed", error);
       throw new Error(`Erro ao carregar imagem: ${error.message}`);
     }
 
-    const { data } = this.client.storage.from('vacation-covers').getPublicUrl(storagePath);
+    const { data } = this.client.storage
+      .from("vacation-covers")
+      .getPublicUrl(storagePath);
     return data.publicUrl;
   }
 
@@ -386,23 +430,25 @@ export class SupabaseVacationRepository implements IVacationRepository {
   async getBookingTasks(vacationId: string): Promise<BookingTask[]> {
     try {
       const { data, error } = await this.client
-        .from('booking_tasks')
-        .select('*')
-        .eq('vacation_id', vacationId)
-        .order('is_complete', { ascending: true })
-        .order('due_date', { ascending: true });
+        .from("booking_tasks")
+        .select("*")
+        .eq("vacation_id", vacationId)
+        .order("is_complete", { ascending: true })
+        .order("due_date", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((r: any) => mapTask(r));
     } catch (err) {
-      logger.error('VacationRepository', 'getBookingTasks failed', err);
-      throw new Error(`Erro ao carregar tarefas: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("VacationRepository", "getBookingTasks failed", err);
+      throw new Error(
+        `Erro ao carregar tarefas: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async createBookingTask(input: CreateBookingTaskInput): Promise<BookingTask> {
     try {
       const { data, error } = await this.client
-        .from('booking_tasks')
+        .from("booking_tasks")
         .insert({
           id: uuid(),
           vacation_id: input.vacationId,
@@ -416,17 +462,21 @@ export class SupabaseVacationRepository implements IVacationRepository {
         })
         .select()
         .single();
-      if (error || !data) throw error ?? new Error('No data returned');
+      if (error || !data) throw error ?? new Error("No data returned");
       return mapTask(data);
     } catch (err) {
-      logger.error('VacationRepository', 'createBookingTask failed', err);
-      throw new Error(`Erro ao criar tarefa: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("VacationRepository", "createBookingTask failed", err);
+      throw new Error(
+        `Erro ao criar tarefa: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async updateBookingTask(
     id: string,
-    data: Partial<Pick<BookingTask, 'title' | 'dueDate' | 'isComplete' | 'profileId'>>
+    data: Partial<
+      Pick<BookingTask, "title" | "dueDate" | "isComplete" | "profileId">
+    >,
   ): Promise<BookingTask> {
     try {
       const updates: Record<string, unknown> = {};
@@ -436,40 +486,53 @@ export class SupabaseVacationRepository implements IVacationRepository {
       if (data.profileId !== undefined) updates.profile_id = data.profileId;
 
       const { data: rows, error } = await this.client
-        .from('booking_tasks')
+        .from("booking_tasks")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
-      if (error || !rows) throw error ?? new Error('Tarefa não encontrada');
+      if (error || !rows) throw error ?? new Error("Tarefa não encontrada");
       return mapTask(rows);
     } catch (err) {
-      logger.error('VacationRepository', 'updateBookingTask failed', err);
-      throw new Error(`Erro ao actualizar tarefa: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("VacationRepository", "updateBookingTask failed", err);
+      throw new Error(
+        `Erro ao actualizar tarefa: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async deleteBookingTask(id: string): Promise<void> {
     try {
-      const { error } = await this.client.from('booking_tasks').delete().eq('id', id);
+      const { error } = await this.client
+        .from("booking_tasks")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     } catch (err) {
-      logger.error('VacationRepository', 'deleteBookingTask failed', err);
-      throw new Error(`Erro ao eliminar tarefa: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("VacationRepository", "deleteBookingTask failed", err);
+      throw new Error(
+        `Erro ao eliminar tarefa: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   /** Check if an image URL is used by any vacation (excluding excludeId) or vacation template */
-  private async isImageInUse(imageUrl: string, excludeId?: string): Promise<boolean> {
-    let query = this.client.from('vacations').select('id', { count: 'exact', head: true }).eq('cover_image_url', imageUrl);
-    if (excludeId) query = query.neq('id', excludeId);
+  private async isImageInUse(
+    imageUrl: string,
+    excludeId?: string,
+  ): Promise<boolean> {
+    let query = this.client
+      .from("vacations")
+      .select("id", { count: "exact", head: true })
+      .eq("cover_image_url", imageUrl);
+    if (excludeId) query = query.neq("id", excludeId);
     const { count: vacCount } = await query;
     if ((vacCount ?? 0) > 0) return true;
 
     const { count: tplCount } = await this.client
-      .from('vacation_templates')
-      .select('id', { count: 'exact', head: true })
-      .eq('cover_image_url', imageUrl);
+      .from("vacation_templates")
+      .select("id", { count: "exact", head: true })
+      .eq("cover_image_url", imageUrl);
     return (tplCount ?? 0) > 0;
   }
 
@@ -477,9 +540,9 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async getVacationBags(vacationId: string): Promise<VacationBag[]> {
     const { data, error } = await this.client
-      .from('vacation_bags')
-      .select('*')
-      .eq('vacation_id', vacationId);
+      .from("vacation_bags")
+      .select("*")
+      .eq("vacation_id", vacationId);
     if (error) throw error;
     return (data ?? []).map((r) => ({
       id: r.id,
@@ -488,9 +551,13 @@ export class SupabaseVacationRepository implements IVacationRepository {
     }));
   }
 
-  async addVacationBag(vacationId: string, bagTemplateId: string, isTopLevel: boolean): Promise<VacationBag> {
+  async addVacationBag(
+    vacationId: string,
+    bagTemplateId: string,
+    isTopLevel: boolean,
+  ): Promise<VacationBag> {
     const { data, error } = await this.client
-      .from('vacation_bags')
+      .from("vacation_bags")
       .insert({
         id: uuid(),
         vacation_id: vacationId,
@@ -509,17 +576,20 @@ export class SupabaseVacationRepository implements IVacationRepository {
 
   async removeVacationBag(vacationBagId: string): Promise<void> {
     const { error } = await this.client
-      .from('vacation_bags')
+      .from("vacation_bags")
       .delete()
-      .eq('id', vacationBagId);
+      .eq("id", vacationBagId);
     if (error) throw error;
   }
 
-  async updateVacationBagTopLevel(vacationBagId: string, isTopLevel: boolean): Promise<void> {
+  async updateVacationBagTopLevel(
+    vacationBagId: string,
+    isTopLevel: boolean,
+  ): Promise<void> {
     const { error } = await this.client
-      .from('vacation_bags')
+      .from("vacation_bags")
       .update({ is_top_level: isTopLevel })
-      .eq('id', vacationBagId);
+      .eq("id", vacationBagId);
     if (error) throw error;
   }
 }

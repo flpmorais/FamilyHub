@@ -2,19 +2,38 @@ import {
   VacationTemplate,
   VacationTemplateBag,
   CreateVacationTemplateInput,
-} from '../../types/vacation.types';
+} from "../../types/vacation.types";
 
 export interface IVacationTemplateRepository {
-  getVacationTemplates(familyId: string, activeOnly?: boolean): Promise<VacationTemplate[]>;
+  getVacationTemplates(
+    familyId: string,
+    activeOnly?: boolean,
+  ): Promise<VacationTemplate[]>;
   getVacationTemplateById(id: string): Promise<VacationTemplate | null>;
-  createVacationTemplate(data: CreateVacationTemplateInput): Promise<VacationTemplate>;
+  createVacationTemplate(
+    data: CreateVacationTemplateInput,
+  ): Promise<VacationTemplate>;
   updateVacationTemplate(
     id: string,
-    data: Partial<Omit<VacationTemplate, 'id' | 'createdAt' | 'updatedAt' | 'participantProfileIds' | 'tagIds' | 'bags'>>,
+    data: Partial<
+      Omit<
+        VacationTemplate,
+        | "id"
+        | "createdAt"
+        | "updatedAt"
+        | "participantProfileIds"
+        | "tagIds"
+        | "bags"
+      >
+    >,
     participantProfileIds?: string[],
     tagIds?: string[],
-    bags?: VacationTemplateBag[]
+    bags?: VacationTemplateBag[],
   ): Promise<VacationTemplate>;
   deleteVacationTemplate(id: string): Promise<void>;
-  uploadCoverImage(templateId: string, familyId: string, localUri: string): Promise<string>;
+  uploadCoverImage(
+    templateId: string,
+    familyId: string,
+    localUri: string,
+  ): Promise<string>;
 }

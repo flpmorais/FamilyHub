@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { Button, TextInput, HelperText } from "react-native-paper";
+import { Button, TextInput, HelperText, Text } from "react-native-paper";
 import { router } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
 import { useLanguageLearningStore } from "../../../stores/language-learning.store";
@@ -32,6 +32,7 @@ export default function ApiKeySetupScreen() {
 
   return (
     <View style={s.container}>
+      <Text style={s.title}>Configurar Chave API</Text>
       <TextInput
         label="Chave API"
         value={key}
@@ -55,6 +56,7 @@ export default function ApiKeySetupScreen() {
       >
         Configurar
       </Button>
+      {isConfiguring && <Text style={s.loadingText}>A validar chave...</Text>}
     </View>
   );
 }
@@ -65,10 +67,21 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 32,
   },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 24,
+  },
   input: {
     backgroundColor: "#FFFFFF",
   },
   button: {
     marginTop: 16,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#888888",
+    textAlign: "center",
   },
 });

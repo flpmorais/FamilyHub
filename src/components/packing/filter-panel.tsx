@@ -1,18 +1,32 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
-import { Icon } from 'react-native-paper';
-import { useStatusColours } from '../../constants/status-colours';
-import type { PackingStatus, Category, Tag } from '../../types/packing.types';
-import type { Profile } from '../../types/profile.types';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Modal,
+} from "react-native";
+import { Icon } from "react-native-paper";
+import { useStatusColours } from "../../constants/status-colours";
+import type { PackingStatus, Category, Tag } from "../../types/packing.types";
+import type { Profile } from "../../types/profile.types";
 
-const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'issue', 'ready', 'last_minute', 'packed'];
+const ALL_STATUSES: PackingStatus[] = [
+  "new",
+  "buy",
+  "issue",
+  "ready",
+  "last_minute",
+  "packed",
+];
 
 const STATUS_LABELS: Record<PackingStatus, string> = {
-  new: 'Novo',
-  buy: 'Comprar',
-  ready: 'Pronto',
-  issue: 'Problema',
-  last_minute: 'Última hora',
-  packed: 'Embalado',
+  new: "Novo",
+  buy: "Comprar",
+  ready: "Pronto",
+  issue: "Problema",
+  last_minute: "Última hora",
+  packed: "Embalado",
 };
 
 interface FilterPanelProps {
@@ -53,9 +67,18 @@ export function FilterPanel({
   const colours = useStatusColours();
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={s.overlay}>
-        <TouchableOpacity style={s.overlayTouch} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity
+          style={s.overlayTouch}
+          onPress={onClose}
+          activeOpacity={1}
+        />
         <View style={s.panel}>
           <View style={s.header}>
             <Text style={s.title}>Filtros</Text>
@@ -86,7 +109,12 @@ export function FilterPanel({
                     ]}
                     onPress={() => onToggleStatus(status)}
                   >
-                    <Text style={[s.chipText, active && { color: colours[status].text }]}>
+                    <Text
+                      style={[
+                        s.chipText,
+                        active && { color: colours[status].text },
+                      ]}
+                    >
                       {STATUS_LABELS[status]}
                     </Text>
                   </TouchableOpacity>
@@ -97,7 +125,7 @@ export function FilterPanel({
             <Text style={s.sectionTitle}>Pessoa</Text>
             <View style={s.chipGrid}>
               {profiles
-                .filter((p) => p.status !== 'inactive')
+                .filter((p) => p.status !== "inactive")
                 .map((p) => {
                   const active = activeProfiles.includes(p.id);
                   return (
@@ -106,7 +134,9 @@ export function FilterPanel({
                       style={[s.chip, active && s.chipActive]}
                       onPress={() => onToggleProfile(p.id)}
                     >
-                      <Text style={[s.chipText, active && s.chipTextActive]}>{p.displayName}</Text>
+                      <Text style={[s.chipText, active && s.chipTextActive]}>
+                        {p.displayName}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -126,7 +156,11 @@ export function FilterPanel({
                           style={[s.chip, active && s.chipActive]}
                           onPress={() => onToggleCategory(c.id)}
                         >
-                          <Text style={[s.chipText, active && s.chipTextActive]}>{c.name}</Text>
+                          <Text
+                            style={[s.chipText, active && s.chipTextActive]}
+                          >
+                            {c.name}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -143,11 +177,23 @@ export function FilterPanel({
                     return (
                       <TouchableOpacity
                         key={t.id}
-                        style={[s.chip, active && { backgroundColor: t.color, borderColor: t.color }]}
+                        style={[
+                          s.chip,
+                          active && {
+                            backgroundColor: t.color,
+                            borderColor: t.color,
+                          },
+                        ]}
                         onPress={() => onToggleTag(t.id)}
                       >
-                        <Icon source={t.icon} size={14} color={active ? '#FFFFFF' : t.color} />
-                        <Text style={[s.chipText, active && s.chipTextActive]}>{t.name}</Text>
+                        <Icon
+                          source={t.icon}
+                          size={14}
+                          color={active ? "#FFFFFF" : t.color}
+                        />
+                        <Text style={[s.chipText, active && s.chipTextActive]}>
+                          {t.name}
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -158,7 +204,7 @@ export function FilterPanel({
 
           <TouchableOpacity style={s.applyBtn} onPress={onClose}>
             <Text style={s.applyBtnText}>
-              Ver {filteredCount} {filteredCount === 1 ? 'item' : 'itens'}
+              Ver {filteredCount} {filteredCount === 1 ? "item" : "itens"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -170,62 +216,62 @@ export function FilterPanel({
 const s = StyleSheet.create({
   overlay: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   overlayTouch: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   panel: {
     width: 300,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingTop: 48,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
-  clearText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
+  title: { fontSize: 20, fontWeight: "700", color: "#1A1A1A" },
+  clearText: { fontSize: 14, color: "#B5451B", fontWeight: "500" },
   content: { padding: 20 },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#555555',
+    fontWeight: "600",
+    color: "#555555",
     marginBottom: 10,
     marginTop: 8,
   },
   chipGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 20,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
   },
-  chipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  chipText: { fontSize: 13, color: '#555555' },
-  chipTextActive: { color: '#FFFFFF' },
+  chipActive: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  chipText: { fontSize: 13, color: "#555555" },
+  chipTextActive: { color: "#FFFFFF" },
   applyBtn: {
     margin: 20,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  applyBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  applyBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,7 +32,7 @@ async def start_session(
             status_code=403,
             detail="Chave API não configurada. Configure a chave antes de iniciar uma sessão.",
         )
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, json.JSONDecodeError, OSError):
         raise HTTPException(
             status_code=403,
             detail="Chave API inválida. Reconfigure a chave API.",

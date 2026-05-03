@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,33 +6,37 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-} from 'react-native';
-import { Icon } from 'react-native-paper';
-import { useFocusEffect, router } from 'expo-router';
-import { useRepository } from '../../../hooks/use-repository';
-import { useRecipeRealtime } from '../../../hooks/use-recipe-realtime';
-import { useAuthStore } from '../../../stores/auth.store';
-import { useRecipesStore } from '../../../stores/recipes.store';
-import { RecipeCard } from '../../../components/recipes/recipe-card';
-import { RecipeTypeFilter } from '../../../components/recipes/recipe-type-filter';
+} from "react-native";
+import { Icon } from "react-native-paper";
+import { useFocusEffect, router } from "expo-router";
+import { useRepository } from "../../../hooks/use-repository";
+import { useRecipeRealtime } from "../../../hooks/use-recipe-realtime";
+import { useAuthStore } from "../../../stores/auth.store";
+import { useRecipesStore } from "../../../stores/recipes.store";
+import { RecipeCard } from "../../../components/recipes/recipe-card";
+import { RecipeTypeFilter } from "../../../components/recipes/recipe-type-filter";
 import {
   RecipeFilterPanel,
   EMPTY_FILTERS,
   countActiveFilters,
   type RecipeFilters,
-} from '../../../components/recipes/recipe-filter-panel';
-import { PageHeader } from '../../../components/page-header';
-import { RecipeAddModal } from '../../../components/recipes/recipe-add-modal';
-import { PAGE_SIZE } from '../../../constants/pagination';
-import { supabaseClient } from '../../../repositories/supabase/supabase.client';
-import { logger } from '../../../utils/logger';
-import type { RecipeForList, RecipeCategory, RecipeTag } from '../../../types/recipe.types';
+} from "../../../components/recipes/recipe-filter-panel";
+import { PageHeader } from "../../../components/page-header";
+import { RecipeAddModal } from "../../../components/recipes/recipe-add-modal";
+import { PAGE_SIZE } from "../../../constants/pagination";
+import { supabaseClient } from "../../../repositories/supabase/supabase.client";
+import { logger } from "../../../utils/logger";
+import type {
+  RecipeForList,
+  RecipeCategory,
+  RecipeTag,
+} from "../../../types/recipe.types";
 
 export default function RecipesScreen() {
-  const recipeRepo = useRepository('recipe');
-  const recipeCategoryRepo = useRepository('recipeCategory');
-  const recipeTagRepo = useRepository('recipeTag');
-  const recipeRatingRepo = useRepository('recipeRating');
+  const recipeRepo = useRepository("recipe");
+  const recipeCategoryRepo = useRepository("recipeCategory");
+  const recipeTagRepo = useRepository("recipeTag");
+  const recipeRatingRepo = useRepository("recipeRating");
   const { userAccount } = useAuthStore();
   const { activeTypeFilter, setActiveTypeFilter } = useRecipesStore();
 
@@ -74,7 +78,9 @@ export default function RecipesScreen() {
   const decorateWithRatings = useCallback(
     async (list: RecipeForList[]): Promise<RecipeForList[]> => {
       if (list.length === 0) return list;
-      const summaries = await recipeRatingRepo.getSummariesForRecipes(list.map((r) => r.id));
+      const summaries = await recipeRatingRepo.getSummariesForRecipes(
+        list.map((r) => r.id),
+      );
       return list.map((r) => ({
         ...r,
         averageRating: summaries.get(r.id)?.average ?? null,
@@ -97,7 +103,7 @@ export default function RecipesScreen() {
       setHasMore(firstPage.length === PAGE_SIZE);
       setTypeCounts(counts);
     } catch (err) {
-      logger.error('RecipesScreen', 'load failed', err);
+      logger.error("RecipesScreen", "load failed", err);
     } finally {
       setIsLoading(false);
     }
@@ -119,21 +125,28 @@ export default function RecipesScreen() {
       setCursor(cursor + PAGE_SIZE);
       setHasMore(nextPage.length === PAGE_SIZE);
     } catch (err) {
-      logger.error('RecipesScreen', 'loadMore failed', err);
+      logger.error("RecipesScreen", "loadMore failed", err);
     } finally {
       setIsLoadingMore(false);
       loadingMoreRef.current = false;
     }
-  }, [recipeRepo, decorateWithRatings, familyId, cursor, hasMore, buildRepoFilters]);
+  }, [
+    recipeRepo,
+    decorateWithRatings,
+    familyId,
+    cursor,
+    hasMore,
+    buildRepoFilters,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
       void reloadFromStart();
       if (familyId) {
         supabaseClient
-          .from('families')
-          .select('banner_url')
-          .eq('id', familyId)
+          .from("families")
+          .select("banner_url")
+          .eq("id", familyId)
           .single()
           .then(({ data }) => {
             if (data) setFamilyBannerUrl(data.banner_url ?? null);
@@ -152,8 +165,14 @@ export default function RecipesScreen() {
   // Load categories and tags for filter panel
   useEffect(() => {
     if (!familyId) return;
-    recipeCategoryRepo.getAll(familyId).then(setCategories).catch(() => {});
-    recipeTagRepo.getAll(familyId).then(setTags).catch(() => {});
+    recipeCategoryRepo
+      .getAll(familyId)
+      .then(setCategories)
+      .catch(() => {});
+    recipeTagRepo
+      .getAll(familyId)
+      .then(setTags)
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
 
@@ -197,7 +216,9 @@ export default function RecipesScreen() {
             </>
           ) : (
             <>
-              <Text style={s.emptyText}>Nenhuma receita encontrada com estes filtros.</Text>
+              <Text style={s.emptyText}>
+                Nenhuma receita encontrada com estes filtros.
+              </Text>
               <TouchableOpacity
                 onPress={() => {
                   setActiveTypeFilter(null);
@@ -216,13 +237,17 @@ export default function RecipesScreen() {
           renderItem={({ item }) => (
             <RecipeCard
               recipe={item}
-              onPress={(recipe) => router.push(`/(app)/(recipes)/${recipe.id}` as any)}
+              onPress={(recipe) =>
+                router.push(`/(app)/(recipes)/${recipe.id}` as any)
+              }
             />
           )}
           contentContainerStyle={s.list}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={s.loadingMore} /> : null}
+          ListFooterComponent={
+            isLoadingMore ? <ActivityIndicator style={s.loadingMore} /> : null
+          }
         />
       )}
 
@@ -270,33 +295,33 @@ export default function RecipesScreen() {
 }
 
 const s = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
   typeFilterContainer: {
     paddingVertical: 12,
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 32,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#888888',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#888888",
+    textAlign: "center",
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#AAAAAA',
-    textAlign: 'center',
+    color: "#AAAAAA",
+    textAlign: "center",
     marginTop: 8,
   },
   clearFiltersLink: {
     fontSize: 14,
-    color: '#B5451B',
-    fontWeight: '600',
+    color: "#B5451B",
+    fontWeight: "600",
     marginTop: 12,
   },
   list: {
@@ -307,54 +332,54 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   fabRow: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   filterFab: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#6D6D6D',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#6D6D6D",
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 6,
   },
   filterFabActive: {
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
   },
   filterBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: -4,
     right: -4,
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#D32F2F',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#D32F2F",
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   fab: {
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 6,
   },
   fabText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 28,
-    fontWeight: '400',
+    fontWeight: "400",
     marginTop: -2,
   },
 });

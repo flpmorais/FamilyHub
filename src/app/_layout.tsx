@@ -1,9 +1,12 @@
-import { useContext, useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
-import { PaperProvider, Snackbar } from 'react-native-paper';
-import { RepositoryProvider, RepositoryContext } from '../repositories/repository.context';
-import { useAuthStore } from '../stores/auth.store';
-import { useAppTheme } from '../theme';
+import { useContext, useEffect, useState } from "react";
+import { Stack } from "expo-router";
+import { PaperProvider, Snackbar } from "react-native-paper";
+import {
+  RepositoryProvider,
+  RepositoryContext,
+} from "../repositories/repository.context";
+import { useAuthStore } from "../stores/auth.store";
+import { useAppTheme } from "../theme";
 
 // Hydrates authStore from persisted SecureStore session on cold launch.
 // Must be inside RepositoryProvider to access RepositoryContext.
@@ -41,8 +44,10 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
         visible={otaVisible}
         onDismiss={() => setOtaVisible(false)}
         duration={3000}
-        style={{ position: 'absolute', top: 48, backgroundColor: '#1976D2' }}
-        theme={{ colors: { inverseSurface: '#1976D2', inverseOnSurface: '#FFFFFF' } }}
+        style={{ position: "absolute", top: 48, backgroundColor: "#1976D2" }}
+        theme={{
+          colors: { inverseSurface: "#1976D2", inverseOnSurface: "#FFFFFF" },
+        }}
       >
         Actualização instalada. A reiniciar...
       </Snackbar>

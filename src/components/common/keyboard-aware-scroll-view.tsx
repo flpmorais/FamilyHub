@@ -15,7 +15,7 @@ interface KeyboardAwareScrollViewProps extends ScrollViewProps {
 /**
  * A ScrollView that automatically adjusts for keyboard appearance.
  * Adds bottom padding when keyboard appears and removes it when dismissed.
- * 
+ *
  * Usage:
  * <KeyboardAwareScrollView>
  *   {your content}
@@ -34,11 +34,11 @@ export function KeyboardAwareScrollView({
   useEffect(() => {
     const show = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => setKeyboardHeight(e.endCoordinates.height)
+      (e) => setKeyboardHeight(e.endCoordinates.height),
     );
     const hide = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardHeight(0)
+      () => setKeyboardHeight(0),
     );
     return () => {
       show.remove();
@@ -56,7 +56,10 @@ export function KeyboardAwareScrollView({
       return (
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={[...contentContainerStyle, mergedContentContainerStyle]}
+          contentContainerStyle={[
+            ...contentContainerStyle,
+            mergedContentContainerStyle,
+          ]}
           keyboardShouldPersistTaps="handled"
           {...props}
         >
@@ -67,7 +70,10 @@ export function KeyboardAwareScrollView({
     return (
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={[contentContainerStyle, mergedContentContainerStyle]}
+        contentContainerStyle={[
+          contentContainerStyle,
+          mergedContentContainerStyle,
+        ]}
         keyboardShouldPersistTaps="handled"
         {...props}
       >

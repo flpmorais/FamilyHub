@@ -1,10 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Icon } from 'react-native-paper';
-import { useDishTypes } from '../../hooks/use-dish-types';
-import type { DishTypeKey } from '../../types/dish-type.types';
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Icon } from "react-native-paper";
+import { useDishTypes } from "../../hooks/use-dish-types";
+import type { DishTypeKey } from "../../types/dish-type.types";
 
-export type DishTypeTagVariant = 'filled' | 'outlined';
-export type DishTypeTagSize = 'sm' | 'md';
+export type DishTypeTagVariant = "filled" | "outlined";
+export type DishTypeTagSize = "sm" | "md";
 
 interface DishTypeTagProps {
   typeKey: DishTypeKey;
@@ -19,8 +19,8 @@ interface DishTypeTagProps {
 
 export function DishTypeTag({
   typeKey,
-  variant = 'filled',
-  size = 'sm',
+  variant = "filled",
+  size = "sm",
   label,
   count,
   onPress,
@@ -28,26 +28,29 @@ export function DishTypeTag({
   const { resolve } = useDishTypes();
   const { name, color, icon } = resolve(typeKey);
 
-  const isFilled = variant === 'filled';
-  const isMd = size === 'md';
+  const isFilled = variant === "filled";
+  const isMd = size === "md";
 
   const containerStyle = [
     styles.base,
     isMd ? styles.mdPad : styles.smPad,
     isFilled
       ? { backgroundColor: color, borderColor: color }
-      : { backgroundColor: '#FFFFFF', borderColor: color },
+      : { backgroundColor: "#FFFFFF", borderColor: color },
   ];
-  const textColor = isFilled ? '#FFFFFF' : color;
+  const textColor = isFilled ? "#FFFFFF" : color;
   const iconSize = isMd ? 14 : 12;
   const textSize = isMd ? 13 : 11;
   const displayLabel = label ?? name;
-  const labelText = count !== undefined ? `${displayLabel} (${count})` : displayLabel;
+  const labelText =
+    count !== undefined ? `${displayLabel} (${count})` : displayLabel;
 
   const content = (
     <View style={containerStyle}>
       <Icon source={icon} size={iconSize} color={textColor} />
-      <Text style={[styles.label, { color: textColor, fontSize: textSize }]}>{labelText}</Text>
+      <Text style={[styles.label, { color: textColor, fontSize: textSize }]}>
+        {labelText}
+      </Text>
     </View>
   );
 
@@ -63,12 +66,12 @@ export function DishTypeTag({
 
 const styles = StyleSheet.create({
   base: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     borderRadius: 14,
     borderWidth: 1,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   smPad: {
     paddingHorizontal: 8,
@@ -79,6 +82,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   label: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

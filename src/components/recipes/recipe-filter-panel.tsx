@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,9 @@ import {
   ScrollView,
   StyleSheet,
   Modal,
-} from 'react-native';
-import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
-import type { RecipeCategory, RecipeTag } from '../../types/recipe.types';
+} from "react-native";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
+import type { RecipeCategory, RecipeTag } from "../../types/recipe.types";
 
 export interface RecipeFilters {
   categoryIds: string[];
@@ -23,10 +23,10 @@ export interface RecipeFilters {
 export const EMPTY_FILTERS: RecipeFilters = {
   categoryIds: [],
   tagIds: [],
-  ingredientSearch: '',
-  maxTotalTime: '',
-  maxPrepTime: '',
-  maxCookTime: '',
+  ingredientSearch: "",
+  maxTotalTime: "",
+  maxPrepTime: "",
+  maxCookTime: "",
 };
 
 export function countActiveFilters(filters: RecipeFilters): number {
@@ -59,9 +59,15 @@ export function RecipeFilterPanel({
 }: RecipeFilterPanelProps) {
   const [localFilters, setLocalFilters] = useState<RecipeFilters>(filters);
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['ingredientSearch', 'maxTotalTime', 'maxPrepTime', 'maxCookTime'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: [
+        "ingredientSearch",
+        "maxTotalTime",
+        "maxPrepTime",
+        "maxCookTime",
+      ],
+    });
 
   useEffect(() => {
     if (visible) setLocalFilters(filters);
@@ -97,11 +103,20 @@ export function RecipeFilterPanel({
   const activeCount = countActiveFilters(localFilters);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={s.overlay}>
-        <TouchableOpacity style={s.overlayTouch} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity
+          style={s.overlayTouch}
+          onPress={onClose}
+          activeOpacity={1}
+        />
         <View style={s.panel}>
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
@@ -118,10 +133,12 @@ export function RecipeFilterPanel({
             {/* Ingredient search */}
             <Text style={s.label}>Ingrediente</Text>
             <TextInput
-              {...getInputProps('ingredientSearch')}
+              {...getInputProps("ingredientSearch")}
               style={s.input}
               value={localFilters.ingredientSearch}
-              onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, ingredientSearch: v }))}
+              onChangeText={(v) =>
+                setLocalFilters((prev) => ({ ...prev, ingredientSearch: v }))
+              }
               placeholder="Pesquisar por ingrediente..."
               placeholderTextColor="#CCCCCC"
               autoCapitalize="none"
@@ -135,10 +152,20 @@ export function RecipeFilterPanel({
                   {categories.map((cat) => (
                     <TouchableOpacity
                       key={cat.id}
-                      style={[s.chip, localFilters.categoryIds.includes(cat.id) && s.chipActive]}
+                      style={[
+                        s.chip,
+                        localFilters.categoryIds.includes(cat.id) &&
+                          s.chipActive,
+                      ]}
                       onPress={() => toggleCategory(cat.id)}
                     >
-                      <Text style={[s.chipText, localFilters.categoryIds.includes(cat.id) && s.chipTextActive]}>
+                      <Text
+                        style={[
+                          s.chipText,
+                          localFilters.categoryIds.includes(cat.id) &&
+                            s.chipTextActive,
+                        ]}
+                      >
                         {cat.name}
                       </Text>
                     </TouchableOpacity>
@@ -155,10 +182,19 @@ export function RecipeFilterPanel({
                   {tags.map((tag) => (
                     <TouchableOpacity
                       key={tag.id}
-                      style={[s.chip, localFilters.tagIds.includes(tag.id) && s.chipActive]}
+                      style={[
+                        s.chip,
+                        localFilters.tagIds.includes(tag.id) && s.chipActive,
+                      ]}
                       onPress={() => toggleTag(tag.id)}
                     >
-                      <Text style={[s.chipText, localFilters.tagIds.includes(tag.id) && s.chipTextActive]}>
+                      <Text
+                        style={[
+                          s.chipText,
+                          localFilters.tagIds.includes(tag.id) &&
+                            s.chipTextActive,
+                        ]}
+                      >
                         {tag.name}
                       </Text>
                     </TouchableOpacity>
@@ -170,10 +206,12 @@ export function RecipeFilterPanel({
             {/* Time filters */}
             <Text style={s.label}>Tempo total máximo (min)</Text>
             <TextInput
-              {...getInputProps('maxTotalTime')}
+              {...getInputProps("maxTotalTime")}
               style={s.input}
               value={localFilters.maxTotalTime}
-              onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, maxTotalTime: v }))}
+              onChangeText={(v) =>
+                setLocalFilters((prev) => ({ ...prev, maxTotalTime: v }))
+              }
               placeholder="Ex: 30"
               placeholderTextColor="#CCCCCC"
               keyboardType="numeric"
@@ -181,10 +219,12 @@ export function RecipeFilterPanel({
 
             <Text style={s.label}>Tempo de preparação máximo (min)</Text>
             <TextInput
-              {...getInputProps('maxPrepTime')}
+              {...getInputProps("maxPrepTime")}
               style={s.input}
               value={localFilters.maxPrepTime}
-              onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, maxPrepTime: v }))}
+              onChangeText={(v) =>
+                setLocalFilters((prev) => ({ ...prev, maxPrepTime: v }))
+              }
               placeholder="Ex: 15"
               placeholderTextColor="#CCCCCC"
               keyboardType="numeric"
@@ -192,10 +232,12 @@ export function RecipeFilterPanel({
 
             <Text style={s.label}>Tempo de cozinhar máximo (min)</Text>
             <TextInput
-              {...getInputProps('maxCookTime')}
+              {...getInputProps("maxCookTime")}
               style={s.input}
               value={localFilters.maxCookTime}
-              onChangeText={(v) => setLocalFilters((prev) => ({ ...prev, maxCookTime: v }))}
+              onChangeText={(v) =>
+                setLocalFilters((prev) => ({ ...prev, maxCookTime: v }))
+              }
               placeholder="Ex: 60"
               placeholderTextColor="#CCCCCC"
               keyboardType="numeric"
@@ -213,53 +255,59 @@ export function RecipeFilterPanel({
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, flexDirection: 'row' },
-  overlayTouch: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  overlay: { flex: 1, flexDirection: "row" },
+  overlayTouch: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   panel: {
     width: 300,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingTop: 48,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
   panelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
     marginBottom: 16,
   },
-  panelTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
-  clearText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
-  label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4, marginTop: 16 },
+  panelTitle: { fontSize: 20, fontWeight: "700", color: "#1A1A1A" },
+  clearText: { fontSize: 14, color: "#B5451B", fontWeight: "500" },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#555555",
+    marginBottom: 4,
+    marginTop: 16,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
   },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#E0E0E0",
+    backgroundColor: "#FFFFFF",
   },
-  chipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  chipText: { fontSize: 13, color: '#666666' },
-  chipTextActive: { color: '#FFFFFF' },
+  chipActive: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  chipText: { fontSize: 13, color: "#666666" },
+  chipTextActive: { color: "#FFFFFF" },
   applyBtn: {
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 24,
   },
-  applyBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  applyBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

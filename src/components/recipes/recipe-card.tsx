@@ -1,10 +1,13 @@
-import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
-import { DishTypeTag } from '../common/dish-type-tag';
-import { StarRating } from './star-rating';
-import type { RecipeForList } from '../../types/recipe.types';
+import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
+import { DishTypeTag } from "../common/dish-type-tag";
+import { StarRating } from "./star-rating";
+import type { RecipeForList } from "../../types/recipe.types";
 
 interface RecipeCardProps {
-  recipe: RecipeForList & { averageRating?: number | null; ratingCount?: number };
+  recipe: RecipeForList & {
+    averageRating?: number | null;
+    ratingCount?: number;
+  };
   onPress: (recipe: RecipeForList) => void;
 }
 
@@ -31,9 +34,7 @@ export function RecipeCard({ recipe, onPress }: RecipeCardProps) {
         </Text>
         <View style={s.meta}>
           <DishTypeTag typeKey={recipe.type} variant="filled" size="sm" />
-          {totalTime > 0 && (
-            <Text style={s.metaText}>{totalTime} min</Text>
-          )}
+          {totalTime > 0 && <Text style={s.metaText}>{totalTime} min</Text>}
           <View style={{ flex: 1 }} />
           <StarRating
             rating={recipe.averageRating ?? null}
@@ -48,13 +49,13 @@ export function RecipeCard({ recipe, onPress }: RecipeCardProps) {
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderBottomColor: "#F0F0F0",
+    flexDirection: "row",
+    alignItems: "center",
   },
   thumbnail: {
     width: 56,
@@ -66,9 +67,9 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   thumbnailIcon: {
@@ -79,17 +80,17 @@ const s = StyleSheet.create({
   },
   name: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
     marginBottom: 4,
   },
   meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   metaText: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
   },
 });

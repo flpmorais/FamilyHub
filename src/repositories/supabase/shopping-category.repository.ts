@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from "@supabase/supabase-js";
 import { IShoppingCategoryRepository } from "../interfaces/shopping-category.repository.interface";
 import {
   ShoppingCategory,
@@ -30,10 +30,10 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
   async getAll(familyId: string): Promise<ShoppingCategory[]> {
     try {
       const { data, error } = await this.client
-        .from('shopping_categories')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('sort_order', { ascending: true });
+        .from("shopping_categories")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("sort_order", { ascending: true });
 
       if (error) throw error;
       return (data ?? []).map(mapShoppingCategory);
@@ -51,7 +51,7 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
 
     try {
       const { data, error } = await this.client
-        .from('shopping_categories')
+        .from("shopping_categories")
         .insert({
           id,
           family_id: input.familyId,
@@ -73,7 +73,10 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
     }
   }
 
-  async edit(id: string, data: UpdateShoppingCategoryInput): Promise<ShoppingCategory> {
+  async edit(
+    id: string,
+    data: UpdateShoppingCategoryInput,
+  ): Promise<ShoppingCategory> {
     const updates: Record<string, unknown> = {};
 
     if (data.name !== undefined) updates.name = data.name;
@@ -83,9 +86,9 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
 
     try {
       const { data: row, error } = await this.client
-        .from('shopping_categories')
+        .from("shopping_categories")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -102,9 +105,9 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
   async delete(id: string): Promise<void> {
     try {
       const { error } = await this.client
-        .from('shopping_categories')
+        .from("shopping_categories")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (err) {
@@ -117,37 +120,39 @@ export class SupabaseShoppingCategoryRepository implements IShoppingCategoryRepo
 
   async setActive(id: string, active: boolean): Promise<void> {
     const { error } = await this.client
-      .from('shopping_categories')
+      .from("shopping_categories")
       .update({ active, updated_at: now() })
-      .eq('id', id);
+      .eq("id", id);
     if (error) throw error;
   }
 
   async reorder(id: string, sortOrder: number): Promise<void> {
     const { error } = await this.client
-      .from('shopping_categories')
+      .from("shopping_categories")
       .update({ sort_order: sortOrder, updated_at: now() })
-      .eq('id', id);
+      .eq("id", id);
     if (error) throw error;
   }
 
-  async batchReorder(items: { id: string; sortOrder: number }[]): Promise<void> {
+  async batchReorder(
+    items: { id: string; sortOrder: number }[],
+  ): Promise<void> {
     await Promise.all(
       items.map(({ id, sortOrder }) =>
         this.client
-          .from('shopping_categories')
+          .from("shopping_categories")
           .update({ sort_order: sortOrder, updated_at: now() })
-          .eq('id', id)
-      )
+          .eq("id", id),
+      ),
     );
   }
 
   async countItemsUsingCategory(categoryId: string): Promise<number> {
     const { count, error } = await this.client
-      .from('shopping_items')
-      .select('*', { count: 'exact', head: true })
-      .eq('category_id', categoryId)
-      .eq('is_ticked', false);
+      .from("shopping_items")
+      .select("*", { count: "exact", head: true })
+      .eq("category_id", categoryId)
+      .eq("is_ticked", false);
     if (error) throw error;
     return count ?? 0;
   }

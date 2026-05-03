@@ -1,11 +1,17 @@
-import * as FileSystem from 'expo-file-system/legacy';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IVacationTemplateRepository } from '../interfaces/vacation-template.repository.interface';
-import { VacationTemplate, VacationTemplateBag, CreateVacationTemplateInput } from '../../types/vacation.types';
-import { logger } from '../../utils/logger';
-import { uuid } from '../../utils/uuid';
+import * as FileSystem from "expo-file-system/legacy";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IVacationTemplateRepository } from "../interfaces/vacation-template.repository.interface";
+import {
+  VacationTemplate,
+  VacationTemplateBag,
+  CreateVacationTemplateInput,
+} from "../../types/vacation.types";
+import { logger } from "../../utils/logger";
+import { uuid } from "../../utils/uuid";
 
-function mapRow(row: any): Omit<VacationTemplate, 'participantProfileIds' | 'tagIds' | 'bags'> {
+function mapRow(
+  row: any,
+): Omit<VacationTemplate, "participantProfileIds" | "tagIds" | "bags"> {
   return {
     id: row.id,
     familyId: row.family_id,
@@ -23,27 +29,27 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
 
   private async loadParticipantIds(templateId: string): Promise<string[]> {
     const { data, error } = await this.client
-      .from('vacation_template_participants')
-      .select('profile_id')
-      .eq('vacation_template_id', templateId);
+      .from("vacation_template_participants")
+      .select("profile_id")
+      .eq("vacation_template_id", templateId);
     if (error) throw error;
     return (data ?? []).map((r) => r.profile_id as string);
   }
 
   private async loadTagIds(templateId: string): Promise<string[]> {
     const { data, error } = await this.client
-      .from('vacation_template_tags')
-      .select('tag_id')
-      .eq('vacation_template_id', templateId);
+      .from("vacation_template_tags")
+      .select("tag_id")
+      .eq("vacation_template_id", templateId);
     if (error) throw error;
     return (data ?? []).map((r) => r.tag_id as string);
   }
 
   private async loadBags(templateId: string): Promise<VacationTemplateBag[]> {
     const { data, error } = await this.client
-      .from('vacation_template_bags')
-      .select('bag_template_id, is_top_level')
-      .eq('vacation_template_id', templateId);
+      .from("vacation_template_bags")
+      .select("bag_template_id, is_top_level")
+      .eq("vacation_template_id", templateId);
     if (error) throw error;
     return (data ?? []).map((r) => ({
       bagTemplateId: r.bag_template_id as string,
@@ -51,13 +57,16 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     }));
   }
 
-  async getVacationTemplates(familyId: string, activeOnly?: boolean): Promise<VacationTemplate[]> {
+  async getVacationTemplates(
+    familyId: string,
+    activeOnly?: boolean,
+  ): Promise<VacationTemplate[]> {
     let query = this.client
-      .from('vacation_templates')
-      .select('*')
-      .eq('family_id', familyId)
-      .order('created_at', { ascending: false });
-    if (activeOnly) query = query.eq('active', true);
+      .from("vacation_templates")
+      .select("*")
+      .eq("family_id", familyId)
+      .order("created_at", { ascending: false });
+    if (activeOnly) query = query.eq("active", true);
 
     const { data: rows, error } = await query;
     if (error) throw error;
@@ -67,17 +76,17 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
 
     const [participantRows, tagRows, bagRows] = await Promise.all([
       this.client
-        .from('vacation_template_participants')
-        .select('vacation_template_id, profile_id')
-        .in('vacation_template_id', ids),
+        .from("vacation_template_participants")
+        .select("vacation_template_id, profile_id")
+        .in("vacation_template_id", ids),
       this.client
-        .from('vacation_template_tags')
-        .select('vacation_template_id, tag_id')
-        .in('vacation_template_id', ids),
+        .from("vacation_template_tags")
+        .select("vacation_template_id, tag_id")
+        .in("vacation_template_id", ids),
       this.client
-        .from('vacation_template_bags')
-        .select('vacation_template_id, bag_template_id, is_top_level')
-        .in('vacation_template_id', ids),
+        .from("vacation_template_bags")
+        .select("vacation_template_id, bag_template_id, is_top_level")
+        .in("vacation_template_id", ids),
     ]);
 
     const participantMap = new Map<string, string[]>();
@@ -97,7 +106,10 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     const bagMap = new Map<string, VacationTemplateBag[]>();
     for (const r of bagRows.data ?? []) {
       const list = bagMap.get(r.vacation_template_id) ?? [];
-      list.push({ bagTemplateId: r.bag_template_id, isTopLevel: !!r.is_top_level });
+      list.push({
+        bagTemplateId: r.bag_template_id,
+        isTopLevel: !!r.is_top_level,
+      });
       bagMap.set(r.vacation_template_id, list);
     }
 
@@ -111,9 +123,9 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
 
   async getVacationTemplateById(id: string): Promise<VacationTemplate | null> {
     const { data: row, error } = await this.client
-      .from('vacation_templates')
-      .select('*')
-      .eq('id', id)
+      .from("vacation_templates")
+      .select("*")
+      .eq("id", id)
       .maybeSingle();
     if (error) throw error;
     if (!row) return null;
@@ -132,9 +144,11 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     };
   }
 
-  async createVacationTemplate(input: CreateVacationTemplateInput): Promise<VacationTemplate> {
+  async createVacationTemplate(
+    input: CreateVacationTemplateInput,
+  ): Promise<VacationTemplate> {
     const { data, error } = await this.client
-      .from('vacation_templates')
+      .from("vacation_templates")
       .insert({
         id: uuid(),
         family_id: input.familyId,
@@ -144,7 +158,7 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
       })
       .select()
       .single();
-    if (error || !data) throw error ?? new Error('No data returned');
+    if (error || !data) throw error ?? new Error("No data returned");
 
     const id = data.id;
 
@@ -155,7 +169,7 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
         vacation_template_id: id,
         profile_id: profileId,
       }));
-      await this.client.from('vacation_template_participants').insert(rows);
+      await this.client.from("vacation_template_participants").insert(rows);
     }
 
     // Insert tags
@@ -165,7 +179,7 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
         vacation_template_id: id,
         tag_id: tagId,
       }));
-      await this.client.from('vacation_template_tags').insert(rows);
+      await this.client.from("vacation_template_tags").insert(rows);
     }
 
     // Insert bags
@@ -176,7 +190,7 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
         bag_template_id: b.bagTemplateId,
         is_top_level: b.isTopLevel,
       }));
-      await this.client.from('vacation_template_bags').insert(bagRows);
+      await this.client.from("vacation_template_bags").insert(bagRows);
     }
 
     const base = mapRow(data);
@@ -190,49 +204,72 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
 
   async updateVacationTemplate(
     id: string,
-    data: Partial<Omit<VacationTemplate, 'id' | 'createdAt' | 'updatedAt' | 'participantProfileIds' | 'tagIds' | 'bags'>>,
+    data: Partial<
+      Omit<
+        VacationTemplate,
+        | "id"
+        | "createdAt"
+        | "updatedAt"
+        | "participantProfileIds"
+        | "tagIds"
+        | "bags"
+      >
+    >,
     participantProfileIds?: string[],
     tagIds?: string[],
-    bags?: VacationTemplateBag[]
+    bags?: VacationTemplateBag[],
   ): Promise<VacationTemplate> {
     const updates: Record<string, unknown> = {};
     if (data.title !== undefined) updates.title = data.title;
     if (data.countryCode !== undefined) updates.country_code = data.countryCode;
-    if (data.coverImageUrl !== undefined) updates.cover_image_url = data.coverImageUrl;
+    if (data.coverImageUrl !== undefined)
+      updates.cover_image_url = data.coverImageUrl;
     if (data.active !== undefined) updates.active = data.active;
 
-    const { error } = await this.client.from('vacation_templates').update(updates).eq('id', id);
+    const { error } = await this.client
+      .from("vacation_templates")
+      .update(updates)
+      .eq("id", id);
     if (error) throw error;
 
     // Replace participants
     if (participantProfileIds !== undefined) {
-      await this.client.from('vacation_template_participants').delete().eq('vacation_template_id', id);
+      await this.client
+        .from("vacation_template_participants")
+        .delete()
+        .eq("vacation_template_id", id);
       if (participantProfileIds.length > 0) {
         const rows = participantProfileIds.map((profileId) => ({
           id: uuid(),
           vacation_template_id: id,
           profile_id: profileId,
         }));
-        await this.client.from('vacation_template_participants').insert(rows);
+        await this.client.from("vacation_template_participants").insert(rows);
       }
     }
 
     // Replace tags
     if (tagIds !== undefined) {
-      await this.client.from('vacation_template_tags').delete().eq('vacation_template_id', id);
+      await this.client
+        .from("vacation_template_tags")
+        .delete()
+        .eq("vacation_template_id", id);
       if (tagIds.length > 0) {
         const rows = tagIds.map((tagId) => ({
           id: uuid(),
           vacation_template_id: id,
           tag_id: tagId,
         }));
-        await this.client.from('vacation_template_tags').insert(rows);
+        await this.client.from("vacation_template_tags").insert(rows);
       }
     }
 
     // Replace bags
     if (bags !== undefined) {
-      await this.client.from('vacation_template_bags').delete().eq('vacation_template_id', id);
+      await this.client
+        .from("vacation_template_bags")
+        .delete()
+        .eq("vacation_template_id", id);
       if (bags.length > 0) {
         const bagRows = bags.map((b) => ({
           id: uuid(),
@@ -240,16 +277,16 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
           bag_template_id: b.bagTemplateId,
           is_top_level: b.isTopLevel,
         }));
-        await this.client.from('vacation_template_bags').insert(bagRows);
+        await this.client.from("vacation_template_bags").insert(bagRows);
       }
     }
 
     const { data: updated, error: selError } = await this.client
-      .from('vacation_templates')
-      .select('*')
-      .eq('id', id)
+      .from("vacation_templates")
+      .select("*")
+      .eq("id", id)
       .single();
-    if (selError || !updated) throw selError ?? new Error('Template not found');
+    if (selError || !updated) throw selError ?? new Error("Template not found");
 
     const base = mapRow(updated);
     const [pIds, tIds, loadedBags] = await Promise.all([
@@ -268,13 +305,16 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
   async deleteVacationTemplate(id: string): Promise<void> {
     // Get image URL before deletion for potential cleanup
     const { data: rows } = await this.client
-      .from('vacation_templates')
-      .select('cover_image_url')
-      .eq('id', id);
+      .from("vacation_templates")
+      .select("cover_image_url")
+      .eq("id", id);
     const imageUrl = rows && rows.length > 0 ? rows[0].cover_image_url : null;
 
     // Supabase CASCADE handles junction table cleanup
-    const { error } = await this.client.from('vacation_templates').delete().eq('id', id);
+    const { error } = await this.client
+      .from("vacation_templates")
+      .delete()
+      .eq("id", id);
     if (error) throw error;
 
     if (imageUrl) {
@@ -282,10 +322,14 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     }
   }
 
-  async uploadCoverImage(templateId: string, familyId: string, localUri: string): Promise<string> {
+  async uploadCoverImage(
+    templateId: string,
+    familyId: string,
+    localUri: string,
+  ): Promise<string> {
     const storagePath = `${familyId}/templates/${templateId}.jpg`;
 
-    await this.client.storage.from('vacation-covers').remove([storagePath]);
+    await this.client.storage.from("vacation-covers").remove([storagePath]);
 
     const base64 = await FileSystem.readAsStringAsync(localUri, {
       encoding: FileSystem.EncodingType.Base64,
@@ -297,29 +341,35 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     }
 
     const { error } = await this.client.storage
-      .from('vacation-covers')
-      .upload(storagePath, bytes, { contentType: 'image/jpeg', upsert: true });
+      .from("vacation-covers")
+      .upload(storagePath, bytes, { contentType: "image/jpeg", upsert: true });
 
     if (error) {
-      logger.error('VacationTemplateRepository', 'uploadCoverImage failed', error);
+      logger.error(
+        "VacationTemplateRepository",
+        "uploadCoverImage failed",
+        error,
+      );
       throw new Error(`Erro ao carregar imagem: ${error.message}`);
     }
 
-    const { data } = this.client.storage.from('vacation-covers').getPublicUrl(storagePath);
+    const { data } = this.client.storage
+      .from("vacation-covers")
+      .getPublicUrl(storagePath);
     return data.publicUrl;
   }
 
   async isImageInUse(imageUrl: string): Promise<boolean> {
     const { count: vacCount } = await this.client
-      .from('vacations')
-      .select('id', { count: 'exact', head: true })
-      .eq('cover_image_url', imageUrl);
+      .from("vacations")
+      .select("id", { count: "exact", head: true })
+      .eq("cover_image_url", imageUrl);
     if ((vacCount ?? 0) > 0) return true;
 
     const { count: tplCount } = await this.client
-      .from('vacation_templates')
-      .select('id', { count: 'exact', head: true })
-      .eq('cover_image_url', imageUrl);
+      .from("vacation_templates")
+      .select("id", { count: "exact", head: true })
+      .eq("cover_image_url", imageUrl);
     return (tplCount ?? 0) > 0;
   }
 
@@ -327,15 +377,22 @@ export class SupabaseVacationTemplateRepository implements IVacationTemplateRepo
     try {
       if (await this.isImageInUse(imageUrl)) return;
 
-      const marker = '/vacation-covers/';
+      const marker = "/vacation-covers/";
       const idx = imageUrl.indexOf(marker);
       if (idx === -1) return;
       const storagePath = imageUrl.substring(idx + marker.length);
 
-      await this.client.storage.from('vacation-covers').remove([storagePath]);
-      logger.info('VacationTemplateRepository', `Deleted unused image: ${storagePath}`);
+      await this.client.storage.from("vacation-covers").remove([storagePath]);
+      logger.info(
+        "VacationTemplateRepository",
+        `Deleted unused image: ${storagePath}`,
+      );
     } catch (err) {
-      logger.error('VacationTemplateRepository', 'tryDeleteUnusedImage failed', err);
+      logger.error(
+        "VacationTemplateRepository",
+        "tryDeleteUnusedImage failed",
+        err,
+      );
     }
   }
 }

@@ -14,5 +14,7 @@ export function daysUntilExpiry(iso: string): number {
   today.setHours(0, 0, 0, 0);
   const expiry = new Date(iso);
   expiry.setHours(0, 0, 0, 0);
-  return Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.round(
+    (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
 }

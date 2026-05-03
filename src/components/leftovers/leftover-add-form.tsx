@@ -52,9 +52,10 @@ export function LeftoverAddForm({
   const [dosesError, setDosesError] = useState("");
   const [expiryError, setExpiryError] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ["name", "doses", "expiry"],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["name", "doses", "expiry"],
+    });
 
   function resetForm() {
     setName("");
@@ -130,7 +131,10 @@ export function LeftoverAddForm({
           <ScrollView
             ref={scrollViewRef}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[s.scrollContent, { paddingBottom: keyboardHeight + 8 }]}
+            contentContainerStyle={[
+              s.scrollContent,
+              { paddingBottom: keyboardHeight + 8 },
+            ]}
           >
             <Text style={s.title}>Novo resto</Text>
 
@@ -190,7 +194,9 @@ export function LeftoverAddForm({
               keyboardType="number-pad"
               editable={!isSaving}
             />
-            {expiryError ? <Text style={s.fieldError}>{expiryError}</Text> : null}
+            {expiryError ? (
+              <Text style={s.fieldError}>{expiryError}</Text>
+            ) : null}
           </ScrollView>
 
           <View style={s.buttons}>

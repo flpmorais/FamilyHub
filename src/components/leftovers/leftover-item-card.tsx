@@ -43,7 +43,12 @@ export function LeftoverItemCard({
 
   return (
     <TouchableOpacity
-      style={[s.card, !isActive && s.cardClosed, isExpiresToday && s.cardExpiresToday, isExpired && s.cardExpired]}
+      style={[
+        s.card,
+        !isActive && s.cardClosed,
+        isExpiresToday && s.cardExpiresToday,
+        isExpired && s.cardExpired,
+      ]}
       onPress={() => onPress(item)}
       activeOpacity={0.7}
     >
@@ -61,7 +66,9 @@ export function LeftoverItemCard({
             ) : isExpiresToday ? (
               <View style={s.badgeRow}>
                 <Icon source="alert-circle" size={14} color="#F59300" />
-                <Text style={[s.expiryBadge, s.expiryWarning]}>Expira hoje</Text>
+                <Text style={[s.expiryBadge, s.expiryWarning]}>
+                  Expira hoje
+                </Text>
               </View>
             ) : (
               <Text style={s.expiryBadge}>{days}d</Text>
@@ -75,12 +82,17 @@ export function LeftoverItemCard({
       {isActive ? (
         <>
           <View style={s.infoRow}>
-            <DishTypeTag typeKey={item.type ?? "meal"} variant="filled" size="sm" />
+            <DishTypeTag
+              typeKey={item.type ?? "meal"}
+              variant="filled"
+              size="sm"
+            />
             <Text style={s.dateLabel}>add: {shortDate(item.dateAdded)}</Text>
           </View>
           <View style={[s.infoRow, { marginBottom: 12 }]}>
             <Text style={s.dosesText}>
-              {remaining} {remaining === 1 ? "dose restante" : "doses restantes"}
+              {remaining}{" "}
+              {remaining === 1 ? "dose restante" : "doses restantes"}
             </Text>
             <Text style={s.dateLabel}>exp: {shortDate(item.expiryDate)}</Text>
           </View>

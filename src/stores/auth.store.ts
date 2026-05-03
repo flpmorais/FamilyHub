@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { UserAccount } from '../types/profile.types';
+import { create } from "zustand";
+import { UserAccount } from "../types/profile.types";
 
 interface AuthState {
   userAccount: UserAccount | null;

@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from "@supabase/supabase-js";
 import { ILeftoverRepository } from "../interfaces/leftover.repository.interface";
 import {
   Leftover,
@@ -15,7 +15,7 @@ function mapLeftover(row: any): Leftover {
     id: row.id,
     familyId: row.family_id,
     name: row.name,
-    type: row.type ?? 'meal',
+    type: row.type ?? "meal",
     totalDoses: Number(row.total_doses),
     dosesEaten: Number(row.doses_eaten),
     dosesThrownOut: Number(row.doses_thrown_out),
@@ -49,19 +49,19 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
 
     try {
       const { data, error } = await this.client
-        .from('leftovers')
+        .from("leftovers")
         .insert({
           id,
           family_id: input.familyId,
           name: input.name,
-          type: input.type ?? 'meal',
+          type: input.type ?? "meal",
           total_doses: input.totalDoses,
           doses_eaten: 0,
           doses_thrown_out: 0,
           expiry_days: expiryDays,
           date_added: ts,
           expiry_date: expiryDate,
-          status: 'active',
+          status: "active",
           created_at: ts,
           updated_at: ts,
         })
@@ -86,24 +86,25 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     if (data.totalDoses !== undefined) updates.total_doses = data.totalDoses;
     if (data.expiryDate !== undefined) updates.expiry_date = data.expiryDate;
     if (data.dosesEaten !== undefined) updates.doses_eaten = data.dosesEaten;
-    if (data.dosesThrownOut !== undefined) updates.doses_thrown_out = data.dosesThrownOut;
+    if (data.dosesThrownOut !== undefined)
+      updates.doses_thrown_out = data.dosesThrownOut;
 
     updates.updated_at = now();
 
     try {
       // First apply the field updates
       const { error: updateError } = await this.client
-        .from('leftovers')
+        .from("leftovers")
         .update(updates)
-        .eq('id', id);
+        .eq("id", id);
 
       if (updateError) throw updateError;
 
       // Re-fetch to get committed values, then recalculate status
       const { data: current, error: fetchError } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('id', id)
+        .from("leftovers")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -111,14 +112,14 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
 
       const newStatus: LeftoverStatus =
         current.doses_eaten + current.doses_thrown_out >= current.total_doses
-          ? 'closed'
-          : 'active';
+          ? "closed"
+          : "active";
 
       if (current.status !== newStatus) {
         const { error: statusError } = await this.client
-          .from('leftovers')
+          .from("leftovers")
           .update({ status: newStatus, updated_at: now() })
-          .eq('id', id);
+          .eq("id", id);
 
         if (statusError) throw statusError;
 
@@ -138,9 +139,9 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   async delete(id: string): Promise<void> {
     try {
       const { error } = await this.client
-        .from('leftovers')
+        .from("leftovers")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (err) {
@@ -154,9 +155,9 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   async getById(id: string): Promise<Leftover> {
     try {
       const { data, error } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('id', id)
+        .from("leftovers")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
@@ -173,11 +174,11 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   async getActive(familyId: string): Promise<Leftover[]> {
     try {
       const { data, error } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('family_id', familyId)
-        .eq('status', 'active')
-        .order('expiry_date', { ascending: true });
+        .from("leftovers")
+        .select("*")
+        .eq("family_id", familyId)
+        .eq("status", "active")
+        .order("expiry_date", { ascending: true });
 
       if (error) throw error;
       return (data ?? []).map(mapLeftover);
@@ -196,11 +197,11 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
   ): Promise<Leftover[]> {
     try {
       const { data, error } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('family_id', familyId)
-        .eq('status', 'closed')
-        .order('updated_at', { ascending: false })
+        .from("leftovers")
+        .select("*")
+        .eq("family_id", familyId)
+        .eq("status", "closed")
+        .order("updated_at", { ascending: false })
         .range(offset, offset + limit - 1);
 
       if (error) throw error;
@@ -217,34 +218,37 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     try {
       // Fetch current row to check preconditions and compute new values
       const { data: current, error: fetchError } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('id', id)
+        .from("leftovers")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (fetchError) throw fetchError;
       if (!current) throw new Error("Resto não encontrado");
 
       // Only increment if active and doses remaining
-      if (current.status !== 'active' || current.doses_eaten + current.doses_thrown_out >= current.total_doses) {
+      if (
+        current.status !== "active" ||
+        current.doses_eaten + current.doses_thrown_out >= current.total_doses
+      ) {
         return mapLeftover(current);
       }
 
       const newDosesEaten = current.doses_eaten + 1;
       const newStatus: LeftoverStatus =
         newDosesEaten + current.doses_thrown_out >= current.total_doses
-          ? 'closed'
-          : 'active';
+          ? "closed"
+          : "active";
 
       const ts = now();
       const { data: updated, error: updateError } = await this.client
-        .from('leftovers')
+        .from("leftovers")
         .update({
           doses_eaten: newDosesEaten,
           status: newStatus,
           updated_at: ts,
         })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -262,27 +266,27 @@ export class SupabaseLeftoverRepository implements ILeftoverRepository {
     try {
       // Fetch current row to compute doses_thrown_out
       const { data: current, error: fetchError } = await this.client
-        .from('leftovers')
-        .select('*')
-        .eq('id', id)
+        .from("leftovers")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (fetchError) throw fetchError;
       if (!current) throw new Error("Resto não encontrado");
 
-      if (current.status !== 'active') {
+      if (current.status !== "active") {
         return mapLeftover(current);
       }
 
       const ts = now();
       const { data: updated, error: updateError } = await this.client
-        .from('leftovers')
+        .from("leftovers")
         .update({
           doses_thrown_out: current.total_doses - current.doses_eaten,
-          status: 'closed',
+          status: "closed",
           updated_at: ts,
         })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 

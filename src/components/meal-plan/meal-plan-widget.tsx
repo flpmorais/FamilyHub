@@ -1,16 +1,24 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Icon } from 'react-native-paper';
-import type { MealEntry, MealSlot, MealType, MealPlanSlotConfig } from '../../types/meal-plan.types';
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Icon } from "react-native-paper";
+import type {
+  MealEntry,
+  MealSlot,
+  MealType,
+  MealPlanSlotConfig,
+} from "../../types/meal-plan.types";
 
-const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const SLOT_LABELS: Record<MealSlot, string> = { lunch: 'Almoço', dinner: 'Jantar' };
+const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const SLOT_LABELS: Record<MealSlot, string> = {
+  lunch: "Almoço",
+  dinner: "Jantar",
+};
 const LUNCH_CUTOFF = 14;
 const DINNER_CUTOFF = 21;
 
 const MEAL_TYPE_ICONS: Record<MealType, string | null> = {
   home_cooked: null,
-  eating_out: 'store',
-  takeaway: 'food-takeout-box',
+  eating_out: "store",
+  takeaway: "food-takeout-box",
 };
 
 interface EmptySlotInfo {
@@ -36,7 +44,7 @@ export function getNextMeal(
   const hour = now.getHours();
 
   // Determine which slots to check starting from
-  const slots: MealSlot[] = ['lunch', 'dinner'];
+  const slots: MealSlot[] = ["lunch", "dinner"];
   let startSlotIndex: number;
   if (hour < LUNCH_CUTOFF) {
     startSlotIndex = 0; // lunch
@@ -48,7 +56,9 @@ export function getNextMeal(
   const startDay = hour >= DINNER_CUTOFF ? currentDay + 1 : currentDay;
 
   function isSlotSkippedByConfig(day: number, slot: MealSlot): boolean {
-    const config = configs.find((c) => c.dayOfWeek === day && c.mealSlot === slot);
+    const config = configs.find(
+      (c) => c.dayOfWeek === day && c.mealSlot === slot,
+    );
     return config?.isSkip ?? false;
   }
 
@@ -56,7 +66,9 @@ export function getNextMeal(
     const slotStart = day === startDay ? startSlotIndex : 0;
     for (let si = slotStart; si < slots.length; si++) {
       const slot = slots[si];
-      const entry = entries.find((e) => e.dayOfWeek === day && e.mealSlot === slot);
+      const entry = entries.find(
+        (e) => e.dayOfWeek === day && e.mealSlot === slot,
+      );
 
       // Skip: entry-level skip
       if (entry?.isSlotSkipped) continue;
@@ -80,12 +92,14 @@ export function getNextActiveEmptySlot(
   const currentDay = jsDay === 0 ? 7 : jsDay;
   const hour = now.getHours();
 
-  const slots: MealSlot[] = ['lunch', 'dinner'];
+  const slots: MealSlot[] = ["lunch", "dinner"];
   const startSlotIndex = hour < LUNCH_CUTOFF ? 0 : hour < DINNER_CUTOFF ? 1 : 0;
   const startDay = hour >= DINNER_CUTOFF ? currentDay + 1 : currentDay;
 
   function isSlotSkippedByConfig(day: number, slot: MealSlot): boolean {
-    const config = configs.find((c) => c.dayOfWeek === day && c.mealSlot === slot);
+    const config = configs.find(
+      (c) => c.dayOfWeek === day && c.mealSlot === slot,
+    );
     return config?.isSkip ?? false;
   }
 
@@ -93,7 +107,9 @@ export function getNextActiveEmptySlot(
     const slotStart = day === startDay ? startSlotIndex : 0;
     for (let si = slotStart; si < slots.length; si++) {
       const slot = slots[si];
-      const entry = entries.find((e) => e.dayOfWeek === day && e.mealSlot === slot);
+      const entry = entries.find(
+        (e) => e.dayOfWeek === day && e.mealSlot === slot,
+      );
 
       if (entry?.isSlotSkipped) continue;
       if (!entry && isSlotSkippedByConfig(day, slot)) continue;
@@ -108,14 +124,20 @@ export function getNextActiveEmptySlot(
   return null;
 }
 
-export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlanningReminder, onPress }: MealPlanWidgetProps) {
+export function MealPlanWidget({
+  nextMeal,
+  nextMealProfiles,
+  emptySlot,
+  showPlanningReminder,
+  onPress,
+}: MealPlanWidgetProps) {
   const typeIcon = nextMeal ? MEAL_TYPE_ICONS[nextMeal.mealType] : null;
   const slotContext = nextMeal
     ? `${DAY_LABELS[nextMeal.dayOfWeek - 1]} ${SLOT_LABELS[nextMeal.mealSlot]}`
-    : '';
+    : "";
   const emptySlotLabel = emptySlot
     ? `${DAY_LABELS[emptySlot.dayOfWeek - 1]} ${SLOT_LABELS[emptySlot.mealSlot]}`
-    : '';
+    : "";
 
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
@@ -125,7 +147,7 @@ export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlan
       </View>
 
       <View style={s.contentRow}>
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           {!nextMeal ? (
             <Text style={s.emptyText}>Sem refeições planeadas</Text>
           ) : (
@@ -133,13 +155,15 @@ export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlan
               <Text style={s.slotContext}>{slotContext}</Text>
               <View style={s.mealRow}>
                 {typeIcon && <Icon source={typeIcon} size={16} color="#888" />}
-                <Text style={s.mealName} numberOfLines={1}>{nextMeal.name}</Text>
+                <Text style={s.mealName} numberOfLines={1}>
+                  {nextMeal.name}
+                </Text>
               </View>
               {nextMealProfiles.length > 0 && (
                 <View style={s.participantsRow}>
                   <Icon source="account-group" size={14} color="#888" />
                   <Text style={s.participantsText} numberOfLines={1}>
-                    {nextMealProfiles.join(', ')}
+                    {nextMealProfiles.join(", ")}
                   </Text>
                 </View>
               )}
@@ -149,14 +173,18 @@ export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlan
           {emptySlot && (
             <View style={s.alertRow}>
               <Icon source="alert-circle" size={14} color="#F59300" />
-              <Text style={s.alertWarning}>Sem refeição para {emptySlotLabel}</Text>
+              <Text style={s.alertWarning}>
+                Sem refeição para {emptySlotLabel}
+              </Text>
             </View>
           )}
 
           {showPlanningReminder && (
             <View style={s.alertRow}>
               <Icon source="calendar-alert" size={14} color="#1976D2" />
-              <Text style={s.alertInfo}>Sem refeições planeadas para a próxima semana</Text>
+              <Text style={s.alertInfo}>
+                Sem refeições planeadas para a próxima semana
+              </Text>
             </View>
           )}
         </View>
@@ -168,83 +196,83 @@ export function MealPlanWidget({ nextMeal, nextMealProfiles, emptySlot, showPlan
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: '#FFF8F5',
+    backgroundColor: "#FFF8F5",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F0E0D8',
+    borderColor: "#F0E0D8",
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 4,
   },
   title: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#B5451B',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    color: "#B5451B",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   emptyText: {
     fontSize: 14,
-    color: '#888888',
+    color: "#888888",
   },
   slotContext: {
     fontSize: 12,
-    color: '#888',
-    fontWeight: '600',
+    color: "#888",
+    fontWeight: "600",
     marginBottom: 2,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.3,
   },
   mealRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   mealName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
     flex: 1,
   },
   participantsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginTop: 4,
   },
   participantsText: {
     fontSize: 13,
-    color: '#555555',
+    color: "#555555",
     flex: 1,
   },
   alertRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginTop: 6,
   },
   alertWarning: {
     fontSize: 13,
-    color: '#F59300',
-    fontWeight: '600',
+    color: "#F59300",
+    fontWeight: "600",
   },
   alertInfo: {
     fontSize: 13,
-    color: '#1976D2',
-    fontWeight: '600',
+    color: "#1976D2",
+    fontWeight: "600",
   },
   contentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
   },
   arrow: {
     fontSize: 16,
-    color: '#B5451B',
+    color: "#B5451B",
     marginLeft: 8,
   },
 });

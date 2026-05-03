@@ -21,6 +21,7 @@ export function scaleQuantity(
   const rounded = Math.round(scaled * 10) / 10;
   const suffix = originalQty.slice(match[0].length);
 
-  const display = rounded % 1 === 0 ? String(Math.round(rounded)) : String(rounded);
+  const display =
+    rounded % 1 === 0 ? String(Math.round(rounded)) : String(rounded);
   return display + suffix;
 }

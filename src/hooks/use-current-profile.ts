@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from 'react';
-import { useAuthStore } from '../stores/auth.store';
-import { RepositoryContext } from '../repositories/repository.context';
-import type { Profile } from '../types/profile.types';
+import { useContext, useEffect, useState } from "react";
+import { useAuthStore } from "../stores/auth.store";
+import { RepositoryContext } from "../repositories/repository.context";
+import type { Profile } from "../types/profile.types";
 
 export function useCurrentProfile() {
   const { userAccount } = useAuthStore();
@@ -9,7 +9,8 @@ export function useCurrentProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (!userAccount?.familyId || !userAccount.profileId || !repositories) return;
+    if (!userAccount?.familyId || !userAccount.profileId || !repositories)
+      return;
 
     repositories.profile
       .getProfilesByFamily(userAccount.familyId)

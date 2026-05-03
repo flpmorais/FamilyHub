@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,25 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
-} from 'react-native';
-import { Icon } from 'react-native-paper';
-import { useRepository } from '../../../hooks/use-repository';
-import { useAuthStore } from '../../../stores/auth.store';
-import { useFamily } from '../../../hooks/use-family';
-import { PageHeader } from '../../../components/page-header';
-import { logger } from '../../../utils/logger';
-import type { Profile } from '../../../types/profile.types';
-import type { MealSlot, MealPlanSlotConfig } from '../../../types/meal-plan.types';
+} from "react-native";
+import { Icon } from "react-native-paper";
+import { useRepository } from "../../../hooks/use-repository";
+import { useAuthStore } from "../../../stores/auth.store";
+import { useFamily } from "../../../hooks/use-family";
+import { PageHeader } from "../../../components/page-header";
+import { logger } from "../../../utils/logger";
+import type { Profile } from "../../../types/profile.types";
+import type {
+  MealSlot,
+  MealPlanSlotConfig,
+} from "../../../types/meal-plan.types";
 
-const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const SLOT_LABELS: Record<MealSlot, string> = { lunch: 'Almoço', dinner: 'Jantar' };
-const MEAL_SLOTS: MealSlot[] = ['lunch', 'dinner'];
+const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const SLOT_LABELS: Record<MealSlot, string> = {
+  lunch: "Almoço",
+  dinner: "Jantar",
+};
+const MEAL_SLOTS: MealSlot[] = ["lunch", "dinner"];
 
 type ConfigMap = Record<string, MealPlanSlotConfig>;
 
@@ -28,15 +34,18 @@ function configKey(day: number, slot: MealSlot): string {
 }
 
 export default function MealPlanConfigScreen() {
-  const mealPlanRepo = useRepository('mealPlan');
-  const profileRepo = useRepository('profile');
+  const mealPlanRepo = useRepository("mealPlan");
+  const profileRepo = useRepository("profile");
   const { userAccount } = useAuthStore();
   const family = useFamily();
 
   const [configs, setConfigs] = useState<ConfigMap>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [pickerSlot, setPickerSlot] = useState<{ day: number; slot: MealSlot } | null>(null);
+  const [pickerSlot, setPickerSlot] = useState<{
+    day: number;
+    slot: MealSlot;
+  } | null>(null);
   const [pickerParticipants, setPickerParticipants] = useState<string[]>([]);
 
   const loadData = useCallback(async () => {
@@ -54,7 +63,7 @@ export default function MealPlanConfigScreen() {
       setConfigs(map);
       setProfiles(profileList);
     } catch (err) {
-      logger.error('MealPlanConfig', 'Erro ao carregar configuração', err);
+      logger.error("MealPlanConfig", "Erro ao carregar configuração", err);
     } finally {
       setIsLoading(false);
     }
@@ -64,18 +73,21 @@ export default function MealPlanConfigScreen() {
     loadData();
   }, [loadData]);
 
-  function getSlotConfig(day: number, slot: MealSlot): MealPlanSlotConfig | undefined {
+  function getSlotConfig(
+    day: number,
+    slot: MealSlot,
+  ): MealPlanSlotConfig | undefined {
     return configs[configKey(day, slot)];
   }
 
   function getSlotProfileNames(day: number, slot: MealSlot): string {
     const config = getSlotConfig(day, slot);
-    if (!config || config.isSkip) return 'Saltar';
-    if (config.participants.length === 0) return 'Saltar';
-    if (config.participants.length === profiles.length) return 'Todos';
+    if (!config || config.isSkip) return "Saltar";
+    if (config.participants.length === 0) return "Saltar";
+    if (config.participants.length === profiles.length) return "Todos";
     const names = config.participants
-      .map((id) => profiles.find((p) => p.id === id)?.displayName ?? '?')
-      .join(', ');
+      .map((id) => profiles.find((p) => p.id === id)?.displayName ?? "?")
+      .join(", ");
     return names;
   }
 
@@ -97,17 +109,19 @@ export default function MealPlanConfigScreen() {
         day,
         slot,
         newParticipants,
-        newIsSkip
+        newIsSkip,
       );
       setConfigs((prev) => ({ ...prev, [configKey(day, slot)]: result }));
     } catch (err) {
-      logger.error('MealPlanConfig', 'Erro ao alterar configuração', err);
+      logger.error("MealPlanConfig", "Erro ao alterar configuração", err);
     }
   }
 
   function toggleProfile(profileId: string) {
     setPickerParticipants((prev) =>
-      prev.includes(profileId) ? prev.filter((id) => id !== profileId) : [...prev, profileId]
+      prev.includes(profileId)
+        ? prev.filter((id) => id !== profileId)
+        : [...prev, profileId],
     );
   }
 
@@ -125,14 +139,14 @@ export default function MealPlanConfigScreen() {
         pickerSlot.day,
         pickerSlot.slot,
         pickerParticipants,
-        isSkip
+        isSkip,
       );
       setConfigs((prev) => ({
         ...prev,
         [configKey(pickerSlot.day, pickerSlot.slot)]: result,
       }));
     } catch (err) {
-      logger.error('MealPlanConfig', 'Erro ao guardar configuração', err);
+      logger.error("MealPlanConfig", "Erro ao guardar configuração", err);
     }
     setPickerSlot(null);
   }
@@ -147,9 +161,16 @@ export default function MealPlanConfigScreen() {
 
   return (
     <View style={styles.container}>
-      <PageHeader title="Configuração de Ementa Semanal" showBack familyBannerUri={family?.bannerUrl} />
+      <PageHeader
+        title="Configuração de Ementa Semanal"
+        showBack
+        familyBannerUri={family?.bannerUrl}
+      />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+      >
         {MEAL_SLOTS.map((slot) => (
           <View key={slot}>
             <Text style={styles.sectionTitle}>{SLOT_LABELS[slot]}</Text>
@@ -157,19 +178,35 @@ export default function MealPlanConfigScreen() {
               const config = getSlotConfig(day, slot);
               const isSkip = config?.isSkip ?? false;
               return (
-                <View key={`${day}-${slot}`} style={[styles.slotRow, isSkip && styles.skippedRow]}>
+                <View
+                  key={`${day}-${slot}`}
+                  style={[styles.slotRow, isSkip && styles.skippedRow]}
+                >
                   <TouchableOpacity
                     style={styles.slotRowContent}
                     onPress={() => openPicker(day, slot)}
                     disabled={isSkip}
                   >
                     <Text style={styles.dayLabel}>{DAY_LABELS[day - 1]}</Text>
-                    <Text style={[styles.participantText, isSkip && styles.skippedText]} numberOfLines={1}>
-                      {isSkip ? 'Saltar' : getSlotProfileNames(day, slot)}
+                    <Text
+                      style={[
+                        styles.participantText,
+                        isSkip && styles.skippedText,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {isSkip ? "Saltar" : getSlotProfileNames(day, slot)}
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => toggleSkip(day, slot)} style={styles.skipButton}>
-                    <Icon source={isSkip ? 'close-circle' : 'check-circle'} size={20} color={isSkip ? '#BBB' : '#4CAF50'} />
+                  <TouchableOpacity
+                    onPress={() => toggleSkip(day, slot)}
+                    style={styles.skipButton}
+                  >
+                    <Icon
+                      source={isSkip ? "close-circle" : "check-circle"}
+                      size={20}
+                      color={isSkip ? "#BBB" : "#4CAF50"}
+                    />
                   </TouchableOpacity>
                 </View>
               );
@@ -179,17 +216,29 @@ export default function MealPlanConfigScreen() {
       </ScrollView>
 
       {/* Profile Picker Modal */}
-      <Modal visible={!!pickerSlot} animationType="slide" transparent onRequestClose={() => setPickerSlot(null)}>
+      <Modal
+        visible={!!pickerSlot}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPickerSlot(null)}
+      >
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerTitle}>
-              {pickerSlot ? `${DAY_LABELS[pickerSlot.day - 1]} — ${SLOT_LABELS[pickerSlot.slot]}` : ''}
+              {pickerSlot
+                ? `${DAY_LABELS[pickerSlot.day - 1]} — ${SLOT_LABELS[pickerSlot.slot]}`
+                : ""}
             </Text>
             <Text style={styles.pickerSubtitle}>Quem come nesta refeição?</Text>
 
-            <TouchableOpacity onPress={toggleAllParticipants} style={styles.selectAllButton}>
+            <TouchableOpacity
+              onPress={toggleAllParticipants}
+              style={styles.selectAllButton}
+            >
               <Text style={styles.selectAllText}>
-                {pickerParticipants.length === profiles.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                {pickerParticipants.length === profiles.length
+                  ? "Desmarcar Todos"
+                  : "Selecionar Todos"}
               </Text>
             </TouchableOpacity>
 
@@ -202,9 +251,11 @@ export default function MealPlanConfigScreen() {
                   onPress={() => toggleProfile(profile.id)}
                 >
                   <Icon
-                    source={selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    source={
+                      selected ? "checkbox-marked" : "checkbox-blank-outline"
+                    }
                     size={24}
-                    color={selected ? '#B5451B' : '#CCC'}
+                    color={selected ? "#B5451B" : "#CCC"}
                   />
                   <Text style={styles.profileName}>{profile.displayName}</Text>
                 </TouchableOpacity>
@@ -212,7 +263,10 @@ export default function MealPlanConfigScreen() {
             })}
 
             <View style={styles.pickerButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setPickerSlot(null)}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setPickerSlot(null)}
+              >
                 <Text style={styles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={savePicker}>
@@ -229,12 +283,12 @@ export default function MealPlanConfigScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scroll: {
     flex: 1,
@@ -246,15 +300,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: "700",
+    color: "#333",
     marginTop: 16,
     marginBottom: 8,
   },
   slotRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -262,38 +316,38 @@ const styles = StyleSheet.create({
   },
   slotRowContent: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   skipButton: {
     paddingLeft: 12,
   },
   skippedRow: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   dayLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     width: 40,
   },
   participantText: {
     flex: 1,
     fontSize: 13,
-    color: '#666',
+    color: "#666",
     marginLeft: 8,
   },
   skippedText: {
-    color: '#BBB',
-    fontStyle: 'italic',
+    color: "#BBB",
+    fontStyle: "italic",
   },
   pickerOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   pickerContainer: {
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
@@ -301,13 +355,13 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: "700",
+    color: "#333",
     marginBottom: 2,
   },
   pickerSubtitle: {
     fontSize: 14,
-    color: '#888',
+    color: "#888",
     marginBottom: 20,
   },
   selectAllButton: {
@@ -315,22 +369,22 @@ const styles = StyleSheet.create({
   },
   selectAllText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#B5451B',
+    fontWeight: "600",
+    color: "#B5451B",
   },
   profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     gap: 12,
   },
   profileName: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   pickerButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 24,
     gap: 12,
   },
@@ -341,19 +395,19 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 15,
-    color: '#888',
+    color: "#888",
   },
   saveButton: {
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     minWidth: 90,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFF',
+    fontWeight: "600",
+    color: "#FFF",
   },
 });

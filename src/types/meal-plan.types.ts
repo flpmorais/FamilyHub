@@ -1,8 +1,8 @@
-import type { RecipeType } from './recipe.types';
+import type { RecipeType } from "./recipe.types";
 
-export type MealSlot = 'lunch' | 'dinner';
-export type MealType = 'home_cooked' | 'eating_out' | 'takeaway';
-export type DishType = 'recipe' | 'manual' | 'resto' | 'fridge';
+export type MealSlot = "lunch" | "dinner";
+export type MealType = "home_cooked" | "eating_out" | "takeaway";
+export type DishType = "recipe" | "manual" | "resto" | "fridge";
 
 export interface MealEntry {
   id: string;
@@ -84,17 +84,32 @@ export interface MealPlanSlotConfig {
 }
 
 /** Resolve the display name and category for any dish type */
-export function getDishDisplay(d: MealEntryDish): { name: string; category: RecipeType } {
+export function getDishDisplay(d: MealEntryDish): {
+  name: string;
+  category: RecipeType;
+} {
   switch (d.dishType) {
-    case 'recipe':
-      return { name: d.recipeName ?? '', category: d.recipeCategory ?? 'other' };
-    case 'manual':
-      return { name: d.manualName ?? '', category: d.manualCategory ?? 'other' };
-    case 'resto':
-      return { name: d.sourceDishName ?? '', category: d.sourceDishCategory ?? 'other' };
-    case 'fridge':
-      return { name: d.leftoverName ?? '', category: d.leftoverCategory ?? 'other' };
+    case "recipe":
+      return {
+        name: d.recipeName ?? "",
+        category: d.recipeCategory ?? "other",
+      };
+    case "manual":
+      return {
+        name: d.manualName ?? "",
+        category: d.manualCategory ?? "other",
+      };
+    case "resto":
+      return {
+        name: d.sourceDishName ?? "",
+        category: d.sourceDishCategory ?? "other",
+      };
+    case "fridge":
+      return {
+        name: d.leftoverName ?? "",
+        category: d.leftoverCategory ?? "other",
+      };
     default:
-      return { name: '', category: 'other' };
+      return { name: "", category: "other" };
   }
 }

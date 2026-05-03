@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,18 +7,18 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
-import { PageHeader } from '../../../components/page-header';
-import { useFamily } from '../../../hooks/use-family';
-import { useRepository } from '../../../hooks/use-repository';
-import { useAuthStore } from '../../../stores/auth.store';
-import { countryFlag, countryIso2 } from '../../../utils/countries';
-import type { VacationTemplate } from '../../../types/vacation.types';
+} from "react-native";
+import { router } from "expo-router";
+import { PageHeader } from "../../../components/page-header";
+import { useFamily } from "../../../hooks/use-family";
+import { useRepository } from "../../../hooks/use-repository";
+import { useAuthStore } from "../../../stores/auth.store";
+import { countryFlag, countryIso2 } from "../../../utils/countries";
+import type { VacationTemplate } from "../../../types/vacation.types";
 
 export default function SelectTemplateScreen() {
   const family = useFamily();
-  const vacationTemplateRepository = useRepository('vacationTemplate');
+  const vacationTemplateRepository = useRepository("vacationTemplate");
   const { userAccount } = useAuthStore();
 
   const [templates, setTemplates] = useState<VacationTemplate[]>([]);
@@ -28,7 +28,11 @@ export default function SelectTemplateScreen() {
     if (!userAccount?.familyId) return;
     (async () => {
       try {
-        const activeTemplates = await vacationTemplateRepository.getVacationTemplates(userAccount.familyId, true);
+        const activeTemplates =
+          await vacationTemplateRepository.getVacationTemplates(
+            userAccount.familyId,
+            true,
+          );
         setTemplates(activeTemplates);
       } catch {
         // silent
@@ -59,7 +63,7 @@ export default function SelectTemplateScreen() {
         <TouchableOpacity
           style={st.blankCard}
           activeOpacity={0.7}
-          onPress={() => router.push('/(app)/(vacations)/create')}
+          onPress={() => router.push("/(app)/(vacations)/create")}
         >
           <Text style={st.blankCardText}>Viagem em branco</Text>
         </TouchableOpacity>
@@ -71,20 +75,25 @@ export default function SelectTemplateScreen() {
             style={st.card}
             activeOpacity={0.7}
             onPress={() =>
-              router.push({ pathname: '/(app)/(vacations)/create', params: { templateId: t.id } })
+              router.push({
+                pathname: "/(app)/(vacations)/create",
+                params: { templateId: t.id },
+              })
             }
           >
             <Image
               source={
                 t.coverImageUrl
                   ? { uri: t.coverImageUrl }
-                  : require('../../../../assets/default-vacation-cover.jpg')
+                  : require("../../../../assets/default-vacation-cover.jpg")
               }
               style={st.cardImage}
             />
             <View style={st.cardOverlay} />
             <View style={st.cardContent}>
-              <Text style={st.cardFlag}>{countryFlag(countryIso2(t.countryCode))}</Text>
+              <Text style={st.cardFlag}>
+                {countryFlag(countryIso2(t.countryCode))}
+              </Text>
               <Text style={st.cardTitle} numberOfLines={1}>
                 {t.title}
               </Text>
@@ -97,42 +106,42 @@ export default function SelectTemplateScreen() {
 }
 
 const st = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   blankCard: {
     height: 100,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 12,
-    backgroundColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#E0E0E0",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  blankCardText: { fontSize: 16, fontWeight: '600', color: '#555555' },
+  blankCardText: { fontSize: 16, fontWeight: "600", color: "#555555" },
   card: {
     height: 100,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 12,
-    position: 'relative',
+    position: "relative",
   },
   cardImage: {
     ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   cardContent: {
     ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     gap: 10,
   },
   cardFlag: { fontSize: 28 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: "600", color: "#FFFFFF", flex: 1 },
 });

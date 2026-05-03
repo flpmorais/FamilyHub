@@ -1,5 +1,8 @@
-import { scaleQuantity } from './recipe-scaling.service';
-import type { RecipeWithDetails, GeneratedShoppingItem } from '../types/recipe.types';
+import { scaleQuantity } from "./recipe-scaling.service";
+import type {
+  RecipeWithDetails,
+  GeneratedShoppingItem,
+} from "../types/recipe.types";
 
 const NUMERIC_REGEX = /^(\d+\.?\d*)\s*/;
 
@@ -24,11 +27,15 @@ export function generateShoppingList(
     if (!recipe) continue;
 
     for (const ing of recipe.ingredients) {
-      const scaled = scaleQuantity(ing.quantity, recipe.servings, link.servingsOverride);
+      const scaled = scaleQuantity(
+        ing.quantity,
+        recipe.servings,
+        link.servingsOverride,
+      );
       const key = ing.ingredientName.toLowerCase().trim();
 
       const existing = ingredientMap.get(key) ?? [];
-      existing.push(scaled ?? '');
+      existing.push(scaled ?? "");
       ingredientMap.set(key, existing);
     }
   }
@@ -49,7 +56,7 @@ export function generateShoppingList(
   }
 
   // Sort alphabetically
-  result.sort((a, b) => a.ingredientName.localeCompare(b.ingredientName, 'pt'));
+  result.sort((a, b) => a.ingredientName.localeCompare(b.ingredientName, "pt"));
 
   return result;
 }
@@ -73,7 +80,7 @@ function findOriginalName(
 
 function sumQuantities(quantities: string[]): string {
   const nonEmpty = quantities.filter(Boolean);
-  if (nonEmpty.length === 0) return '';
+  if (nonEmpty.length === 0) return "";
   if (nonEmpty.length === 1) return nonEmpty[0];
 
   // Try to sum numerically
@@ -91,7 +98,7 @@ function sumQuantities(quantities: string[]): string {
   if (!allNumeric) {
     // Deduplicate non-numeric
     const unique = [...new Set(nonEmpty)];
-    return unique.join(' + ');
+    return unique.join(" + ");
   }
 
   // Check if all have the same suffix
@@ -100,11 +107,14 @@ function sumQuantities(quantities: string[]): string {
     // Same unit — sum the numbers
     const total = parsed.reduce((sum, p) => sum + (p.numeric ?? 0), 0);
     const rounded = Math.round(total * 10) / 10;
-    const display = rounded % 1 === 0 ? String(Math.round(rounded)) : String(rounded);
+    const display =
+      rounded % 1 === 0 ? String(Math.round(rounded)) : String(rounded);
     const suffix = suffixes[0];
-    return suffix ? `${display}${suffix.startsWith(' ') ? '' : ' '}${suffix}`.trim() : display;
+    return suffix
+      ? `${display}${suffix.startsWith(" ") ? "" : " "}${suffix}`.trim()
+      : display;
   }
 
   // Mixed units — concatenate
-  return nonEmpty.join(' + ');
+  return nonEmpty.join(" + ");
 }

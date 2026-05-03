@@ -1,34 +1,49 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { Snackbar } from 'react-native-paper';
-import { AddTaskModal } from './add-task-modal';
-import type { BookingTask } from '../types/vacation.types';
-import type { Profile } from '../types/profile.types';
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
+import { Snackbar } from "react-native-paper";
+import { AddTaskModal } from "./add-task-modal";
+import type { BookingTask } from "../types/vacation.types";
+import type { Profile } from "../types/profile.types";
 
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
+  const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 function daysRemaining(dueDate: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate + 'T00:00:00');
+  const due = new Date(dueDate + "T00:00:00");
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 function daysColor(days: number): string {
-  if (days <= 7) return '#D32F2F';
-  if (days <= 30) return '#E67E22';
-  return '#888888';
+  if (days <= 7) return "#D32F2F";
+  if (days <= 30) return "#E67E22";
+  return "#888888";
 }
 
 interface BookingTaskListProps {
   tasks: BookingTask[];
   profiles: Profile[];
   onToggleComplete: (task: BookingTask) => Promise<void>;
-  onCreateTask: (title: string, dueDate: string, profileId: string | null) => Promise<void>;
+  onCreateTask: (
+    title: string,
+    dueDate: string,
+    profileId: string | null,
+  ) => Promise<void>;
 }
 
-export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTask }: BookingTaskListProps) {
+export function BookingTaskList({
+  tasks,
+  profiles,
+  onToggleComplete,
+  onCreateTask,
+}: BookingTaskListProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
 
@@ -44,8 +59,8 @@ export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTas
         {incomplete.map((task) => {
           const days = task.dueDate ? daysRemaining(task.dueDate) : null;
           const assigneeName = task.profileId
-            ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
-            : 'Família';
+            ? (profiles.find((p) => p.id === task.profileId)?.displayName ?? "")
+            : "Família";
           return (
             <TouchableOpacity
               key={task.id}
@@ -56,14 +71,21 @@ export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTas
               <View style={s.info}>
                 <Text style={s.title}>{task.title}</Text>
                 <View style={s.metaRow}>
-                  {task.dueDate && <Text style={s.dueDate}>{formatDate(task.dueDate)}</Text>}
+                  {task.dueDate && (
+                    <Text style={s.dueDate}>{formatDate(task.dueDate)}</Text>
+                  )}
                   <Text style={s.assigneeName}>{assigneeName}</Text>
                 </View>
               </View>
               {days !== null && (
-                <View style={[s.daysBadge, { backgroundColor: daysColor(days) + '18' }]}>
+                <View
+                  style={[
+                    s.daysBadge,
+                    { backgroundColor: daysColor(days) + "18" },
+                  ]}
+                >
                   <Text style={[s.daysBadgeText, { color: daysColor(days) }]}>
-                    {days < 0 ? 'Atrasado' : `${days}d`}
+                    {days < 0 ? "Atrasado" : `${days}d`}
                   </Text>
                 </View>
               )}
@@ -75,8 +97,9 @@ export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTas
             <Text style={s.sectionHeader}>Concluídas</Text>
             {completed.map((task) => {
               const assigneeName = task.profileId
-                ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
-                : 'Família';
+                ? (profiles.find((p) => p.id === task.profileId)?.displayName ??
+                  "")
+                : "Família";
               return (
                 <TouchableOpacity
                   key={task.id}
@@ -95,7 +118,11 @@ export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTas
         )}
       </ScrollView>
 
-      <TouchableOpacity style={s.fab} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={s.fab}
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.8}
+      >
         <Text style={s.fabText}>+</Text>
       </TouchableOpacity>
 
@@ -104,7 +131,9 @@ export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTas
         onDismiss={() => setSuccessVisible(false)}
         duration={2000}
         style={s.successSnackbar}
-        theme={{ colors: { inverseSurface: '#388E3C', inverseOnSurface: '#FFFFFF' } }}
+        theme={{
+          colors: { inverseSurface: "#388E3C", inverseOnSurface: "#FFFFFF" },
+        }}
       >
         Tarefa criada
       </Snackbar>
@@ -125,47 +154,65 @@ export function BookingTaskList({ tasks, profiles, onToggleComplete, onCreateTas
 const s = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 16, paddingBottom: 80 },
-  empty: { color: '#888888', textAlign: 'center', marginVertical: 32 },
+  empty: { color: "#888888", textAlign: "center", marginVertical: 32 },
   taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
-  check: { fontSize: 20, marginRight: 12, color: '#B5451B' },
+  check: { fontSize: 20, marginRight: 12, color: "#B5451B" },
   info: { flex: 1 },
-  title: { fontSize: 15, color: '#1A1A1A' },
-  titleDone: { fontSize: 15, color: '#AAAAAA', textDecorationLine: 'line-through' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
-  dueDate: { fontSize: 12, color: '#888888' },
-  dueDateDone: { fontSize: 12, color: '#CCCCCC' },
-  assigneeName: { fontSize: 12, color: '#B5451B' },
-  daysBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 8 },
-  daysBadgeText: { fontSize: 12, fontWeight: '600' },
+  title: { fontSize: 15, color: "#1A1A1A" },
+  titleDone: {
+    fontSize: 15,
+    color: "#AAAAAA",
+    textDecorationLine: "line-through",
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 2,
+  },
+  dueDate: { fontSize: 12, color: "#888888" },
+  dueDateDone: { fontSize: 12, color: "#CCCCCC" },
+  assigneeName: { fontSize: 12, color: "#B5451B" },
+  daysBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  daysBadgeText: { fontSize: 12, fontWeight: "600" },
   sectionHeader: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#AAAAAA',
+    fontWeight: "600",
+    color: "#AAAAAA",
     marginTop: 24,
     marginBottom: 8,
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     right: 16,
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  fabText: { color: '#FFFFFF', fontSize: 28, fontWeight: '400', marginTop: -2 },
-  successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
+  fabText: { color: "#FFFFFF", fontSize: 28, fontWeight: "400", marginTop: -2 },
+  successSnackbar: {
+    position: "absolute",
+    top: 48,
+    backgroundColor: "#388E3C",
+  },
 });

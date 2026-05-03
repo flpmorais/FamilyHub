@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { PackingStatus } from '../types/packing.types';
+import { create } from "zustand";
+import { PackingStatus } from "../types/packing.types";
 
 interface PackingState {
   activeVacationId: string | null;
@@ -22,7 +22,12 @@ interface PackingState {
 
 const vacationFilters: Record<
   string,
-  { statuses: PackingStatus[]; profiles: string[]; categories: string[]; tags: string[] }
+  {
+    statuses: PackingStatus[];
+    profiles: string[];
+    categories: string[];
+    tags: string[];
+  }
 > = {};
 
 function saveFilters(
@@ -30,7 +35,7 @@ function saveFilters(
   statuses: PackingStatus[],
   profiles: string[],
   categories: string[],
-  tags: string[]
+  tags: string[],
 ) {
   if (vacId) vacationFilters[vacId] = { statuses, profiles, categories, tags };
 }
@@ -51,7 +56,7 @@ export const usePackingStore = create<PackingState>((set, get) => ({
       get().activeStatusFilters,
       get().activeProfileFilters,
       get().activeCategoryFilters,
-      get().activeTagFilters
+      get().activeTagFilters,
     );
     const saved = vacationFilters[vacationId];
     set({
@@ -66,7 +71,13 @@ export const usePackingStore = create<PackingState>((set, get) => ({
   setActiveStatusFilters: (filters) => {
     set({ activeStatusFilters: filters });
     const s = get();
-    saveFilters(s.activeVacationId, filters, s.activeProfileFilters, s.activeCategoryFilters, s.activeTagFilters);
+    saveFilters(
+      s.activeVacationId,
+      filters,
+      s.activeProfileFilters,
+      s.activeCategoryFilters,
+      s.activeTagFilters,
+    );
   },
 
   toggleStatusFilter: (status) =>
@@ -74,7 +85,13 @@ export const usePackingStore = create<PackingState>((set, get) => ({
       const next = state.activeStatusFilters.includes(status)
         ? state.activeStatusFilters.filter((s) => s !== status)
         : [...state.activeStatusFilters, status];
-      saveFilters(state.activeVacationId, next, state.activeProfileFilters, state.activeCategoryFilters, state.activeTagFilters);
+      saveFilters(
+        state.activeVacationId,
+        next,
+        state.activeProfileFilters,
+        state.activeCategoryFilters,
+        state.activeTagFilters,
+      );
       return { activeStatusFilters: next };
     }),
 
@@ -83,7 +100,13 @@ export const usePackingStore = create<PackingState>((set, get) => ({
       const next = state.activeProfileFilters.includes(profileId)
         ? state.activeProfileFilters.filter((id) => id !== profileId)
         : [...state.activeProfileFilters, profileId];
-      saveFilters(state.activeVacationId, state.activeStatusFilters, next, state.activeCategoryFilters, state.activeTagFilters);
+      saveFilters(
+        state.activeVacationId,
+        state.activeStatusFilters,
+        next,
+        state.activeCategoryFilters,
+        state.activeTagFilters,
+      );
       return { activeProfileFilters: next };
     }),
 
@@ -92,7 +115,13 @@ export const usePackingStore = create<PackingState>((set, get) => ({
       const next = state.activeCategoryFilters.includes(categoryId)
         ? state.activeCategoryFilters.filter((id) => id !== categoryId)
         : [...state.activeCategoryFilters, categoryId];
-      saveFilters(state.activeVacationId, state.activeStatusFilters, state.activeProfileFilters, next, state.activeTagFilters);
+      saveFilters(
+        state.activeVacationId,
+        state.activeStatusFilters,
+        state.activeProfileFilters,
+        next,
+        state.activeTagFilters,
+      );
       return { activeCategoryFilters: next };
     }),
 
@@ -101,7 +130,13 @@ export const usePackingStore = create<PackingState>((set, get) => ({
       const next = state.activeTagFilters.includes(tagId)
         ? state.activeTagFilters.filter((id) => id !== tagId)
         : [...state.activeTagFilters, tagId];
-      saveFilters(state.activeVacationId, state.activeStatusFilters, state.activeProfileFilters, state.activeCategoryFilters, next);
+      saveFilters(
+        state.activeVacationId,
+        state.activeStatusFilters,
+        state.activeProfileFilters,
+        state.activeCategoryFilters,
+        next,
+      );
       return { activeTagFilters: next };
     }),
 
@@ -115,14 +150,29 @@ export const usePackingStore = create<PackingState>((set, get) => ({
         state.activeTagFilters.length === 0;
       if (isOnlyActive) {
         saveFilters(state.activeVacationId, [], [], [], []);
-        return { activeStatusFilters: [], activeProfileFilters: [], activeCategoryFilters: [], activeTagFilters: [] };
+        return {
+          activeStatusFilters: [],
+          activeProfileFilters: [],
+          activeCategoryFilters: [],
+          activeTagFilters: [],
+        };
       }
       saveFilters(state.activeVacationId, [status], [], [], []);
-      return { activeStatusFilters: [status], activeProfileFilters: [], activeCategoryFilters: [], activeTagFilters: [] };
+      return {
+        activeStatusFilters: [status],
+        activeProfileFilters: [],
+        activeCategoryFilters: [],
+        activeTagFilters: [],
+      };
     }),
 
   clearAllFilters: () => {
-    set({ activeStatusFilters: [], activeProfileFilters: [], activeCategoryFilters: [], activeTagFilters: [] });
+    set({
+      activeStatusFilters: [],
+      activeProfileFilters: [],
+      activeCategoryFilters: [],
+      activeTagFilters: [],
+    });
     saveFilters(get().activeVacationId, [], [], [], []);
   },
 

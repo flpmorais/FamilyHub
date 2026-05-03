@@ -1,17 +1,17 @@
-import { RECIPE_TYPES } from './recipe-defaults';
-import type { RecipeWithDetails } from '../types/recipe.types';
+import { RECIPE_TYPES } from "./recipe-defaults";
+import type { RecipeWithDetails } from "../types/recipe.types";
 
 export function buildRecipePdfHtml(recipe: RecipeWithDetails): string {
   const ingredients = recipe.ingredients
     .map(
       (ing) =>
-        `<tr><td>${escapeHtml(ing.ingredientName)}</td><td class="qty">${escapeHtml(ing.quantity ?? '')}</td></tr>`,
+        `<tr><td>${escapeHtml(ing.ingredientName)}</td><td class="qty">${escapeHtml(ing.quantity ?? "")}</td></tr>`,
     )
-    .join('');
+    .join("");
 
   const steps = recipe.steps
     .map((step) => `<li>${escapeHtml(step.stepText)}</li>`)
-    .join('');
+    .join("");
 
   const metaParts = [
     recipe.servings ? `${recipe.servings} porções` : null,
@@ -23,7 +23,7 @@ export function buildRecipePdfHtml(recipe: RecipeWithDetails): string {
     recipe.cost ? `Custo: ${recipe.cost}` : null,
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(" · ");
 
   const typeLabel = RECIPE_TYPES[recipe.type] ?? recipe.type;
 
@@ -64,8 +64,8 @@ export function buildRecipePdfHtml(recipe: RecipeWithDetails): string {
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }

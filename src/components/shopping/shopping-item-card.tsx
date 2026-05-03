@@ -48,12 +48,7 @@ export function ShoppingItemCard({
           onPress={() => onToggleUrgent(item)}
           activeOpacity={0.7}
         >
-          <View
-            style={[
-              s.tag,
-              item.isUrgent ? s.tagUrgente : s.tagComprar,
-            ]}
-          >
+          <View style={[s.tag, item.isUrgent ? s.tagUrgente : s.tagComprar]}>
             <Text style={s.tagText}>
               {item.isUrgent ? "urgente" : "comprar"}
             </Text>

@@ -152,7 +152,7 @@ development_status:
   # ─── Epic 14: Learning Sessions & Skill Selection (V4) ──────────────────
   epic-14: in-progress
   14-1-langgraph-agent-and-fluent-skill-integration: done
-  14-2-session-lifecycle-endpoints: review
+  14-2-session-lifecycle-endpoints: done
   14-3-sse-streaming-and-event-emission: backlog
   14-4-mobile-sse-client-and-session-hooks: backlog
   14-5-skill-selection-screen: backlog

@@ -1,5 +1,12 @@
-export type RecipeType = 'meal' | 'main' | 'side' | 'soup' | 'dessert' | 'other' | 'appetizer';
-export type RecipeImportMethod = 'manual' | 'url' | 'youtube' | 'ocr' | 'text';
+export type RecipeType =
+  | "meal"
+  | "main"
+  | "side"
+  | "soup"
+  | "dessert"
+  | "other"
+  | "appetizer";
+export type RecipeImportMethod = "manual" | "url" | "youtube" | "ocr" | "text";
 
 export interface Recipe {
   id: string;
@@ -105,7 +112,11 @@ export interface CreateRecipeInput {
   importMethod?: RecipeImportMethod;
   sourceUrl?: string | null;
   source?: string | null;
-  ingredients: { ingredientName: string; quantity?: string; sortOrder: number }[];
+  ingredients: {
+    ingredientName: string;
+    quantity?: string;
+    sortOrder: number;
+  }[];
   steps: { stepNumber: number; stepText: string }[];
   categoryIds?: string[];
   tagIds?: string[];

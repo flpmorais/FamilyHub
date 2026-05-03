@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,33 +12,40 @@ import {
   Alert,
   Platform,
   Switch,
-} from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import * as ImagePicker from 'expo-image-picker';
-import { Icon, Snackbar } from 'react-native-paper';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useRepository } from '../../../../hooks/use-repository';
-import { useAuthStore } from '../../../../stores/auth.store';
-import { logger } from '../../../../utils/logger';
-import { useModalKeyboardScroll } from '../../../../hooks/use-modal-keyboard-scroll';
-import { compressAvatar } from '../../../../utils/image.utils';
-import { COUNTRIES, countryFlag, countryIso2, findCountry } from '../../../../utils/countries';
-import { formatDatePt } from '../../../../utils/vacation.utils';
-import { PageHeader } from '../../../../components/page-header';
-import type { Vacation } from '../../../../types/vacation.types';
-import type { Profile } from '../../../../types/profile.types';
-import type { Category, Tag } from '../../../../types/packing.types';
+} from "react-native";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
+import { Icon, Snackbar } from "react-native-paper";
+import { router, useLocalSearchParams } from "expo-router";
+import { useRepository } from "../../../../hooks/use-repository";
+import { useAuthStore } from "../../../../stores/auth.store";
+import { logger } from "../../../../utils/logger";
+import { useModalKeyboardScroll } from "../../../../hooks/use-modal-keyboard-scroll";
+import { compressAvatar } from "../../../../utils/image.utils";
+import {
+  COUNTRIES,
+  countryFlag,
+  countryIso2,
+  findCountry,
+} from "../../../../utils/countries";
+import { formatDatePt } from "../../../../utils/vacation.utils";
+import { PageHeader } from "../../../../components/page-header";
+import type { Vacation } from "../../../../types/vacation.types";
+import type { Profile } from "../../../../types/profile.types";
+import type { Category, Tag } from "../../../../types/packing.types";
 
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 }
 
 export default function EditVacationScreen() {
   const { id: vacationId } = useLocalSearchParams<{ id: string }>();
-  const vacationRepository = useRepository('vacation');
-  const profileRepository = useRepository('profile');
-  const categoryRepository = useRepository('category');
-  const tagRepository = useRepository('tag');
+  const vacationRepository = useRepository("vacation");
+  const profileRepository = useRepository("profile");
+  const categoryRepository = useRepository("category");
+  const tagRepository = useRepository("tag");
   const { userAccount } = useAuthStore();
 
   const [vacation, setVacation] = useState<Vacation | null>(null);
@@ -48,13 +55,15 @@ export default function EditVacationScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Form state
-  const [formTitle, setFormTitle] = useState('');
-  const [formCountryCode, setFormCountryCode] = useState('PRT');
+  const [formTitle, setFormTitle] = useState("");
+  const [formCountryCode, setFormCountryCode] = useState("PRT");
   const [formDeparture, setFormDeparture] = useState(new Date());
   const [formReturn, setFormReturn] = useState(new Date());
   const [showDeparturePicker, setShowDeparturePicker] = useState(false);
   const [showReturnPicker, setShowReturnPicker] = useState(false);
-  const [formParticipants, setFormParticipants] = useState<Set<string>>(new Set());
+  const [formParticipants, setFormParticipants] = useState<Set<string>>(
+    new Set(),
+  );
   const [formTags, setFormTags] = useState<Set<string>>(new Set());
   const [formPinned, setFormPinned] = useState(false);
   const [pendingCoverUri, setPendingCoverUri] = useState<string | null>(null);
@@ -64,11 +73,12 @@ export default function EditVacationScreen() {
 
   // Country picker
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
-  const [countrySearch, setCountrySearch] = useState('');
+  const [countrySearch, setCountrySearch] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['formTitle'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["formTitle"],
+    });
 
   useEffect(() => {
     void loadData();
@@ -92,8 +102,8 @@ export default function EditVacationScreen() {
         setVacation(vac);
         setFormTitle(vac.title);
         setFormCountryCode(vac.countryCode);
-        setFormDeparture(new Date(vac.departureDate + 'T00:00:00'));
-        setFormReturn(new Date(vac.returnDate + 'T00:00:00'));
+        setFormDeparture(new Date(vac.departureDate + "T00:00:00"));
+        setFormReturn(new Date(vac.returnDate + "T00:00:00"));
         setFormPinned(vac.isPinned);
         const [parts, vacTags] = await Promise.all([
           vacationRepository.getParticipants(vac.id),
@@ -103,7 +113,7 @@ export default function EditVacationScreen() {
         setFormTags(new Set(vacTags));
       }
     } catch (err) {
-      logger.error('EditVacation', 'loadData failed', err);
+      logger.error("EditVacation", "loadData failed", err);
     } finally {
       setIsLoading(false);
     }
@@ -128,23 +138,23 @@ export default function EditVacationScreen() {
   }
 
   function onDepartureChange(_: DateTimePickerEvent, date?: Date) {
-    setShowDeparturePicker(Platform.OS === 'ios');
+    setShowDeparturePicker(Platform.OS === "ios");
     if (date) setFormDeparture(date);
   }
 
   function onReturnChange(_: DateTimePickerEvent, date?: Date) {
-    setShowReturnPicker(Platform.OS === 'ios');
+    setShowReturnPicker(Platform.OS === "ios");
     if (date) setFormReturn(date);
   }
 
   async function handlePickCover() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setFieldErrors({ general: 'Permissão para aceder à galeria negada.' });
+      setFieldErrors({ general: "Permissão para aceder à galeria negada." });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 1,
@@ -157,10 +167,12 @@ export default function EditVacationScreen() {
   async function handleSave() {
     const title = formTitle.trim();
     const errors: Record<string, string> = {};
-    if (!title) errors.title = 'O nome é obrigatório.';
-    if (!formCountryCode) errors.country = 'Selecione um país.';
-    if (formDeparture > formReturn) errors.dates = 'Partida deve ser anterior ao regresso.';
-    if (formParticipants.size === 0) errors.participants = 'Selecione pelo menos um participante.';
+    if (!title) errors.title = "O nome é obrigatório.";
+    if (!formCountryCode) errors.country = "Selecione um país.";
+    if (formDeparture > formReturn)
+      errors.dates = "Partida deve ser anterior ao regresso.";
+    if (formParticipants.size === 0)
+      errors.participants = "Selecione pelo menos um participante.";
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -176,7 +188,7 @@ export default function EditVacationScreen() {
         coverImageUrl = await vacationRepository.uploadCoverImage(
           vacation.id,
           userAccount!.familyId,
-          compressedUri
+          compressedUri,
         );
       }
 
@@ -188,12 +200,19 @@ export default function EditVacationScreen() {
         isPinned: formPinned,
       };
       if (coverImageUrl) updates.coverImageUrl = coverImageUrl;
-      await vacationRepository.updateVacation(vacation.id, updates, [...formParticipants], [...formTags]);
+      await vacationRepository.updateVacation(
+        vacation.id,
+        updates,
+        [...formParticipants],
+        [...formTags],
+      );
       setSuccessVisible(true);
       setTimeout(() => router.back(), 600);
     } catch (err) {
-      logger.error('EditVacation', 'handleSave failed', err);
-      setFieldErrors({ general: err instanceof Error ? err.message : 'Erro ao guardar viagem.' });
+      logger.error("EditVacation", "handleSave failed", err);
+      setFieldErrors({
+        general: err instanceof Error ? err.message : "Erro ao guardar viagem.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -201,17 +220,17 @@ export default function EditVacationScreen() {
 
   function confirmDelete() {
     if (!vacation) return;
-    Alert.alert('Eliminar viagem', `Eliminar "${vacation.title}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert("Eliminar viagem", `Eliminar "${vacation.title}"?`, [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: 'Eliminar',
-        style: 'destructive',
+        text: "Eliminar",
+        style: "destructive",
         onPress: async () => {
           try {
             await vacationRepository.deleteVacation(vacation.id);
-            router.replace('/(app)/(vacations)');
+            router.replace("/(app)/(vacations)");
           } catch (err) {
-            logger.error('EditVacation', 'delete failed', err);
+            logger.error("EditVacation", "delete failed", err);
           }
         },
       },
@@ -223,7 +242,7 @@ export default function EditVacationScreen() {
     ? COUNTRIES.filter(
         (c) =>
           c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-          c.id.toLowerCase().includes(countrySearch.toLowerCase())
+          c.id.toLowerCase().includes(countrySearch.toLowerCase()),
       )
     : COUNTRIES;
 
@@ -238,9 +257,11 @@ export default function EditVacationScreen() {
   if (!vacation) {
     return (
       <View style={s.centered}>
-        <Text style={{ color: '#888', marginBottom: 16 }}>Viagem não encontrada.</Text>
+        <Text style={{ color: "#888", marginBottom: 16 }}>
+          Viagem não encontrada.
+        </Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: '#B5451B', fontSize: 16 }}>← Voltar</Text>
+          <Text style={{ color: "#B5451B", fontSize: 16 }}>← Voltar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -249,8 +270,12 @@ export default function EditVacationScreen() {
   return (
     <View style={s.container}>
       <PageHeader
-        title={vacation?.title ?? 'Editar viagem'}
-        subtitle={vacation ? `${formatDatePt(vacation.departureDate)} — ${formatDatePt(vacation.returnDate)}` : undefined}
+        title={vacation?.title ?? "Editar viagem"}
+        subtitle={
+          vacation
+            ? `${formatDatePt(vacation.departureDate)} — ${formatDatePt(vacation.returnDate)}`
+            : undefined
+        }
         imageUri={vacation?.coverImageUrl}
         showBack
       />
@@ -261,44 +286,54 @@ export default function EditVacationScreen() {
       >
         <Text style={s.label}>Nome *</Text>
         <TextInput
-          {...getInputProps('formTitle')}
+          {...getInputProps("formTitle")}
           style={[s.input, fieldErrors.title && s.inputError]}
           value={formTitle}
           onChangeText={(t) => {
             setFormTitle(t);
-            setFieldErrors((e) => ({ ...e, title: '' }));
+            setFieldErrors((e) => ({ ...e, title: "" }));
           }}
           placeholder="ex: Férias Algarve 2026"
           autoCapitalize="sentences"
           editable={!isSaving}
         />
-        {fieldErrors.title ? <Text style={s.fieldError}>{fieldErrors.title}</Text> : null}
+        {fieldErrors.title ? (
+          <Text style={s.fieldError}>{fieldErrors.title}</Text>
+        ) : null}
 
         <Text style={s.label}>País *</Text>
         <TouchableOpacity
           style={s.countryButton}
           onPress={() => {
-            setCountrySearch('');
+            setCountrySearch("");
             setCountryPickerVisible(true);
           }}
           disabled={isSaving}
         >
-          <Text style={s.countryButtonFlag}>{countryFlag(countryIso2(formCountryCode))}</Text>
+          <Text style={s.countryButtonFlag}>
+            {countryFlag(countryIso2(formCountryCode))}
+          </Text>
           <Text style={s.countryButtonText}>
             {findCountry(formCountryCode)?.name ?? formCountryCode}
           </Text>
         </TouchableOpacity>
 
-        {fieldErrors.country ? <Text style={s.fieldError}>{fieldErrors.country}</Text> : null}
+        {fieldErrors.country ? (
+          <Text style={s.fieldError}>{fieldErrors.country}</Text>
+        ) : null}
 
         <Text style={s.label}>Foto de capa</Text>
-        <TouchableOpacity style={s.coverBtn} onPress={handlePickCover} disabled={isSaving}>
+        <TouchableOpacity
+          style={s.coverBtn}
+          onPress={handlePickCover}
+          disabled={isSaving}
+        >
           <Text style={s.coverBtnText}>
             {pendingCoverUri
-              ? 'Imagem selecionada ✓'
+              ? "Imagem selecionada ✓"
               : vacation.coverImageUrl
-                ? 'Alterar imagem'
-                : 'Escolher imagem'}
+                ? "Alterar imagem"
+                : "Escolher imagem"}
           </Text>
         </TouchableOpacity>
 
@@ -310,7 +345,9 @@ export default function EditVacationScreen() {
               onPress={() => setShowDeparturePicker(true)}
               disabled={isSaving}
             >
-              <Text style={s.dateButtonText}>{formatDatePt(toISODate(formDeparture))}</Text>
+              <Text style={s.dateButtonText}>
+                {formatDatePt(toISODate(formDeparture))}
+              </Text>
             </TouchableOpacity>
             {showDeparturePicker && (
               <DateTimePicker
@@ -328,7 +365,9 @@ export default function EditVacationScreen() {
               onPress={() => setShowReturnPicker(true)}
               disabled={isSaving}
             >
-              <Text style={s.dateButtonText}>{formatDatePt(toISODate(formReturn))}</Text>
+              <Text style={s.dateButtonText}>
+                {formatDatePt(toISODate(formReturn))}
+              </Text>
             </TouchableOpacity>
             {showReturnPicker && (
               <DateTimePicker
@@ -341,12 +380,14 @@ export default function EditVacationScreen() {
           </View>
         </View>
 
-        {fieldErrors.dates ? <Text style={s.fieldError}>{fieldErrors.dates}</Text> : null}
+        {fieldErrors.dates ? (
+          <Text style={s.fieldError}>{fieldErrors.dates}</Text>
+        ) : null}
 
         <Text style={s.label}>Participantes *</Text>
         <View style={s.participantList}>
           {profiles
-            .filter((p) => p.status !== 'inactive')
+            .filter((p) => p.status !== "inactive")
             .map((p) => {
               const selected = formParticipants.has(p.id);
               return (
@@ -356,7 +397,7 @@ export default function EditVacationScreen() {
                   onPress={() => toggleParticipant(p.id)}
                   disabled={isSaving}
                 >
-                  <Text style={s.participantCheck}>{selected ? '☑' : '☐'}</Text>
+                  <Text style={s.participantCheck}>{selected ? "☑" : "☐"}</Text>
                   <Text style={s.participantName}>{p.displayName}</Text>
                 </TouchableOpacity>
               );
@@ -380,8 +421,14 @@ export default function EditVacationScreen() {
                     onPress={() => toggleTag(t.id)}
                     disabled={isSaving}
                   >
-                    <Icon source={t.icon} size={14} color={selected ? '#FFFFFF' : t.color} />
-                    <Text style={[s.chipText, selected && s.chipTextActive]}>{t.name}</Text>
+                    <Icon
+                      source={t.icon}
+                      size={14}
+                      color={selected ? "#FFFFFF" : t.color}
+                    />
+                    <Text style={[s.chipText, selected && s.chipTextActive]}>
+                      {t.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -394,15 +441,21 @@ export default function EditVacationScreen() {
           <Switch
             value={formPinned}
             onValueChange={setFormPinned}
-            trackColor={{ true: '#B5451B' }}
+            trackColor={{ true: "#B5451B" }}
             disabled={isSaving}
           />
         </View>
 
-        {fieldErrors.general ? <Text style={s.error}>{fieldErrors.general}</Text> : null}
+        {fieldErrors.general ? (
+          <Text style={s.error}>{fieldErrors.general}</Text>
+        ) : null}
 
         <View style={s.buttons}>
-          <TouchableOpacity style={s.deleteBtn} onPress={confirmDelete} disabled={isSaving}>
+          <TouchableOpacity
+            style={s.deleteBtn}
+            onPress={confirmDelete}
+            disabled={isSaving}
+          >
             <Text style={s.deleteText}>Eliminar</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -424,7 +477,9 @@ export default function EditVacationScreen() {
         onDismiss={() => setSuccessVisible(false)}
         duration={2000}
         style={s.successSnackbar}
-        theme={{ colors: { inverseSurface: '#388E3C', inverseOnSurface: '#FFFFFF' } }}
+        theme={{
+          colors: { inverseSurface: "#388E3C", inverseOnSurface: "#FFFFFF" },
+        }}
       >
         Viagem actualizada
       </Snackbar>
@@ -456,11 +511,14 @@ export default function EditVacationScreen() {
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[s.countryRow, item.id === formCountryCode && s.countryRowSelected]}
+                style={[
+                  s.countryRow,
+                  item.id === formCountryCode && s.countryRowSelected,
+                ]}
                 onPress={() => {
                   setFormCountryCode(item.id);
                   setCountryPickerVisible(false);
-                  setCountrySearch('');
+                  setCountrySearch("");
                 }}
               >
                 <Text style={s.countryRowFlag}>{countryFlag(item.iso2)}</Text>
@@ -476,16 +534,21 @@ export default function EditVacationScreen() {
 }
 
 const s = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
   content: { padding: 24 },
   backBtn: { marginBottom: 16 },
-  backText: { color: '#B5451B', fontSize: 16 },
-  heading: { fontSize: 24, fontWeight: '700', marginBottom: 24, color: '#1A1A1A' },
-  label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4 },
+  backText: { color: "#B5451B", fontSize: 16 },
+  heading: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 24,
+    color: "#1A1A1A",
+  },
+  label: { fontSize: 13, fontWeight: "600", color: "#555555", marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -493,97 +556,110 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   countryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 16,
   },
   countryButtonFlag: { fontSize: 22, marginRight: 10 },
-  countryButtonText: { fontSize: 15, color: '#1A1A1A', flex: 1 },
+  countryButtonText: { fontSize: 15, color: "#1A1A1A", flex: 1 },
   coverBtn: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  coverBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
-  dateRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  coverBtnText: { fontSize: 14, color: "#B5451B", fontWeight: "500" },
+  dateRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
   dateCol: { flex: 1 },
   dateButton: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  dateButtonText: { fontSize: 15, color: '#1A1A1A' },
+  dateButtonText: { fontSize: 15, color: "#1A1A1A" },
   participantList: { marginBottom: 16, gap: 4 },
   participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: "#EEEEEE",
   },
-  participantSelected: { borderColor: '#B5451B', backgroundColor: '#FFF0EB' },
-  participantCheck: { fontSize: 18, marginRight: 10, color: '#B5451B' },
-  participantName: { fontSize: 15, color: '#1A1A1A' },
+  participantSelected: { borderColor: "#B5451B", backgroundColor: "#FFF0EB" },
+  participantCheck: { fontSize: 18, marginRight: 10, color: "#B5451B" },
+  participantName: { fontSize: 15, color: "#1A1A1A" },
   pinRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 16,
     paddingVertical: 4,
   },
-  pinLabel: { fontSize: 15, color: '#1A1A1A' },
-  error: { color: '#D32F2F', marginBottom: 12, fontSize: 14 },
-  inputError: { borderColor: '#D32F2F' },
-  fieldError: { color: '#D32F2F', fontSize: 12, marginTop: -12, marginBottom: 12 },
-  successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
-  buttons: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  pinLabel: { fontSize: 15, color: "#1A1A1A" },
+  error: { color: "#D32F2F", marginBottom: 12, fontSize: 14 },
+  inputError: { borderColor: "#D32F2F" },
+  fieldError: {
+    color: "#D32F2F",
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 12,
+  },
+  successSnackbar: {
+    position: "absolute",
+    top: 48,
+    backgroundColor: "#388E3C",
+  },
+  buttons: { flexDirection: "row", gap: 12, marginTop: 8 },
   deleteBtn: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D32F2F',
-    alignItems: 'center',
+    borderColor: "#D32F2F",
+    alignItems: "center",
   },
-  deleteText: { color: '#D32F2F', fontSize: 14, fontWeight: '600' },
+  deleteText: { color: "#D32F2F", fontSize: 14, fontWeight: "600" },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  saveText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   // Country picker
-  countryPickerContainer: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 48 },
+  countryPickerContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingTop: 48,
+  },
   countryPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  countryPickerTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
-  countryPickerClose: { fontSize: 16, color: '#B5451B', fontWeight: '600' },
+  countryPickerTitle: { fontSize: 20, fontWeight: "700", color: "#1A1A1A" },
+  countryPickerClose: { fontSize: 16, color: "#B5451B", fontWeight: "600" },
   countrySearchInput: {
     marginHorizontal: 20,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -591,31 +667,31 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   countryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: "#F5F5F5",
   },
-  countryRowSelected: { backgroundColor: '#FFF0EB' },
+  countryRowSelected: { backgroundColor: "#FFF0EB" },
   countryRowFlag: { fontSize: 22, marginRight: 12 },
-  countryRowName: { fontSize: 15, color: '#1A1A1A', flex: 1 },
-  countryRowCode: { fontSize: 13, color: '#AAAAAA' },
+  countryRowName: { fontSize: 15, color: "#1A1A1A", flex: 1 },
+  countryRowCode: { fontSize: 13, color: "#AAAAAA" },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
     marginRight: 8,
   },
-  chipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  chipText: { fontSize: 13, color: '#555555' },
-  chipTextActive: { color: '#FFFFFF' },
-  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  chipActive: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  chipText: { fontSize: 13, color: "#555555" },
+  chipTextActive: { color: "#FFFFFF" },
+  tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
 });

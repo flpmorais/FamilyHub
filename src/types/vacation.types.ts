@@ -1,17 +1,17 @@
 export type VacationLifecycle =
-  | 'planning'
-  | 'upcoming'
-  | 'active'
-  | 'packing'
-  | 'completed'
-  | 'cancelled';
+  | "planning"
+  | "upcoming"
+  | "active"
+  | "packing"
+  | "completed"
+  | "cancelled";
 export type BookingTaskType =
-  | 'flights'
-  | 'hotel'
-  | 'car'
-  | 'insurance'
-  | 'document_check'
-  | 'custom';
+  | "flights"
+  | "hotel"
+  | "car"
+  | "insurance"
+  | "document_check"
+  | "custom";
 
 export interface Vacation {
   id: string;

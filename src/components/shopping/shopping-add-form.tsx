@@ -17,7 +17,11 @@ import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 interface ShoppingAddFormProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; quantityNote?: string; isUrgent?: boolean }) => Promise<
+  onSave: (data: {
+    name: string;
+    quantityNote?: string;
+    isUrgent?: boolean;
+  }) => Promise<
     | { status: "created" }
     | { status: "unticked" }
     | { status: "duplicate_unticked" }
@@ -38,9 +42,10 @@ export function ShoppingAddForm({
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ["name", "quantityNote"],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["name", "quantityNote"],
+    });
 
   function resetForm() {
     setName("");
@@ -148,7 +153,12 @@ export function ShoppingAddForm({
                 onPress={() => setIsUrgent(false)}
                 disabled={isSaving}
               >
-                <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
+                <Text
+                  style={[
+                    s.priorityChipText,
+                    !isUrgent && s.priorityChipTextComprar,
+                  ]}
+                >
                   Comprar
                 </Text>
               </TouchableOpacity>
@@ -157,7 +167,12 @@ export function ShoppingAddForm({
                 onPress={() => setIsUrgent(true)}
                 disabled={isSaving}
               >
-                <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
+                <Text
+                  style={[
+                    s.priorityChipText,
+                    isUrgent && s.priorityChipTextUrgente,
+                  ]}
+                >
                   Urgente
                 </Text>
               </TouchableOpacity>

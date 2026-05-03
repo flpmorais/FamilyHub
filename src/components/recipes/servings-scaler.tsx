@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
 interface ServingsScalerProps {
   originalServings: number;
@@ -31,25 +31,23 @@ export function ServingsScaler({
           <Text style={s.btnText}>+</Text>
         </TouchableOpacity>
       </View>
-      {isScaled && (
-        <Text style={s.note}>de {originalServings} porções</Text>
-      )}
+      {isScaled && <Text style={s.note}>de {originalServings} porções</Text>}
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   label: {
     fontSize: 11,
-    color: '#888888',
-    textTransform: 'uppercase',
+    color: "#888888",
+    textTransform: "uppercase",
   },
   controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginTop: 4,
   },
@@ -57,26 +55,26 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
   },
   btnText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: -1,
   },
   value: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     minWidth: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   note: {
     fontSize: 10,
-    color: '#B5451B',
+    color: "#B5451B",
     marginTop: 2,
   },
 });

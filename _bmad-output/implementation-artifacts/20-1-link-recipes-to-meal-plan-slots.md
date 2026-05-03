@@ -1,6 +1,6 @@
 # Story 20.1: Link Recipes to Meal Plan Slots
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

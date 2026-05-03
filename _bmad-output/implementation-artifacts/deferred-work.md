@@ -39,3 +39,7 @@
 - SQLite connection shared across threads (main event loop + worker threads via asyncio.to_thread) — needs verification with langgraph-checkpoint-sqlite version for `check_same_thread` setting.
 - `load_user_fluent_data` dead code in session_manager — utility method not called by any code path; may be useful for future stories that need eager data loading.
 - Skill validation in router — already handled by `session_manager.create_agent` raising `ValueError` on unknown skills. Router-level validation would be redundant.
+
+## Deferred from: code review round 2 of 14-2-session-lifecycle-endpoints.md (2026-05-03)
+
+- `end_session` pop-before-write trades stuck-user for data loss — acceptable tradeoff at family scale. Pop-first avoids stuck user (worse UX); data loss on write failure is unlikely in containerized deployment.

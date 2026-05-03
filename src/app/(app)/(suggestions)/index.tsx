@@ -127,7 +127,13 @@ export default function SuggestionsScreen() {
       setIsLoadingMore(false);
       loadingMoreRef.current = false;
     }
-  }, [suggestionRepo, userAccount?.familyId, cursor, hasMore, buildRepoFilters]);
+  }, [
+    suggestionRepo,
+    userAccount?.familyId,
+    cursor,
+    hasMore,
+    buildRepoFilters,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -135,9 +141,10 @@ export default function SuggestionsScreen() {
     }, [reloadFromStart]),
   );
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['filterSearch'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["filterSearch"],
+    });
 
   // Reload when filters change
   useEffect(() => {
@@ -231,7 +238,10 @@ export default function SuggestionsScreen() {
             >
               <View style={st.cardTop}>
                 {s.creatorAvatarUrl ? (
-                  <Image source={{ uri: s.creatorAvatarUrl }} style={st.avatar} />
+                  <Image
+                    source={{ uri: s.creatorAvatarUrl }}
+                    style={st.avatar}
+                  />
                 ) : (
                   <View style={st.avatarFallback}>
                     <Text style={st.avatarInitial}>
@@ -245,8 +255,15 @@ export default function SuggestionsScreen() {
                   </Text>
                   <Text style={st.cardMeta}>{s.creatorName}</Text>
                 </View>
-                <View style={[st.statusBadge, { backgroundColor: STATUS_COLOR[s.status] }]}>
-                  <Text style={st.statusBadgeText}>{STATUS_LABEL[s.status]}</Text>
+                <View
+                  style={[
+                    st.statusBadge,
+                    { backgroundColor: STATUS_COLOR[s.status] },
+                  ]}
+                >
+                  <Text style={st.statusBadgeText}>
+                    {STATUS_LABEL[s.status]}
+                  </Text>
                 </View>
               </View>
               {s.commentCount > 0 && (
@@ -261,7 +278,9 @@ export default function SuggestionsScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={isLoadingMore ? <ActivityIndicator style={st.loadingMore} /> : null}
+          ListFooterComponent={
+            isLoadingMore ? <ActivityIndicator style={st.loadingMore} /> : null
+          }
         />
       )}
 
@@ -314,7 +333,7 @@ export default function SuggestionsScreen() {
 
               <Text style={st.label}>Nome</Text>
               <TextInput
-                {...getInputProps('filterSearch')}
+                {...getInputProps("filterSearch")}
                 style={st.input}
                 value={filterSearch}
                 onChangeText={setFilterSearch}
@@ -389,7 +408,12 @@ const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   error: { color: "#D32F2F", marginBottom: 12, fontSize: 14 },
-  emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
   loadingMore: { marginVertical: 12 },
   card: {
     borderWidth: 1,

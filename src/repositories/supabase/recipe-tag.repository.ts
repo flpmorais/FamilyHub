@@ -1,8 +1,12 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IRecipeTagRepository } from '../interfaces/recipe-tag.repository.interface';
-import type { RecipeTag, CreateRecipeTagInput, UpdateRecipeTagInput } from '../../types/recipe.types';
-import { logger } from '../../utils/logger';
-import { uuid } from '../../utils/uuid';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IRecipeTagRepository } from "../interfaces/recipe-tag.repository.interface";
+import type {
+  RecipeTag,
+  CreateRecipeTagInput,
+  UpdateRecipeTagInput,
+} from "../../types/recipe.types";
+import { logger } from "../../utils/logger";
+import { uuid } from "../../utils/uuid";
 
 function mapRecipeTag(row: any): RecipeTag {
   return {
@@ -24,17 +28,17 @@ export class SupabaseRecipeTagRepository implements IRecipeTagRepository {
   async getAll(familyId: string): Promise<RecipeTag[]> {
     try {
       const { data, error } = await this.client
-        .from('recipe_tags')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('name', { ascending: true });
+        .from("recipe_tags")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("name", { ascending: true });
 
       if (error) throw error;
       return (data ?? []).map(mapRecipeTag);
     } catch (err) {
-      logger.error('RecipeTagRepository', 'getAll failed', err);
+      logger.error("RecipeTagRepository", "getAll failed", err);
       throw new Error(
-        `Não foi possível carregar as etiquetas: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível carregar as etiquetas: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -45,7 +49,7 @@ export class SupabaseRecipeTagRepository implements IRecipeTagRepository {
 
     try {
       const { data, error } = await this.client
-        .from('recipe_tags')
+        .from("recipe_tags")
         .insert({
           id,
           family_id: input.familyId,
@@ -59,9 +63,9 @@ export class SupabaseRecipeTagRepository implements IRecipeTagRepository {
       if (error) throw error;
       return mapRecipeTag(data);
     } catch (err) {
-      logger.error('RecipeTagRepository', 'create failed', err);
+      logger.error("RecipeTagRepository", "create failed", err);
       throw new Error(
-        `Não foi possível criar a etiqueta: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível criar a etiqueta: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -73,18 +77,18 @@ export class SupabaseRecipeTagRepository implements IRecipeTagRepository {
 
     try {
       const { data, error } = await this.client
-        .from('recipe_tags')
+        .from("recipe_tags")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
       return mapRecipeTag(data);
     } catch (err) {
-      logger.error('RecipeTagRepository', 'edit failed', err);
+      logger.error("RecipeTagRepository", "edit failed", err);
       throw new Error(
-        `Não foi possível editar a etiqueta: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível editar a etiqueta: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -92,24 +96,24 @@ export class SupabaseRecipeTagRepository implements IRecipeTagRepository {
   async delete(id: string): Promise<void> {
     try {
       const { error } = await this.client
-        .from('recipe_tags')
+        .from("recipe_tags")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (err) {
-      logger.error('RecipeTagRepository', 'delete failed', err);
+      logger.error("RecipeTagRepository", "delete failed", err);
       throw new Error(
-        `Não foi possível eliminar a etiqueta: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível eliminar a etiqueta: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
 
   async countRecipesUsingTag(tagId: string): Promise<number> {
     const { count, error } = await this.client
-      .from('recipe_tag_assignments')
-      .select('*', { count: 'exact', head: true })
-      .eq('tag_id', tagId);
+      .from("recipe_tag_assignments")
+      .select("*", { count: "exact", head: true })
+      .eq("tag_id", tagId);
     if (error) throw error;
     return count ?? 0;
   }

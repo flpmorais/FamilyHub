@@ -63,8 +63,14 @@ export default function LeftoversScreen() {
     useCallback(() => {
       void reloadFromStart();
       if (familyId) {
-        supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
-          .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
+        supabaseClient
+          .from("families")
+          .select("banner_url")
+          .eq("id", familyId)
+          .single()
+          .then(({ data }) => {
+            if (data) setFamilyBannerUrl(data.banner_url ?? null);
+          });
       }
     }, [reloadFromStart, familyId]),
   );
@@ -185,7 +191,8 @@ export default function LeftoversScreen() {
     [activeLeftovers, closedLeftovers],
   );
   const firstClosedIndex = activeLeftovers.length;
-  const hasActiveAndClosed = activeLeftovers.length > 0 && closedLeftovers.length > 0;
+  const hasActiveAndClosed =
+    activeLeftovers.length > 0 && closedLeftovers.length > 0;
 
   if (isLoading) {
     return (
@@ -197,7 +204,11 @@ export default function LeftoversScreen() {
 
   return (
     <View style={s.container}>
-      <PageHeader title="Restos" imageUri={familyBannerUrl} familyBannerUri={familyBannerUrl} />
+      <PageHeader
+        title="Restos"
+        imageUri={familyBannerUrl}
+        familyBannerUri={familyBannerUrl}
+      />
 
       <View style={{ height: 16 }} />
 

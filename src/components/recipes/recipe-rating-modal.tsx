@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,14 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-} from 'react-native';
-import { Icon } from 'react-native-paper';
-import { useRepository } from '../../hooks/use-repository';
-import { logger } from '../../utils/logger';
-import type { RecipeRatingWithProfile } from '../../types/recipe.types';
+} from "react-native";
+import { Icon } from "react-native-paper";
+import { useRepository } from "../../hooks/use-repository";
+import { logger } from "../../utils/logger";
+import type { RecipeRatingWithProfile } from "../../types/recipe.types";
 
-const STAR_COLOR = '#F5A623';
-const STAR_EMPTY_COLOR = '#D0D0D0';
+const STAR_COLOR = "#F5A623";
+const STAR_EMPTY_COLOR = "#D0D0D0";
 
 interface RecipeRatingModalProps {
   visible: boolean;
@@ -32,7 +32,7 @@ export function RecipeRatingModal({
   profileId,
   onRatingChanged,
 }: RecipeRatingModalProps) {
-  const ratingRepo = useRepository('recipeRating');
+  const ratingRepo = useRepository("recipeRating");
 
   const [selectedRating, setSelectedRating] = useState(0);
   const [originalRating, setOriginalRating] = useState(0);
@@ -51,7 +51,7 @@ export function RecipeRatingModal({
         setSelectedRating(mine?.rating ?? 0);
         setOriginalRating(mine?.rating ?? 0);
       })
-      .catch((err) => logger.error('RecipeRatingModal', 'load failed', err))
+      .catch((err) => logger.error("RecipeRatingModal", "load failed", err))
       .finally(() => setIsLoading(false));
   }, [visible, recipeId, profileId, ratingRepo]);
 
@@ -74,7 +74,7 @@ export function RecipeRatingModal({
       onRatingChanged();
       onClose();
     } catch (err) {
-      logger.error('RecipeRatingModal', 'save failed', err);
+      logger.error("RecipeRatingModal", "save failed", err);
     } finally {
       setIsSaving(false);
     }
@@ -90,7 +90,7 @@ export function RecipeRatingModal({
             activeOpacity={0.7}
           >
             <Icon
-              source={star <= selectedRating ? 'star' : 'star-outline'}
+              source={star <= selectedRating ? "star" : "star-outline"}
               size={40}
               color={star <= selectedRating ? STAR_COLOR : STAR_EMPTY_COLOR}
             />
@@ -108,16 +108,18 @@ export function RecipeRatingModal({
         ) : (
           <View style={s.avatarFallback}>
             <Text style={s.avatarInitial}>
-              {item.profileName?.[0]?.toUpperCase() ?? '?'}
+              {item.profileName?.[0]?.toUpperCase() ?? "?"}
             </Text>
           </View>
         )}
-        <Text style={s.profileName} numberOfLines={1}>{item.profileName}</Text>
+        <Text style={s.profileName} numberOfLines={1}>
+          {item.profileName}
+        </Text>
         <View style={s.starsSmall}>
           {[1, 2, 3, 4, 5].map((star) => (
             <Icon
               key={star}
-              source={star <= item.rating ? 'star' : 'star-outline'}
+              source={star <= item.rating ? "star" : "star-outline"}
               size={16}
               color={star <= item.rating ? STAR_COLOR : STAR_EMPTY_COLOR}
             />
@@ -185,33 +187,33 @@ export function RecipeRatingModal({
 const s = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#1A1A1A",
+    textAlign: "center",
     marginBottom: 16,
   },
   pickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginBottom: 16,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     marginBottom: 12,
   },
   list: {
@@ -219,8 +221,8 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     gap: 10,
   },
@@ -233,32 +235,32 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarInitial: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   profileName: {
     flex: 1,
     fontSize: 14,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
   starsSmall: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 1,
   },
   emptyText: {
-    textAlign: 'center',
-    color: '#AAAAAA',
+    textAlign: "center",
+    color: "#AAAAAA",
     fontSize: 14,
     marginVertical: 20,
   },
   buttonRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
@@ -267,17 +269,17 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
+    borderColor: "#CCCCCC",
+    alignItems: "center",
   },
-  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  cancelText: { color: "#1A1A1A", fontSize: 16 },
   saveButton: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

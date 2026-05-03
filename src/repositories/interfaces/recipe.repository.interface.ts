@@ -4,7 +4,7 @@ import type {
   RecipeType,
   RecipeWithDetails,
   CreateRecipeInput,
-} from '../../types/recipe.types';
+} from "../../types/recipe.types";
 
 export interface RecipeListFilters {
   type?: RecipeType | null;
@@ -28,6 +28,9 @@ export interface IRecipeRepository {
     filters: RecipeListFilters,
   ): Promise<RecipeForList[]>;
   getTypeCounts(familyId: string): Promise<Record<string, number>>;
-  update(id: string, input: Partial<CreateRecipeInput>): Promise<RecipeWithDetails>;
+  update(
+    id: string,
+    input: Partial<CreateRecipeInput>,
+  ): Promise<RecipeWithDetails>;
   delete(id: string): Promise<void>;
 }

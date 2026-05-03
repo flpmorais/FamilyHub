@@ -12,6 +12,7 @@ export const useShoppingStore = create<ShoppingState>((set) => ({
   scrollPosition: 0,
   activeCategoryFilter: null,
   setScrollPosition: (pos) => set({ scrollPosition: pos }),
-  setActiveCategoryFilter: (categoryId) => set({ activeCategoryFilter: categoryId }),
+  setActiveCategoryFilter: (categoryId) =>
+    set({ activeCategoryFilter: categoryId }),
   reset: () => set({ scrollPosition: 0, activeCategoryFilter: null }),
 }));

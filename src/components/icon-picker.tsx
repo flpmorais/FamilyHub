@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,10 @@ import {
   Modal,
   StyleSheet,
   ScrollView,
-} from 'react-native';
-import { Icon } from 'react-native-paper';
-import { useModalKeyboardScroll } from '../hooks/use-modal-keyboard-scroll';
-import type { IconEntry } from '../types/packing.types';
+} from "react-native";
+import { Icon } from "react-native-paper";
+import { useModalKeyboardScroll } from "../hooks/use-modal-keyboard-scroll";
+import type { IconEntry } from "../types/packing.types";
 
 interface IconPickerProps {
   visible: boolean;
@@ -23,12 +23,19 @@ interface IconPickerProps {
 
 const NUM_COLUMNS = 5;
 
-export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }: IconPickerProps) {
-  const [search, setSearch] = useState('');
+export function IconPicker({
+  visible,
+  icons,
+  selectedIconId,
+  onSelect,
+  onClose,
+}: IconPickerProps) {
+  const [search, setSearch] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['search'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["search"],
+    });
 
   const filtered = useMemo(() => {
     if (!search.trim()) return icons;
@@ -36,27 +43,23 @@ export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }
     return icons.filter(
       (icon) =>
         icon.name.toLowerCase().includes(q) ||
-        icon.tags.toLowerCase().includes(q)
+        icon.tags.toLowerCase().includes(q),
     );
   }, [icons, search]);
 
   function handleSelect(iconId: string) {
     onSelect(iconId);
     onClose();
-    setSearch('');
+    setSearch("");
   }
 
   function handleClose() {
     onClose();
-    setSearch('');
+    setSearch("");
   }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={s.container}>
         <View style={s.header}>
           <Text style={s.title}>Selecionar ícone</Text>
@@ -68,7 +71,7 @@ export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }
         <View style={s.searchWrap}>
           <Icon source="magnify" size={18} color="#888888" />
           <TextInput
-            {...getInputProps('search')}
+            {...getInputProps("search")}
             style={s.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -77,7 +80,7 @@ export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }
             autoCorrect={false}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
+            <TouchableOpacity onPress={() => setSearch("")}>
               <Icon source="close-circle" size={18} color="#AAAAAA" />
             </TouchableOpacity>
           )}
@@ -99,7 +102,7 @@ export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }
                 <Icon
                   source={icon.name}
                   size={28}
-                  color={isSelected ? '#B5451B' : '#555555'}
+                  color={isSelected ? "#B5451B" : "#555555"}
                 />
               </TouchableOpacity>
             );
@@ -114,23 +117,23 @@ export function IconPicker({ visible, icons, selectedIconId, onSelect, onClose }
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 48 },
+  container: { flex: 1, backgroundColor: "#FFFFFF", paddingTop: 48 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
-  closeText: { fontSize: 16, color: '#B5451B', fontWeight: '600' },
+  title: { fontSize: 20, fontWeight: "700", color: "#1A1A1A" },
+  closeText: { fontSize: 16, color: "#B5451B", fontWeight: "600" },
   searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -144,14 +147,14 @@ const s = StyleSheet.create({
     aspectRatio: 1,
     maxWidth: 64,
     borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
   },
   cellSelected: {
-    backgroundColor: '#FFF0EB',
+    backgroundColor: "#FFF0EB",
     borderWidth: 2,
-    borderColor: '#B5451B',
+    borderColor: "#B5451B",
   },
-  empty: { color: '#888888', textAlign: 'center', marginTop: 32 },
+  empty: { color: "#888888", textAlign: "center", marginTop: 32 },
 });

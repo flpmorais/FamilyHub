@@ -1,4 +1,4 @@
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImageManipulator from "expo-image-manipulator";
 
 const MAX_DIMENSION = 512; // px — keeps output well under 1 MB at 0.75 quality
 const JPEG_QUALITY = 0.75;
@@ -12,7 +12,7 @@ export async function compressAvatar(uri: string): Promise<string> {
   const result = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: MAX_DIMENSION } }],
-    { compress: JPEG_QUALITY, format: ImageManipulator.SaveFormat.JPEG }
+    { compress: JPEG_QUALITY, format: ImageManipulator.SaveFormat.JPEG },
   );
   return result.uri;
 }

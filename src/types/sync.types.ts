@@ -1,1 +1,1 @@
-export type SyncStatus = 'syncing' | 'synced' | 'error' | 'offline';
+export type SyncStatus = "syncing" | "synced" | "error" | "offline";

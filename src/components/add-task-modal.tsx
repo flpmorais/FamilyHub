@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -9,41 +9,53 @@ import {
   Modal,
   Platform,
   ScrollView,
-} from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { logger } from '../utils/logger';
-import { useModalKeyboardScroll } from '../hooks/use-modal-keyboard-scroll';
-import type { Profile } from '../types/profile.types';
+} from "react-native";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { logger } from "../utils/logger";
+import { useModalKeyboardScroll } from "../hooks/use-modal-keyboard-scroll";
+import type { Profile } from "../types/profile.types";
 
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
+  const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 }
 
 interface AddTaskModalProps {
   visible: boolean;
   onClose: () => void;
   profiles: Profile[];
-  onSave: (title: string, dueDate: string, profileId: string | null) => Promise<void>;
+  onSave: (
+    title: string,
+    dueDate: string,
+    profileId: string | null,
+  ) => Promise<void>;
 }
 
-export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModalProps) {
-  const [formTitle, setFormTitle] = useState('');
+export function AddTaskModal({
+  visible,
+  onClose,
+  profiles,
+  onSave,
+}: AddTaskModalProps) {
+  const [formTitle, setFormTitle] = useState("");
   const [formDueDate, setFormDueDate] = useState(new Date());
   const [formProfileId, setFormProfileId] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['formTitle'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["formTitle"],
+    });
 
   function reset() {
-    setFormTitle('');
+    setFormTitle("");
     setFormDueDate(new Date());
     setFormProfileId(null);
     setShowDatePicker(false);
@@ -51,14 +63,14 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
   }
 
   function onDateChange(_: DateTimePickerEvent, date?: Date) {
-    setShowDatePicker(Platform.OS === 'ios');
+    setShowDatePicker(Platform.OS === "ios");
     if (date) setFormDueDate(date);
   }
 
   async function handleSave() {
     const title = formTitle.trim();
     if (!title) {
-      setError('O título é obrigatório.');
+      setError("O título é obrigatório.");
       return;
     }
     setError(null);
@@ -68,8 +80,8 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
       reset();
       onClose();
     } catch (err) {
-      logger.error('AddTaskModal', 'handleSave failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao criar tarefa.');
+      logger.error("AddTaskModal", "handleSave failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao criar tarefa.");
     } finally {
       setIsSaving(false);
     }
@@ -81,7 +93,12 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleClose}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.sheet}>
           <ScrollView
@@ -92,7 +109,7 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
             <Text style={styles.sheetTitle}>Nova tarefa</Text>
             <Text style={styles.label}>Título *</Text>
             <TextInput
-              {...getInputProps('formTitle')}
+              {...getInputProps("formTitle")}
               style={styles.input}
               value={formTitle}
               onChangeText={setFormTitle}
@@ -100,7 +117,7 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
               autoCapitalize="sentences"
               editable={!isSaving}
             />
-            {error && error.includes('título') ? (
+            {error && error.includes("título") ? (
               <Text style={styles.fieldError}>{error}</Text>
             ) : null}
             <Text style={styles.label}>Data limite *</Text>
@@ -109,7 +126,9 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
               onPress={() => setShowDatePicker(true)}
               disabled={isSaving}
             >
-              <Text style={styles.dateBtnText}>{formatDate(toISODate(formDueDate))}</Text>
+              <Text style={styles.dateBtnText}>
+                {formatDate(toISODate(formDueDate))}
+              </Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
@@ -123,7 +142,10 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
             <Text style={styles.label}>Atribuir a</Text>
             <View style={styles.profileList}>
               <TouchableOpacity
-                style={[styles.profileChip, formProfileId === null && styles.profileChipSelected]}
+                style={[
+                  styles.profileChip,
+                  formProfileId === null && styles.profileChipSelected,
+                ]}
                 onPress={() => setFormProfileId(null)}
                 disabled={isSaving}
               >
@@ -149,7 +171,8 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
                   <Text
                     style={[
                       styles.profileChipText,
-                      formProfileId === profile.id && styles.profileChipTextSelected,
+                      formProfileId === profile.id &&
+                        styles.profileChipTextSelected,
                     ]}
                   >
                     {profile.displayName}
@@ -158,13 +181,17 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
               ))}
             </View>
 
-            {error && !error.includes('título') ? (
+            {error && !error.includes("título") ? (
               <Text style={styles.formError}>{error}</Text>
             ) : null}
           </ScrollView>
 
           <View style={styles.sheetBtns}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={isSaving}>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={handleClose}
+              disabled={isSaving}
+            >
               <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -186,20 +213,29 @@ export function AddTaskModal({ visible, onClose, profiles, onSave }: AddTaskModa
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
-  sheetTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A', marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4 },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 20,
+  },
+  label: { fontSize: 13, fontWeight: "600", color: "#555555", marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -208,45 +244,55 @@ const styles = StyleSheet.create({
   },
   dateBtn: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
-  dateBtnText: { fontSize: 15, color: '#1A1A1A' },
-  formError: { color: '#D32F2F', marginBottom: 12, fontSize: 14 },
-  fieldError: { color: '#D32F2F', fontSize: 12, marginTop: -12, marginBottom: 12 },
-  sheetBtns: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  dateBtnText: { fontSize: 15, color: "#1A1A1A" },
+  formError: { color: "#D32F2F", marginBottom: 12, fontSize: 14 },
+  fieldError: {
+    color: "#D32F2F",
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 12,
+  },
+  sheetBtns: { flexDirection: "row", gap: 12, marginTop: 8 },
   cancelBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
+    borderColor: "#CCCCCC",
+    alignItems: "center",
   },
-  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  cancelText: { color: "#1A1A1A", fontSize: 16 },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  profileList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  saveText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  profileList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
   profileChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
   },
-  profileChipSelected: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  profileChipText: { fontSize: 14, color: '#555555' },
-  profileChipTextSelected: { color: '#FFFFFF', fontWeight: '500' },
+  profileChipSelected: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  profileChipText: { fontSize: 14, color: "#555555" },
+  profileChipTextSelected: { color: "#FFFFFF", fontWeight: "500" },
 });

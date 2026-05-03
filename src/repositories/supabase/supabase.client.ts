@@ -1,6 +1,6 @@
-import Constants from 'expo-constants';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+import Constants from "expo-constants";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import * as SecureStore from "expo-secure-store";
 
 // SecureStore adapter for Supabase session persistence (AR7: no AsyncStorage)
 const ExpoSecureStoreAdapter = {
@@ -16,15 +16,19 @@ const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing Supabase configuration. Check .env.development and app.config.ts extra fields.'
+    "Missing Supabase configuration. Check .env.development and app.config.ts extra fields.",
   );
 }
 
-export const supabaseClient: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
+export const supabaseClient: SupabaseClient = createClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      storage: ExpoSecureStoreAdapter,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
   },
-});
+);

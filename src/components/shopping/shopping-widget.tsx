@@ -7,7 +7,11 @@ interface ShoppingWidgetProps {
   onPress: () => void;
 }
 
-export function ShoppingWidget({ itemCount, urgentCount, onPress }: ShoppingWidgetProps) {
+export function ShoppingWidget({
+  itemCount,
+  urgentCount,
+  onPress,
+}: ShoppingWidgetProps) {
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>
       <View style={s.titleRow}>
@@ -28,7 +32,8 @@ export function ShoppingWidget({ itemCount, urgentCount, onPress }: ShoppingWidg
             <View style={s.statusRow}>
               <Icon source="alert-circle" size={14} color="#D32F2F" />
               <Text style={s.alertUrgent}>
-                {urgentCount} {urgentCount === 1 ? "item urgente" : "itens urgentes"}
+                {urgentCount}{" "}
+                {urgentCount === 1 ? "item urgente" : "itens urgentes"}
               </Text>
             </View>
           )}

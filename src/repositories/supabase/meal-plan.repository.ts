@@ -1,19 +1,28 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IMealPlanRepository } from '../interfaces/meal-plan.repository.interface';
-import { MealEntry, MealEntryDish, MealSlot, MealType, CreateMealEntryInput, UpdateMealEntryInput, CreateDishInput, MealPlanSlotConfig } from '../../types/meal-plan.types';
-import type { RecipeType } from '../../types/recipe.types';
-import { logger } from '../../utils/logger';
-import { uuid } from '../../utils/uuid';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IMealPlanRepository } from "../interfaces/meal-plan.repository.interface";
+import {
+  MealEntry,
+  MealEntryDish,
+  MealSlot,
+  MealType,
+  CreateMealEntryInput,
+  UpdateMealEntryInput,
+  CreateDishInput,
+  MealPlanSlotConfig,
+} from "../../types/meal-plan.types";
+import type { RecipeType } from "../../types/recipe.types";
+import { logger } from "../../utils/logger";
+import { uuid } from "../../utils/uuid";
 
 function parseLocalDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split('-').map(Number);
+  const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
 
 function formatDateToString(date: Date): string {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
@@ -50,8 +59,10 @@ function mapDish(row: any): MealEntryDish {
     manualName: row.manual_name ?? null,
     manualCategory: (row.manual_category as RecipeType) ?? null,
     sourceDishId: row.source_dish_id ?? null,
-    sourceDishName: sourceDish?.manual_name ?? sourceDish?.recipes?.name ?? null,
-    sourceDishCategory: sourceDish?.manual_category ?? sourceDish?.recipes?.type ?? null,
+    sourceDishName:
+      sourceDish?.manual_name ?? sourceDish?.recipes?.name ?? null,
+    sourceDishCategory:
+      sourceDish?.manual_category ?? sourceDish?.recipes?.type ?? null,
     leftoverId: row.leftover_id ?? null,
     leftoverName: leftovers?.name ?? null,
     leftoverCategory: (leftovers?.type as RecipeType) ?? null,
@@ -88,15 +99,19 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
   async getWeek(familyId: string, weekStart: string): Promise<MealEntry[]> {
     const { data, error } = await this.client
-      .from('meal_entries')
-      .select('*')
-      .eq('family_id', familyId)
-      .eq('week_start', weekStart)
-      .order('day_of_week', { ascending: true })
-      .order('meal_slot', { ascending: true });
+      .from("meal_entries")
+      .select("*")
+      .eq("family_id", familyId)
+      .eq("week_start", weekStart)
+      .order("day_of_week", { ascending: true })
+      .order("meal_slot", { ascending: true });
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao carregar plano de refeições', error);
+      logger.error(
+        "MealPlanRepository",
+        "Erro ao carregar plano de refeições",
+        error,
+      );
       throw error;
     }
 
@@ -108,7 +123,7 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
     const ts = new Date().toISOString();
 
     const { data, error } = await this.client
-      .from('meal_entries')
+      .from("meal_entries")
       .insert({
         id,
         family_id: input.familyId,
@@ -116,7 +131,7 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
         day_of_week: input.dayOfWeek,
         meal_slot: input.mealSlot,
         name: input.name,
-        meal_type: input.mealType ?? 'home_cooked',
+        meal_type: input.mealType ?? "home_cooked",
         participants: input.participants,
         created_at: ts,
         updated_at: ts,
@@ -125,7 +140,7 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
       .single();
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao criar refeição', error);
+      logger.error("MealPlanRepository", "Erro ao criar refeição", error);
       throw error;
     }
 
@@ -133,22 +148,27 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
   }
 
   async update(id: string, input: UpdateMealEntryInput): Promise<MealEntry> {
-    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
     if (input.name !== undefined) updateData.name = input.name;
     if (input.mealType !== undefined) updateData.meal_type = input.mealType;
-    if (input.participants !== undefined) updateData.participants = input.participants;
-    if (input.isSlotOverridden !== undefined) updateData.is_slot_overridden = input.isSlotOverridden;
-    if (input.isSlotSkipped !== undefined) updateData.is_slot_skipped = input.isSlotSkipped;
+    if (input.participants !== undefined)
+      updateData.participants = input.participants;
+    if (input.isSlotOverridden !== undefined)
+      updateData.is_slot_overridden = input.isSlotOverridden;
+    if (input.isSlotSkipped !== undefined)
+      updateData.is_slot_skipped = input.isSlotSkipped;
 
     const { data, error } = await this.client
-      .from('meal_entries')
+      .from("meal_entries")
       .update(updateData)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao atualizar refeição', error);
+      logger.error("MealPlanRepository", "Erro ao atualizar refeição", error);
       throw error;
     }
 
@@ -157,22 +177,27 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await this.client
-      .from('meal_entries')
+      .from("meal_entries")
       .delete()
-      .eq('id', id);
+      .eq("id", id);
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao apagar refeição', error);
+      logger.error("MealPlanRepository", "Erro ao apagar refeição", error);
       throw error;
     }
   }
 
-  async skipSlot(familyId: string, weekStart: string, dayOfWeek: number, mealSlot: MealSlot): Promise<MealEntry> {
+  async skipSlot(
+    familyId: string,
+    weekStart: string,
+    dayOfWeek: number,
+    mealSlot: MealSlot,
+  ): Promise<MealEntry> {
     const id = uuid();
     const ts = new Date().toISOString();
 
     const { data, error } = await this.client
-      .from('meal_entries')
+      .from("meal_entries")
       .upsert(
         {
           id,
@@ -180,20 +205,20 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
           week_start: weekStart,
           day_of_week: dayOfWeek,
           meal_slot: mealSlot,
-          name: '_skipped',
-          meal_type: 'home_cooked',
+          name: "_skipped",
+          meal_type: "home_cooked",
           participants: [],
           is_slot_skipped: true,
           created_at: ts,
           updated_at: ts,
         },
-        { onConflict: 'family_id,week_start,day_of_week,meal_slot' }
+        { onConflict: "family_id,week_start,day_of_week,meal_slot" },
       )
       .select()
       .single();
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao saltar horário', error);
+      logger.error("MealPlanRepository", "Erro ao saltar horário", error);
       throw error;
     }
 
@@ -202,14 +227,18 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
   async getConfig(familyId: string): Promise<MealPlanSlotConfig[]> {
     const { data, error } = await this.client
-      .from('meal_plan_config')
-      .select('*')
-      .eq('family_id', familyId)
-      .order('day_of_week', { ascending: true })
-      .order('meal_slot', { ascending: true });
+      .from("meal_plan_config")
+      .select("*")
+      .eq("family_id", familyId)
+      .order("day_of_week", { ascending: true })
+      .order("meal_slot", { ascending: true });
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao carregar configuração', error);
+      logger.error(
+        "MealPlanRepository",
+        "Erro ao carregar configuração",
+        error,
+      );
       throw error;
     }
 
@@ -221,10 +250,10 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
     dayOfWeek: number,
     mealSlot: MealSlot,
     participants: string[],
-    isSkip: boolean
+    isSkip: boolean,
   ): Promise<MealPlanSlotConfig> {
     const { data, error } = await this.client
-      .from('meal_plan_config')
+      .from("meal_plan_config")
       .upsert(
         {
           family_id: familyId,
@@ -234,13 +263,13 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
           is_skip: isSkip,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'family_id,day_of_week,meal_slot' }
+        { onConflict: "family_id,day_of_week,meal_slot" },
       )
       .select()
       .single();
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao guardar configuração', error);
+      logger.error("MealPlanRepository", "Erro ao guardar configuração", error);
       throw error;
     }
 
@@ -249,17 +278,19 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
   // ── Dish operations ─────────────────────────────────────────────────────
 
-  async getDishesForEntries(entryIds: string[]): Promise<Map<string, MealEntryDish[]>> {
+  async getDishesForEntries(
+    entryIds: string[],
+  ): Promise<Map<string, MealEntryDish[]>> {
     if (entryIds.length === 0) return new Map();
 
     const { data, error } = await this.client
-      .from('meal_entry_dishes')
+      .from("meal_entry_dishes")
       .select(DISH_SELECT)
-      .in('meal_entry_id', entryIds)
-      .order('sort_order', { ascending: true });
+      .in("meal_entry_id", entryIds)
+      .order("sort_order", { ascending: true });
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao carregar pratos', error);
+      logger.error("MealPlanRepository", "Erro ao carregar pratos", error);
       throw error;
     }
 
@@ -273,7 +304,10 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
     return map;
   }
 
-  async addDishes(mealEntryId: string, dishes: CreateDishInput[]): Promise<MealEntryDish[]> {
+  async addDishes(
+    mealEntryId: string,
+    dishes: CreateDishInput[],
+  ): Promise<MealEntryDish[]> {
     if (dishes.length === 0) return [];
 
     const rows = dishes.map((d, i) => ({
@@ -292,12 +326,12 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
     }));
 
     const { data, error } = await this.client
-      .from('meal_entry_dishes')
+      .from("meal_entry_dishes")
       .insert(rows)
       .select(DISH_SELECT);
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao adicionar pratos', error);
+      logger.error("MealPlanRepository", "Erro ao adicionar pratos", error);
       throw error;
     }
 
@@ -306,29 +340,36 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
   async removeDish(dishId: string): Promise<void> {
     const { error } = await this.client
-      .from('meal_entry_dishes')
+      .from("meal_entry_dishes")
       .delete()
-      .eq('id', dishId);
+      .eq("id", dishId);
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao remover prato', error);
+      logger.error("MealPlanRepository", "Erro ao remover prato", error);
       throw error;
     }
   }
 
   async updateDishServings(dishId: string, servings: number): Promise<void> {
     const { error } = await this.client
-      .from('meal_entry_dishes')
-      .update({ servings_override: servings, updated_at: new Date().toISOString() })
-      .eq('id', dishId);
+      .from("meal_entry_dishes")
+      .update({
+        servings_override: servings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", dishId);
 
     if (error) {
-      logger.error('MealPlanRepository', 'Erro ao atualizar porções', error);
+      logger.error("MealPlanRepository", "Erro ao atualizar porções", error);
       throw error;
     }
   }
 
-  async getRecentDishes(familyId: string, beforeDate: string, daysBack: number): Promise<MealEntryDish[]> {
+  async getRecentDishes(
+    familyId: string,
+    beforeDate: string,
+    daysBack: number,
+  ): Promise<MealEntryDish[]> {
     // Calculate the date range for the query
     const targetDate = parseLocalDate(beforeDate);
     const startDate = new Date(targetDate);
@@ -337,7 +378,9 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
     // Determine relevant week_start values (can span at most 2 weeks)
     const startMonday = new Date(startDate);
-    startMonday.setDate(startMonday.getDate() - ((startMonday.getDay() + 6) % 7));
+    startMonday.setDate(
+      startMonday.getDate() - ((startMonday.getDay() + 6) % 7),
+    );
     const endMonday = new Date(targetDate);
     endMonday.setDate(endMonday.getDate() - ((endMonday.getDay() + 6) % 7));
 
@@ -350,14 +393,18 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
     // Query meal entries in the date range, then their dishes
     const { data: entries, error: entryError } = await this.client
-      .from('meal_entries')
-      .select('id, week_start, day_of_week')
-      .eq('family_id', familyId)
-      .eq('is_slot_skipped', false)
-      .in('week_start', weekStarts);
+      .from("meal_entries")
+      .select("id, week_start, day_of_week")
+      .eq("family_id", familyId)
+      .eq("is_slot_skipped", false)
+      .in("week_start", weekStarts);
 
     if (entryError) {
-      logger.error('MealPlanRepository', 'Erro ao carregar refeições recentes', entryError);
+      logger.error(
+        "MealPlanRepository",
+        "Erro ao carregar refeições recentes",
+        entryError,
+      );
       throw entryError;
     }
 
@@ -374,14 +421,18 @@ export class SupabaseMealPlanRepository implements IMealPlanRepository {
 
     // Get recipe and manual dishes from those entries
     const { data: dishes, error: dishError } = await this.client
-      .from('meal_entry_dishes')
+      .from("meal_entry_dishes")
       .select(DISH_SELECT)
-      .in('meal_entry_id', validEntryIds)
-      .in('dish_type', ['recipe', 'manual'])
-      .order('sort_order', { ascending: true });
+      .in("meal_entry_id", validEntryIds)
+      .in("dish_type", ["recipe", "manual"])
+      .order("sort_order", { ascending: true });
 
     if (dishError) {
-      logger.error('MealPlanRepository', 'Erro ao carregar pratos recentes', dishError);
+      logger.error(
+        "MealPlanRepository",
+        "Erro ao carregar pratos recentes",
+        dishError,
+      );
       throw dishError;
     }
 

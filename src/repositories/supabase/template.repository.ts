@@ -1,10 +1,17 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { ITemplateRepository } from '../interfaces/template.repository.interface';
-import { TemplateItem, CreateTemplateItemInput } from '../../types/packing.types';
-import { logger } from '../../utils/logger';
-import { uuid } from '../../utils/uuid';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { ITemplateRepository } from "../interfaces/template.repository.interface";
+import {
+  TemplateItem,
+  CreateTemplateItemInput,
+} from "../../types/packing.types";
+import { logger } from "../../utils/logger";
+import { uuid } from "../../utils/uuid";
 
-function mapTemplateItem(row: any, tagIds: string[] = [], profileIds: string[] = []): TemplateItem {
+function mapTemplateItem(
+  row: any,
+  tagIds: string[] = [],
+  profileIds: string[] = [],
+): TemplateItem {
   return {
     id: row.id,
     familyId: row.family_id,
@@ -29,18 +36,21 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
 
   private async loadTagIdsForItem(itemId: string): Promise<string[]> {
     const { data, error } = await this.client
-      .from('template_item_tags')
-      .select('tag_id')
-      .eq('template_item_id', itemId);
+      .from("template_item_tags")
+      .select("tag_id")
+      .eq("template_item_id", itemId);
     if (error) throw error;
     return (data ?? []).map((r: any) => r.tag_id as string);
   }
 
-  private async saveTagsForItem(itemId: string, tagIds: string[]): Promise<void> {
+  private async saveTagsForItem(
+    itemId: string,
+    tagIds: string[],
+  ): Promise<void> {
     const { error: delError } = await this.client
-      .from('template_item_tags')
+      .from("template_item_tags")
       .delete()
-      .eq('template_item_id', itemId);
+      .eq("template_item_id", itemId);
     if (delError) throw delError;
 
     if (tagIds.length > 0) {
@@ -49,7 +59,7 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
         tag_id: tagId,
       }));
       const { error: insError } = await this.client
-        .from('template_item_tags')
+        .from("template_item_tags")
         .insert(rows);
       if (insError) throw insError;
     }
@@ -57,18 +67,21 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
 
   private async loadProfileIdsForItem(itemId: string): Promise<string[]> {
     const { data, error } = await this.client
-      .from('template_item_profiles')
-      .select('profile_id')
-      .eq('template_item_id', itemId);
+      .from("template_item_profiles")
+      .select("profile_id")
+      .eq("template_item_id", itemId);
     if (error) throw error;
     return (data ?? []).map((r: any) => r.profile_id as string);
   }
 
-  private async saveProfilesForItem(itemId: string, profileIds: string[]): Promise<void> {
+  private async saveProfilesForItem(
+    itemId: string,
+    profileIds: string[],
+  ): Promise<void> {
     const { error: delError } = await this.client
-      .from('template_item_profiles')
+      .from("template_item_profiles")
       .delete()
-      .eq('template_item_id', itemId);
+      .eq("template_item_id", itemId);
     if (delError) throw delError;
 
     if (profileIds.length > 0) {
@@ -78,7 +91,7 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
         profile_id: profileId,
       }));
       const { error: insError } = await this.client
-        .from('template_item_profiles')
+        .from("template_item_profiles")
         .insert(rows);
       if (insError) throw insError;
     }
@@ -87,26 +100,28 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
   async getTemplateItems(familyId: string): Promise<TemplateItem[]> {
     try {
       const { data: rows, error } = await this.client
-        .from('template_items')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('title');
+        .from("template_items")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("title");
       if (error) throw error;
       if (!rows || rows.length === 0) return [];
 
       const itemIds = rows.map((r: any) => r.id as string);
 
-      const [{ data: tagRows, error: tagErr }, { data: profileRows, error: profErr }] =
-        await Promise.all([
-          this.client
-            .from('template_item_tags')
-            .select('template_item_id, tag_id')
-            .in('template_item_id', itemIds),
-          this.client
-            .from('template_item_profiles')
-            .select('template_item_id, profile_id')
-            .in('template_item_id', itemIds),
-        ]);
+      const [
+        { data: tagRows, error: tagErr },
+        { data: profileRows, error: profErr },
+      ] = await Promise.all([
+        this.client
+          .from("template_item_tags")
+          .select("template_item_id, tag_id")
+          .in("template_item_id", itemIds),
+        this.client
+          .from("template_item_profiles")
+          .select("template_item_id, profile_id")
+          .in("template_item_id", itemIds),
+      ]);
       if (tagErr) throw tagErr;
       if (profErr) throw profErr;
 
@@ -125,19 +140,28 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
       }
 
       return rows.map((row: any) =>
-        mapTemplateItem(row, tagsByItem.get(row.id) ?? [], profilesByItem.get(row.id) ?? [])
+        mapTemplateItem(
+          row,
+          tagsByItem.get(row.id) ?? [],
+          profilesByItem.get(row.id) ?? [],
+        ),
       );
     } catch (err) {
-      logger.error('TemplateRepository', 'getTemplateItems failed', err);
-      throw new Error(`Erro ao carregar modelos: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("TemplateRepository", "getTemplateItems failed", err);
+      throw new Error(
+        `Erro ao carregar modelos: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
-  async createTemplateItem(familyId: string, item: CreateTemplateItemInput): Promise<TemplateItem> {
+  async createTemplateItem(
+    familyId: string,
+    item: CreateTemplateItemInput,
+  ): Promise<TemplateItem> {
     const id = uuid();
     const ts = now();
     try {
-      const { error } = await this.client.from('template_items').insert({
+      const { error } = await this.client.from("template_items").insert({
         id,
         family_id: familyId,
         title: item.title,
@@ -162,33 +186,41 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
         this.loadProfileIdsForItem(id),
       ]);
       const { data: rows, error: selError } = await this.client
-        .from('template_items')
-        .select('*')
-        .eq('id', id);
+        .from("template_items")
+        .select("*")
+        .eq("id", id);
       if (selError) throw selError;
       return mapTemplateItem(rows![0], tagIds, profileIds);
     } catch (err) {
-      logger.error('TemplateRepository', 'createTemplateItem failed', err);
-      throw new Error(`Erro ao criar modelo: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("TemplateRepository", "createTemplateItem failed", err);
+      throw new Error(
+        `Erro ao criar modelo: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async updateTemplateItem(
     id: string,
-    data: Partial<Pick<TemplateItem, 'title' | 'categoryId' | 'iconId' | 'quantity' | 'isAllFamily'>> & { profileIds?: string[]; tagIds?: string[] }
+    data: Partial<
+      Pick<
+        TemplateItem,
+        "title" | "categoryId" | "iconId" | "quantity" | "isAllFamily"
+      >
+    > & { profileIds?: string[]; tagIds?: string[] },
   ): Promise<TemplateItem> {
     const updates: Record<string, unknown> = { updated_at: now() };
     if (data.title !== undefined) updates.title = data.title;
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
     if (data.iconId !== undefined) updates.icon_id = data.iconId;
     if (data.quantity !== undefined) updates.quantity = data.quantity;
-    if (data.isAllFamily !== undefined) updates.is_all_family = data.isAllFamily;
+    if (data.isAllFamily !== undefined)
+      updates.is_all_family = data.isAllFamily;
 
     try {
       const { error } = await this.client
-        .from('template_items')
+        .from("template_items")
         .update(updates)
-        .eq('id', id);
+        .eq("id", id);
       if (error) throw error;
 
       if (data.tagIds !== undefined) {
@@ -203,40 +235,44 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
         this.loadProfileIdsForItem(id),
       ]);
       const { data: rows, error: selError } = await this.client
-        .from('template_items')
-        .select('*')
-        .eq('id', id);
+        .from("template_items")
+        .select("*")
+        .eq("id", id);
       if (selError) throw selError;
-      if (!rows || rows.length === 0) throw new Error('Modelo não encontrado');
+      if (!rows || rows.length === 0) throw new Error("Modelo não encontrado");
       return mapTemplateItem(rows[0], tagIds, profileIds);
     } catch (err) {
-      logger.error('TemplateRepository', 'updateTemplateItem failed', err);
-      throw new Error(`Erro ao actualizar modelo: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("TemplateRepository", "updateTemplateItem failed", err);
+      throw new Error(
+        `Erro ao actualizar modelo: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async deleteTemplateItem(id: string): Promise<void> {
     try {
       const { error: e1 } = await this.client
-        .from('template_item_profiles')
+        .from("template_item_profiles")
         .delete()
-        .eq('template_item_id', id);
+        .eq("template_item_id", id);
       if (e1) throw e1;
 
       const { error: e2 } = await this.client
-        .from('template_item_tags')
+        .from("template_item_tags")
         .delete()
-        .eq('template_item_id', id);
+        .eq("template_item_id", id);
       if (e2) throw e2;
 
       const { error: e3 } = await this.client
-        .from('template_items')
+        .from("template_items")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
       if (e3) throw e3;
     } catch (err) {
-      logger.error('TemplateRepository', 'deleteTemplateItem failed', err);
-      throw new Error(`Erro ao eliminar modelo: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("TemplateRepository", "deleteTemplateItem failed", err);
+      throw new Error(
+        `Erro ao eliminar modelo: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
@@ -244,7 +280,7 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
     familyId: string,
     vacationId: string,
     participantProfileIds: string[],
-    vacationTagIds: string[]
+    vacationTagIds: string[],
   ): Promise<number> {
     try {
       const items = await this.getTemplateItems(familyId);
@@ -255,7 +291,11 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
       const packingItemsToInsert: any[] = [];
       const packingItemTagsToInsert: any[] = [];
 
-      function enqueuePackingItem(profileId: string | null, isAllFamily: boolean, item: TemplateItem): void {
+      function enqueuePackingItem(
+        profileId: string | null,
+        isAllFamily: boolean,
+        item: TemplateItem,
+      ): void {
         const id = uuid();
         const ts = now();
         packingItemsToInsert.push({
@@ -263,7 +303,7 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
           vacation_id: vacationId,
           family_id: familyId,
           title: item.title,
-          status: 'new',
+          status: "new",
           profile_id: profileId,
           quantity: item.quantity,
           notes: null,
@@ -284,7 +324,11 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
       }
 
       for (const item of items) {
-        if (item.tagIds.length > 0 && !item.tagIds.some((tid) => tagSet.has(tid))) continue;
+        if (
+          item.tagIds.length > 0 &&
+          !item.tagIds.some((tid) => tagSet.has(tid))
+        )
+          continue;
 
         if (item.isAllFamily) {
           enqueuePackingItem(null, true, item);
@@ -303,23 +347,28 @@ export class SupabaseTemplateRepository implements ITemplateRepository {
 
       if (packingItemsToInsert.length > 0) {
         const { error: itemsError } = await this.client
-          .from('packing_items')
+          .from("packing_items")
           .insert(packingItemsToInsert);
         if (itemsError) throw itemsError;
       }
 
       if (packingItemTagsToInsert.length > 0) {
         const { error: tagsError } = await this.client
-          .from('packing_item_tags')
+          .from("packing_item_tags")
           .insert(packingItemTagsToInsert);
         if (tagsError) throw tagsError;
       }
 
-      logger.info('TemplateRepository', `applyTemplates: injected ${count} packing items for vacation ${vacationId}`);
+      logger.info(
+        "TemplateRepository",
+        `applyTemplates: injected ${count} packing items for vacation ${vacationId}`,
+      );
       return count;
     } catch (err) {
-      logger.error('TemplateRepository', 'applyTemplates failed', err);
-      throw new Error(`Erro ao aplicar modelos: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("TemplateRepository", "applyTemplates failed", err);
+      throw new Error(
+        `Erro ao aplicar modelos: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 }

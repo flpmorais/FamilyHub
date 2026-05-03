@@ -6,5 +6,8 @@ export interface ClassificationResult {
 }
 
 export interface IClassificationRepository {
-  classifyItem(itemName: string, categories: string[]): Promise<ClassificationResult>;
+  classifyItem(
+    itemName: string,
+    categories: string[],
+  ): Promise<ClassificationResult>;
 }

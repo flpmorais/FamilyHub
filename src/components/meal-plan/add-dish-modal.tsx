@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,25 +9,28 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-} from 'react-native';
-import { useRepository } from '../../hooks/use-repository';
-import { useAuthStore } from '../../hooks/use-auth.store';
-import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
-import { DishTypeTag } from '../common/dish-type-tag';
-import { logger } from '../../utils/logger';
-import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
-import type { Recipe, RecipeType } from '../../types/recipe.types';
-import type { MealEntryDish, CreateDishInput } from '../../types/meal-plan.types';
-import { getDishDisplay } from '../../types/meal-plan.types';
-import type { Leftover } from '../../types/leftover.types';
+} from "react-native";
+import { useRepository } from "../../hooks/use-repository";
+import { useAuthStore } from "../../hooks/use-auth.store";
+import { RECIPE_TYPE_LIST } from "../../constants/recipe-defaults";
+import { DishTypeTag } from "../common/dish-type-tag";
+import { logger } from "../../utils/logger";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
+import type { Recipe, RecipeType } from "../../types/recipe.types";
+import type {
+  MealEntryDish,
+  CreateDishInput,
+} from "../../types/meal-plan.types";
+import { getDishDisplay } from "../../types/meal-plan.types";
+import type { Leftover } from "../../types/leftover.types";
 
-type Tab = 'recipe' | 'manual' | 'resto' | 'fridge';
+type Tab = "recipe" | "manual" | "resto" | "fridge";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'recipe', label: 'Receita' },
-  { key: 'manual', label: 'Manual' },
-  { key: 'resto', label: 'Resto' },
-  { key: 'fridge', label: 'Frigorífico' },
+  { key: "recipe", label: "Receita" },
+  { key: "manual", label: "Manual" },
+  { key: "resto", label: "Resto" },
+  { key: "fridge", label: "Frigorífico" },
 ];
 
 interface AddDishModalProps {
@@ -38,16 +41,27 @@ interface AddDishModalProps {
   onClose: () => void;
 }
 
-export function AddDishModal({ visible, familyId, mealDate, onSelect, onClose }: AddDishModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('recipe');
+export function AddDishModal({
+  visible,
+  familyId,
+  mealDate,
+  onSelect,
+  onClose,
+}: AddDishModalProps) {
+  const [activeTab, setActiveTab] = useState<Tab>("recipe");
 
   function handleClose() {
-    setActiveTab('recipe');
+    setActiveTab("recipe");
     onClose();
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleClose}
+    >
       <View style={s.overlay}>
         <View style={s.panel}>
           <View style={s.header}>
@@ -57,29 +71,51 @@ export function AddDishModal({ visible, familyId, mealDate, onSelect, onClose }:
             </TouchableOpacity>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabScroll} contentContainerStyle={s.tabRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={s.tabScroll}
+            contentContainerStyle={s.tabRow}
+          >
             {TABS.map((tab) => (
               <TouchableOpacity
                 key={tab.key}
                 style={[s.tabChip, activeTab === tab.key && s.tabChipActive]}
                 onPress={() => setActiveTab(tab.key)}
               >
-                <Text style={[s.tabText, activeTab === tab.key && s.tabTextActive]}>{tab.label}</Text>
+                <Text
+                  style={[s.tabText, activeTab === tab.key && s.tabTextActive]}
+                >
+                  {tab.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
-          {activeTab === 'recipe' && (
-            <RecipeTab familyId={familyId} onSelect={onSelect} onClose={handleClose} />
+          {activeTab === "recipe" && (
+            <RecipeTab
+              familyId={familyId}
+              onSelect={onSelect}
+              onClose={handleClose}
+            />
           )}
-          {activeTab === 'manual' && (
+          {activeTab === "manual" && (
             <ManualTab onSelect={onSelect} onClose={handleClose} />
           )}
-          {activeTab === 'resto' && (
-            <RestoTab familyId={familyId} mealDate={mealDate} onSelect={onSelect} onClose={handleClose} />
+          {activeTab === "resto" && (
+            <RestoTab
+              familyId={familyId}
+              mealDate={mealDate}
+              onSelect={onSelect}
+              onClose={handleClose}
+            />
           )}
-          {activeTab === 'fridge' && (
-            <FridgeTab familyId={familyId} onSelect={onSelect} onClose={handleClose} />
+          {activeTab === "fridge" && (
+            <FridgeTab
+              familyId={familyId}
+              onSelect={onSelect}
+              onClose={handleClose}
+            />
           )}
         </View>
       </View>
@@ -89,23 +125,32 @@ export function AddDishModal({ visible, familyId, mealDate, onSelect, onClose }:
 
 // ── Recipe Tab ──────────────────────────────────────────────────────────────
 
-function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect: (d: CreateDishInput) => void; onClose: () => void }) {
-  const recipeRepo = useRepository('recipe');
+function RecipeTab({
+  familyId,
+  onSelect,
+  onClose,
+}: {
+  familyId: string;
+  onSelect: (d: CreateDishInput) => void;
+  onClose: () => void;
+}) {
+  const recipeRepo = useRepository("recipe");
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeType, setActiveType] = useState<RecipeType | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['search'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["search"],
+    });
 
   useEffect(() => {
     setIsLoading(true);
     recipeRepo
       .getByFamilyId(familyId)
       .then(setRecipes)
-      .catch((err) => logger.error('AddDishModal:Recipe', 'load failed', err))
+      .catch((err) => logger.error("AddDishModal:Recipe", "load failed", err))
       .finally(() => setIsLoading(false));
   }, [familyId, recipeRepo]);
 
@@ -113,17 +158,18 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
     let result = recipes;
     if (activeType) result = result.filter((r) => r.type === activeType);
     const term = search.trim().toLowerCase();
-    if (term) result = result.filter((r) => r.name.toLowerCase().includes(term));
+    if (term)
+      result = result.filter((r) => r.name.toLowerCase().includes(term));
     return result;
   }, [recipes, activeType, search]);
 
   function handleSelect(recipe: Recipe) {
     onSelect({
-      dishType: 'recipe',
+      dishType: "recipe",
       recipeId: recipe.id,
       servingsOverride: recipe.servings,
     });
-    setSearch('');
+    setSearch("");
     setActiveType(null);
     onClose();
   }
@@ -131,7 +177,7 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
   return (
     <View style={s.tabContent}>
       <TextInput
-        {...getInputProps('search')}
+        {...getInputProps("search")}
         style={s.search}
         value={search}
         onChangeText={setSearch}
@@ -141,14 +187,30 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
       />
       <FlatList
         horizontal
-        data={[{ key: null as RecipeType | null, label: 'Todos' }, ...RECIPE_TYPE_LIST.map((t) => ({ key: t.key as RecipeType | null, label: t.label }))]}
+        data={[
+          { key: null as RecipeType | null, label: "Todos" },
+          ...RECIPE_TYPE_LIST.map((t) => ({
+            key: t.key as RecipeType | null,
+            label: t.label,
+          })),
+        ]}
         keyExtractor={(item) => item.label}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[s.filterChip, activeType === item.key && s.filterChipActive]}
+            style={[
+              s.filterChip,
+              activeType === item.key && s.filterChipActive,
+            ]}
             onPress={() => setActiveType(item.key)}
           >
-            <Text style={[s.filterChipText, activeType === item.key && s.filterChipTextActive]}>{item.label}</Text>
+            <Text
+              style={[
+                s.filterChipText,
+                activeType === item.key && s.filterChipTextActive,
+              ]}
+            >
+              {item.label}
+            </Text>
           </TouchableOpacity>
         )}
         showsHorizontalScrollIndicator={false}
@@ -156,16 +218,25 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
         style={s.filterScroll}
       />
       {isLoading ? (
-        <View style={s.centered}><ActivityIndicator /></View>
+        <View style={s.centered}>
+          <ActivityIndicator />
+        </View>
       ) : filtered.length === 0 ? (
-        <View style={s.centered}><Text style={s.emptyText}>Nenhuma receita encontrada.</Text></View>
+        <View style={s.centered}>
+          <Text style={s.emptyText}>Nenhuma receita encontrada.</Text>
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity style={s.listRow} onPress={() => handleSelect(item)}>
-              <Text style={s.listName} numberOfLines={1}>{item.name}</Text>
+            <TouchableOpacity
+              style={s.listRow}
+              onPress={() => handleSelect(item)}
+            >
+              <Text style={s.listName} numberOfLines={1}>
+                {item.name}
+              </Text>
               <DishTypeTag typeKey={item.type} variant="filled" size="sm" />
             </TouchableOpacity>
           )}
@@ -178,29 +249,36 @@ function RecipeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
 
 // ── Manual Tab ──────────────────────────────────────────────────────────────
 
-function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => void; onClose: () => void }) {
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<RecipeType>('meal');
-  const [error, setError] = useState('');
+function ManualTab({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (d: CreateDishInput) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<RecipeType>("meal");
+  const [error, setError] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['name'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["name"],
+    });
 
   function handleSave() {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('O nome do prato é obrigatório');
+      setError("O nome do prato é obrigatório");
       return;
     }
     onSelect({
-      dishType: 'manual',
+      dishType: "manual",
       manualName: trimmed,
       manualCategory: category,
     });
-    setName('');
-    setCategory('meal');
-    setError('');
+    setName("");
+    setCategory("meal");
+    setError("");
     onClose();
   }
 
@@ -208,14 +286,20 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
     <ScrollView
       ref={scrollViewRef}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={[s.tabContent, { paddingBottom: keyboardHeight + 8 }]}
+      contentContainerStyle={[
+        s.tabContent,
+        { paddingBottom: keyboardHeight + 8 },
+      ]}
     >
       <Text style={s.fieldLabel}>Prato *</Text>
       <TextInput
-        {...getInputProps('name')}
+        {...getInputProps("name")}
         style={[s.input, error ? s.inputError : null]}
         value={name}
-        onChangeText={(t) => { setName(t); setError(''); }}
+        onChangeText={(t) => {
+          setName(t);
+          setError("");
+        }}
         placeholder="Ex: Arroz de pato"
         autoCapitalize="sentences"
       />
@@ -227,7 +311,7 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
           <DishTypeTag
             key={t.key}
             typeKey={t.key}
-            variant={category === t.key ? 'filled' : 'outlined'}
+            variant={category === t.key ? "filled" : "outlined"}
             size="md"
             onPress={() => setCategory(t.key)}
           />
@@ -243,8 +327,18 @@ function ManualTab({ onSelect, onClose }: { onSelect: (d: CreateDishInput) => vo
 
 // ── Resto Tab ──────────────────────────────────────────────────────────────
 
-function RestoTab({ familyId, mealDate, onSelect, onClose }: { familyId: string; mealDate: string; onSelect: (d: CreateDishInput) => void; onClose: () => void }) {
-  const mealPlanRepo = useRepository('mealPlan');
+function RestoTab({
+  familyId,
+  mealDate,
+  onSelect,
+  onClose,
+}: {
+  familyId: string;
+  mealDate: string;
+  onSelect: (d: CreateDishInput) => void;
+  onClose: () => void;
+}) {
+  const mealPlanRepo = useRepository("mealPlan");
   const [dishes, setDishes] = useState<MealEntryDish[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -253,13 +347,13 @@ function RestoTab({ familyId, mealDate, onSelect, onClose }: { familyId: string;
     mealPlanRepo
       .getRecentDishes(familyId, mealDate, 5)
       .then(setDishes)
-      .catch((err) => logger.error('AddDishModal:Resto', 'load failed', err))
+      .catch((err) => logger.error("AddDishModal:Resto", "load failed", err))
       .finally(() => setIsLoading(false));
   }, [familyId, mealDate, mealPlanRepo]);
 
   function handleSelect(dish: MealEntryDish) {
     onSelect({
-      dishType: 'resto',
+      dishType: "resto",
       sourceDishId: dish.id,
     });
     onClose();
@@ -268,9 +362,13 @@ function RestoTab({ familyId, mealDate, onSelect, onClose }: { familyId: string;
   return (
     <View style={s.tabContent}>
       {isLoading ? (
-        <View style={s.centered}><ActivityIndicator /></View>
+        <View style={s.centered}>
+          <ActivityIndicator />
+        </View>
       ) : dishes.length === 0 ? (
-        <View style={s.centered}><Text style={s.emptyText}>Sem pratos nos últimos 5 dias.</Text></View>
+        <View style={s.centered}>
+          <Text style={s.emptyText}>Sem pratos nos últimos 5 dias.</Text>
+        </View>
       ) : (
         <FlatList
           data={dishes}
@@ -278,9 +376,18 @@ function RestoTab({ familyId, mealDate, onSelect, onClose }: { familyId: string;
           renderItem={({ item }) => {
             const display = getDishDisplay(item);
             return (
-              <TouchableOpacity style={s.listRow} onPress={() => handleSelect(item)}>
-                <Text style={s.listName} numberOfLines={1}>{display.name}</Text>
-                <DishTypeTag typeKey={display.category} variant="filled" size="sm" />
+              <TouchableOpacity
+                style={s.listRow}
+                onPress={() => handleSelect(item)}
+              >
+                <Text style={s.listName} numberOfLines={1}>
+                  {display.name}
+                </Text>
+                <DishTypeTag
+                  typeKey={display.category}
+                  variant="filled"
+                  size="sm"
+                />
               </TouchableOpacity>
             );
           }}
@@ -293,8 +400,16 @@ function RestoTab({ familyId, mealDate, onSelect, onClose }: { familyId: string;
 
 // ── Fridge Tab ──────────────────────────────────────────────────────────────
 
-function FridgeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect: (d: CreateDishInput) => void; onClose: () => void }) {
-  const leftoverRepo = useRepository('leftover');
+function FridgeTab({
+  familyId,
+  onSelect,
+  onClose,
+}: {
+  familyId: string;
+  onSelect: (d: CreateDishInput) => void;
+  onClose: () => void;
+}) {
+  const leftoverRepo = useRepository("leftover");
   const [leftovers, setLeftovers] = useState<Leftover[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -307,13 +422,13 @@ function FridgeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
         const now = new Date();
         setLeftovers(items.filter((l) => new Date(l.expiryDate) > now));
       })
-      .catch((err) => logger.error('AddDishModal:Fridge', 'load failed', err))
+      .catch((err) => logger.error("AddDishModal:Fridge", "load failed", err))
       .finally(() => setIsLoading(false));
   }, [familyId, leftoverRepo]);
 
   function handleSelect(leftover: Leftover) {
     onSelect({
-      dishType: 'fridge',
+      dishType: "fridge",
       leftoverId: leftover.id,
     });
     onClose();
@@ -327,23 +442,39 @@ function FridgeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
   return (
     <View style={s.tabContent}>
       {isLoading ? (
-        <View style={s.centered}><ActivityIndicator /></View>
+        <View style={s.centered}>
+          <ActivityIndicator />
+        </View>
       ) : leftovers.length === 0 ? (
-        <View style={s.centered}><Text style={s.emptyText}>Sem restos no frigorífico.</Text></View>
+        <View style={s.centered}>
+          <Text style={s.emptyText}>Sem restos no frigorífico.</Text>
+        </View>
       ) : (
         <FlatList
           data={leftovers}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const days = daysLeft(item.expiryDate);
-            const remaining = item.totalDoses - item.dosesEaten - item.dosesThrownOut;
+            const remaining =
+              item.totalDoses - item.dosesEaten - item.dosesThrownOut;
             return (
-              <TouchableOpacity style={s.listRow} onPress={() => handleSelect(item)}>
+              <TouchableOpacity
+                style={s.listRow}
+                onPress={() => handleSelect(item)}
+              >
                 <View style={{ flex: 1 }}>
-                  <Text style={s.listName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={s.listMeta}>{remaining} doses · {days}d restantes</Text>
+                  <Text style={s.listName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={s.listMeta}>
+                    {remaining} doses · {days}d restantes
+                  </Text>
                 </View>
-                <DishTypeTag typeKey={item.type as RecipeType} variant="filled" size="sm" />
+                <DishTypeTag
+                  typeKey={item.type as RecipeType}
+                  variant="filled"
+                  size="sm"
+                />
               </TouchableOpacity>
             );
           }}
@@ -357,23 +488,27 @@ function FridgeTab({ familyId, onSelect, onClose }: { familyId: string; onSelect
 // ── Styles ──────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
   panel: {
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    height: '85%',
+    height: "85%",
     paddingBottom: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     paddingBottom: 8,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
-  closeText: { fontSize: 20, color: '#888', padding: 4 },
+  title: { fontSize: 18, fontWeight: "700", color: "#1A1A1A" },
+  closeText: { fontSize: 20, color: "#888", padding: 4 },
   tabScroll: { maxHeight: 44 },
   tabRow: { paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
   tabChip: {
@@ -381,76 +516,104 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#FFF',
+    borderColor: "#DDD",
+    backgroundColor: "#FFF",
   },
-  tabChipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  tabText: { fontSize: 13, color: '#555', fontWeight: '500' },
-  tabTextActive: { color: '#FFF' },
+  tabChipActive: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  tabText: { fontSize: 13, color: "#555", fontWeight: "500" },
+  tabTextActive: { color: "#FFF" },
   tabContent: { flex: 1, minHeight: 200 },
   search: {
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 15,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
   filterScroll: { maxHeight: 44 },
   filterRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: '#F5F5F5' },
-  filterChipActive: { backgroundColor: '#B5451B' },
-  filterChipText: { fontSize: 12, color: '#666', fontWeight: '600' },
-  filterChipTextActive: { color: '#FFF' },
-  centered: { padding: 32, alignItems: 'center' },
-  emptyText: { color: '#888', fontSize: 14 },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: "#F5F5F5",
+  },
+  filterChipActive: { backgroundColor: "#B5451B" },
+  filterChipText: { fontSize: 12, color: "#666", fontWeight: "600" },
+  filterChipTextActive: { color: "#FFF" },
+  centered: { padding: 32, alignItems: "center" },
+  emptyText: { color: "#888", fontSize: 14 },
   listContent: { paddingHorizontal: 16 },
   listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
     gap: 8,
   },
-  listName: { flex: 1, fontSize: 15, color: '#1A1A1A' },
-  listMeta: { fontSize: 12, color: '#888', marginTop: 2 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 6, paddingHorizontal: 16 },
+  listName: { flex: 1, fontSize: 15, color: "#1A1A1A" },
+  listMeta: { fontSize: 12, color: "#888", marginTop: 2 },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  badgeText: { color: "#FFF", fontSize: 10, fontWeight: "700" },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#555",
+    marginBottom: 6,
+    paddingHorizontal: 16,
+  },
   input: {
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: "#DDD",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
-  inputError: { borderColor: '#D32F2F' },
-  errorText: { color: '#D32F2F', fontSize: 12, marginTop: 4, paddingHorizontal: 16 },
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
+  inputError: { borderColor: "#D32F2F" },
+  errorText: {
+    color: "#D32F2F",
+    fontSize: 12,
+    marginTop: 4,
+    paddingHorizontal: 16,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
   categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#FFF',
+    borderColor: "#DDD",
+    backgroundColor: "#FFF",
   },
-  categoryChipText: { fontSize: 12, color: '#555', fontWeight: '500' },
+  categoryChipText: { fontSize: 12, color: "#555", fontWeight: "500" },
   saveBtn: {
     marginHorizontal: 16,
     marginTop: 20,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  saveBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
 });

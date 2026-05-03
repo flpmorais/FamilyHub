@@ -4,4 +4,4 @@ export {
   navigationLightTheme,
   navigationDarkTheme,
   useAppTheme,
-} from './theme';
+} from "./theme";

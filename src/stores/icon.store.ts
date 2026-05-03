@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import type { IconEntry } from '../types/packing.types';
-import type { IIconRepository } from '../repositories/interfaces/icon.repository.interface';
+import { create } from "zustand";
+import type { IconEntry } from "../types/packing.types";
+import type { IIconRepository } from "../repositories/interfaces/icon.repository.interface";
 
 interface IconState {
   icons: IconEntry[];
@@ -26,6 +26,6 @@ export const useIconStore = create<IconState>((set, get) => ({
   },
 
   resolveIconName: (iconId) => {
-    return get().iconsMap.get(iconId)?.name ?? 'help';
+    return get().iconsMap.get(iconId)?.name ?? "help";
   },
 }));

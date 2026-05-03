@@ -1,5 +1,5 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IRecipeRepository } from '../interfaces/recipe.repository.interface';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IRecipeRepository } from "../interfaces/recipe.repository.interface";
 import type {
   Recipe,
   RecipeForList,
@@ -9,8 +9,8 @@ import type {
   RecipeStep,
   RecipeWithDetails,
   CreateRecipeInput,
-} from '../../types/recipe.types';
-import { logger } from '../../utils/logger';
+} from "../../types/recipe.types";
+import { logger } from "../../utils/logger";
 
 function mapRecipe(row: any): Recipe {
   return {
@@ -77,7 +77,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
     try {
       // 1. Insert recipe
       const { data: recipeRow, error } = await this.client
-        .from('recipes')
+        .from("recipes")
         .insert({
           family_id: input.familyId,
           name: input.name,
@@ -87,7 +87,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
           cook_time_minutes: input.cookTimeMinutes ?? null,
           cost: input.cost ?? null,
           image_url: input.imageUrl ?? null,
-          import_method: input.importMethod ?? 'manual',
+          import_method: input.importMethod ?? "manual",
           source_url: input.sourceUrl ?? null,
           source: input.source ?? null,
         })
@@ -105,7 +105,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
       }));
 
       const { data: ingredients, error: ingError } = await this.client
-        .from('recipe_ingredients')
+        .from("recipe_ingredients")
         .insert(ingredientRows)
         .select();
 
@@ -119,7 +119,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
       }));
 
       const { data: steps, error: stepError } = await this.client
-        .from('recipe_steps')
+        .from("recipe_steps")
         .insert(stepRows)
         .select();
 
@@ -132,7 +132,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
           category_id: catId,
         }));
         const { error: catError } = await this.client
-          .from('recipe_category_assignments')
+          .from("recipe_category_assignments")
           .insert(catRows);
         if (catError) throw catError;
       }
@@ -144,7 +144,7 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
           tag_id: tagId,
         }));
         const { error: tagError } = await this.client
-          .from('recipe_tag_assignments')
+          .from("recipe_tag_assignments")
           .insert(tagRows);
         if (tagError) throw tagError;
       }
@@ -157,9 +157,9 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
         tags: [],
       };
     } catch (err) {
-      logger.error('RecipeRepository', 'create failed', err);
+      logger.error("RecipeRepository", "create failed", err);
       throw new Error(
-        `Não foi possível criar a receita: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível criar a receita: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -167,34 +167,39 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
   async getById(id: string): Promise<RecipeWithDetails | null> {
     try {
       const { data: recipeRow, error } = await this.client
-        .from('recipes')
-        .select('*')
-        .eq('id', id)
+        .from("recipes")
+        .select("*")
+        .eq("id", id)
         .maybeSingle();
 
       if (error) throw error;
       if (!recipeRow) return null;
 
-      const [ingredientsResult, stepsResult, catResult, tagResult] = await Promise.all([
-        this.client
-          .from('recipe_ingredients')
-          .select('*')
-          .eq('recipe_id', id)
-          .order('sort_order', { ascending: true }),
-        this.client
-          .from('recipe_steps')
-          .select('*')
-          .eq('recipe_id', id)
-          .order('step_number', { ascending: true }),
-        this.client
-          .from('recipe_category_assignments')
-          .select('category_id, recipe_categories(id, family_id, name, created_at, updated_at)')
-          .eq('recipe_id', id),
-        this.client
-          .from('recipe_tag_assignments')
-          .select('tag_id, recipe_tags(id, family_id, name, created_at, updated_at)')
-          .eq('recipe_id', id),
-      ]);
+      const [ingredientsResult, stepsResult, catResult, tagResult] =
+        await Promise.all([
+          this.client
+            .from("recipe_ingredients")
+            .select("*")
+            .eq("recipe_id", id)
+            .order("sort_order", { ascending: true }),
+          this.client
+            .from("recipe_steps")
+            .select("*")
+            .eq("recipe_id", id)
+            .order("step_number", { ascending: true }),
+          this.client
+            .from("recipe_category_assignments")
+            .select(
+              "category_id, recipe_categories(id, family_id, name, created_at, updated_at)",
+            )
+            .eq("recipe_id", id),
+          this.client
+            .from("recipe_tag_assignments")
+            .select(
+              "tag_id, recipe_tags(id, family_id, name, created_at, updated_at)",
+            )
+            .eq("recipe_id", id),
+        ]);
 
       if (ingredientsResult.error) throw ingredientsResult.error;
       if (stepsResult.error) throw stepsResult.error;
@@ -205,13 +210,15 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
         ...mapRecipe(recipeRow),
         ingredients: (ingredientsResult.data ?? []).map(mapIngredient),
         steps: (stepsResult.data ?? []).map(mapStep),
-        categories: (catResult.data ?? []).map((row: any) => mapCategory(row.recipe_categories)),
+        categories: (catResult.data ?? []).map((row: any) =>
+          mapCategory(row.recipe_categories),
+        ),
         tags: (tagResult.data ?? []).map((row: any) => mapTag(row.recipe_tags)),
       };
     } catch (err) {
-      logger.error('RecipeRepository', 'getById failed', err);
+      logger.error("RecipeRepository", "getById failed", err);
       throw new Error(
-        `Não foi possível carregar a receita: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível carregar a receita: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -219,17 +226,17 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
   async getByFamilyId(familyId: string): Promise<Recipe[]> {
     try {
       const { data, error } = await this.client
-        .from('recipes')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('created_at', { ascending: false });
+        .from("recipes")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return (data ?? []).map(mapRecipe);
     } catch (err) {
-      logger.error('RecipeRepository', 'getByFamilyId failed', err);
+      logger.error("RecipeRepository", "getByFamilyId failed", err);
       throw new Error(
-        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -237,10 +244,10 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
   async getByFamilyIdForList(familyId: string): Promise<RecipeForList[]> {
     try {
       const { data: recipeRows, error } = await this.client
-        .from('recipes')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('created_at', { ascending: false });
+        .from("recipes")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       const recipes = (recipeRows ?? []).map(mapRecipe);
@@ -249,20 +256,21 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
       const recipeIds = recipes.map((r) => r.id);
 
       // Batch load ingredient names, category assignments, and tag assignments
-      const [ingredientsResult, catAssignments, tagAssignments] = await Promise.all([
-        this.client
-          .from('recipe_ingredients')
-          .select('recipe_id, ingredient_name')
-          .in('recipe_id', recipeIds),
-        this.client
-          .from('recipe_category_assignments')
-          .select('recipe_id, category_id')
-          .in('recipe_id', recipeIds),
-        this.client
-          .from('recipe_tag_assignments')
-          .select('recipe_id, tag_id')
-          .in('recipe_id', recipeIds),
-      ]);
+      const [ingredientsResult, catAssignments, tagAssignments] =
+        await Promise.all([
+          this.client
+            .from("recipe_ingredients")
+            .select("recipe_id, ingredient_name")
+            .in("recipe_id", recipeIds),
+          this.client
+            .from("recipe_category_assignments")
+            .select("recipe_id, category_id")
+            .in("recipe_id", recipeIds),
+          this.client
+            .from("recipe_tag_assignments")
+            .select("recipe_id, tag_id")
+            .in("recipe_id", recipeIds),
+        ]);
 
       // Group by recipe_id
       const ingredientMap = new Map<string, string[]>();
@@ -293,9 +301,9 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
         tagIds: tagMap.get(recipe.id) ?? [],
       }));
     } catch (err) {
-      logger.error('RecipeRepository', 'getByFamilyIdForList failed', err);
+      logger.error("RecipeRepository", "getByFamilyIdForList failed", err);
       throw new Error(
-        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -329,47 +337,56 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
 
       if (filters.categoryIds && filters.categoryIds.length > 0) {
         const { data, error } = await this.client
-          .from('recipe_category_assignments')
-          .select('recipe_id')
-          .in('category_id', filters.categoryIds);
+          .from("recipe_category_assignments")
+          .select("recipe_id")
+          .in("category_id", filters.categoryIds);
         if (error) throw error;
-        intersect(Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))));
+        intersect(
+          Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))),
+        );
         if (restrictIds!.length === 0) return [];
       }
 
       if (filters.tagIds && filters.tagIds.length > 0) {
         const { data, error } = await this.client
-          .from('recipe_tag_assignments')
-          .select('recipe_id')
-          .in('tag_id', filters.tagIds);
+          .from("recipe_tag_assignments")
+          .select("recipe_id")
+          .in("tag_id", filters.tagIds);
         if (error) throw error;
-        intersect(Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))));
+        intersect(
+          Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))),
+        );
         if (restrictIds!.length === 0) return [];
       }
 
       if (filters.ingredientQuery && filters.ingredientQuery.trim()) {
         const q = filters.ingredientQuery.trim();
         const { data, error } = await this.client
-          .from('recipe_ingredients')
-          .select('recipe_id')
-          .ilike('ingredient_name', `%${q}%`);
+          .from("recipe_ingredients")
+          .select("recipe_id")
+          .ilike("ingredient_name", `%${q}%`);
         if (error) throw error;
-        intersect(Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))));
+        intersect(
+          Array.from(new Set((data ?? []).map((r: any) => r.recipe_id))),
+        );
         if (restrictIds!.length === 0) return [];
       }
 
       // Phase 2 — paginated query on recipes with type + time filters
       let query = this.client
-        .from('recipes')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('created_at', { ascending: false });
+        .from("recipes")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("created_at", { ascending: false });
 
-      if (filters.type) query = query.eq('type', filters.type);
-      if (filters.maxTotalTime != null) query = query.lte('total_time_minutes', filters.maxTotalTime);
-      if (filters.maxPrepTime != null) query = query.lte('prep_time_minutes', filters.maxPrepTime);
-      if (filters.maxCookTime != null) query = query.lte('cook_time_minutes', filters.maxCookTime);
-      if (restrictIds !== null) query = query.in('id', restrictIds);
+      if (filters.type) query = query.eq("type", filters.type);
+      if (filters.maxTotalTime != null)
+        query = query.lte("total_time_minutes", filters.maxTotalTime);
+      if (filters.maxPrepTime != null)
+        query = query.lte("prep_time_minutes", filters.maxPrepTime);
+      if (filters.maxCookTime != null)
+        query = query.lte("cook_time_minutes", filters.maxCookTime);
+      if (restrictIds !== null) query = query.in("id", restrictIds);
 
       query = query.range(offset, offset + limit - 1);
 
@@ -380,20 +397,21 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
 
       // Phase 3 — batch load joins for the current page only
       const recipeIds = recipes.map((r) => r.id);
-      const [ingredientsResult, catAssignments, tagAssignments] = await Promise.all([
-        this.client
-          .from('recipe_ingredients')
-          .select('recipe_id, ingredient_name')
-          .in('recipe_id', recipeIds),
-        this.client
-          .from('recipe_category_assignments')
-          .select('recipe_id, category_id')
-          .in('recipe_id', recipeIds),
-        this.client
-          .from('recipe_tag_assignments')
-          .select('recipe_id, tag_id')
-          .in('recipe_id', recipeIds),
-      ]);
+      const [ingredientsResult, catAssignments, tagAssignments] =
+        await Promise.all([
+          this.client
+            .from("recipe_ingredients")
+            .select("recipe_id, ingredient_name")
+            .in("recipe_id", recipeIds),
+          this.client
+            .from("recipe_category_assignments")
+            .select("recipe_id, category_id")
+            .in("recipe_id", recipeIds),
+          this.client
+            .from("recipe_tag_assignments")
+            .select("recipe_id, tag_id")
+            .in("recipe_id", recipeIds),
+        ]);
 
       const ingredientMap = new Map<string, string[]>();
       for (const row of ingredientsResult.data ?? []) {
@@ -423,9 +441,9 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
         tagIds: tagMap.get(recipe.id) ?? [],
       }));
     } catch (err) {
-      logger.error('RecipeRepository', 'getListPaginated failed', err);
+      logger.error("RecipeRepository", "getListPaginated failed", err);
       throw new Error(
-        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível carregar as receitas: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
@@ -433,9 +451,9 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
   async getTypeCounts(familyId: string): Promise<Record<string, number>> {
     try {
       const { data, error } = await this.client
-        .from('recipes')
-        .select('type')
-        .eq('family_id', familyId);
+        .from("recipes")
+        .select("type")
+        .eq("family_id", familyId);
       if (error) throw error;
       const counts: Record<string, number> = {};
       for (const row of data ?? []) {
@@ -443,19 +461,24 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
       }
       return counts;
     } catch (err) {
-      logger.error('RecipeRepository', 'getTypeCounts failed', err);
+      logger.error("RecipeRepository", "getTypeCounts failed", err);
       return {};
     }
   }
 
-  async update(id: string, input: Partial<CreateRecipeInput>): Promise<RecipeWithDetails> {
+  async update(
+    id: string,
+    input: Partial<CreateRecipeInput>,
+  ): Promise<RecipeWithDetails> {
     try {
       const updates: Record<string, unknown> = {};
       if (input.name !== undefined) updates.name = input.name;
       if (input.type !== undefined) updates.type = input.type;
       if (input.servings !== undefined) updates.servings = input.servings;
-      if (input.prepTimeMinutes !== undefined) updates.prep_time_minutes = input.prepTimeMinutes;
-      if (input.cookTimeMinutes !== undefined) updates.cook_time_minutes = input.cookTimeMinutes;
+      if (input.prepTimeMinutes !== undefined)
+        updates.prep_time_minutes = input.prepTimeMinutes;
+      if (input.cookTimeMinutes !== undefined)
+        updates.cook_time_minutes = input.cookTimeMinutes;
       if (input.cost !== undefined) updates.cost = input.cost;
       if (input.imageUrl !== undefined) updates.image_url = input.imageUrl;
       if (input.sourceUrl !== undefined) updates.source_url = input.sourceUrl;
@@ -463,15 +486,18 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
 
       if (Object.keys(updates).length > 0) {
         const { error } = await this.client
-          .from('recipes')
+          .from("recipes")
           .update(updates)
-          .eq('id', id);
+          .eq("id", id);
         if (error) throw error;
       }
 
       // Replace ingredients if provided
       if (input.ingredients) {
-        await this.client.from('recipe_ingredients').delete().eq('recipe_id', id);
+        await this.client
+          .from("recipe_ingredients")
+          .delete()
+          .eq("recipe_id", id);
         const ingredientRows = input.ingredients.map((ing) => ({
           recipe_id: id,
           ingredient_name: ing.ingredientName,
@@ -479,35 +505,38 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
           sort_order: ing.sortOrder,
         }));
         const { error: ingError } = await this.client
-          .from('recipe_ingredients')
+          .from("recipe_ingredients")
           .insert(ingredientRows);
         if (ingError) throw ingError;
       }
 
       // Replace steps if provided
       if (input.steps) {
-        await this.client.from('recipe_steps').delete().eq('recipe_id', id);
+        await this.client.from("recipe_steps").delete().eq("recipe_id", id);
         const stepRows = input.steps.map((step) => ({
           recipe_id: id,
           step_number: step.stepNumber,
           step_text: step.stepText,
         }));
         const { error: stepError } = await this.client
-          .from('recipe_steps')
+          .from("recipe_steps")
           .insert(stepRows);
         if (stepError) throw stepError;
       }
 
       // Replace category assignments if provided
       if (input.categoryIds) {
-        await this.client.from('recipe_category_assignments').delete().eq('recipe_id', id);
+        await this.client
+          .from("recipe_category_assignments")
+          .delete()
+          .eq("recipe_id", id);
         if (input.categoryIds.length > 0) {
           const catRows = input.categoryIds.map((catId) => ({
             recipe_id: id,
             category_id: catId,
           }));
           const { error: catError } = await this.client
-            .from('recipe_category_assignments')
+            .from("recipe_category_assignments")
             .insert(catRows);
           if (catError) throw catError;
         }
@@ -515,42 +544,42 @@ export class SupabaseRecipeRepository implements IRecipeRepository {
 
       // Replace tag assignments if provided
       if (input.tagIds) {
-        await this.client.from('recipe_tag_assignments').delete().eq('recipe_id', id);
+        await this.client
+          .from("recipe_tag_assignments")
+          .delete()
+          .eq("recipe_id", id);
         if (input.tagIds.length > 0) {
           const tagRows = input.tagIds.map((tagId) => ({
             recipe_id: id,
             tag_id: tagId,
           }));
           const { error: tagError } = await this.client
-            .from('recipe_tag_assignments')
+            .from("recipe_tag_assignments")
             .insert(tagRows);
           if (tagError) throw tagError;
         }
       }
 
       const result = await this.getById(id);
-      if (!result) throw new Error('Receita não encontrada após atualização');
+      if (!result) throw new Error("Receita não encontrada após atualização");
       return result;
     } catch (err) {
-      logger.error('RecipeRepository', 'update failed', err);
+      logger.error("RecipeRepository", "update failed", err);
       throw new Error(
-        `Não foi possível atualizar a receita: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível atualizar a receita: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }
 
   async delete(id: string): Promise<void> {
     try {
-      const { error } = await this.client
-        .from('recipes')
-        .delete()
-        .eq('id', id);
+      const { error } = await this.client.from("recipes").delete().eq("id", id);
 
       if (error) throw error;
     } catch (err) {
-      logger.error('RecipeRepository', 'delete failed', err);
+      logger.error("RecipeRepository", "delete failed", err);
       throw new Error(
-        `Não foi possível eliminar a receita: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível eliminar a receita: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }

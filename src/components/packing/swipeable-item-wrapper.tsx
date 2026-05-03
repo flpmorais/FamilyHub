@@ -1,14 +1,14 @@
-import { ReactNode, useCallback } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { ReactNode, useCallback } from "react";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   runOnJS,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 const THRESHOLD = 0.4;
 
 interface SwipeableItemWrapperProps {
@@ -65,17 +65,31 @@ export function SwipeableItemWrapper({
     <View style={styles.container}>
       {/* Left reveal (shown when swiping right) */}
       {onSwipeRight && rightColor && (
-        <View style={[styles.reveal, styles.revealLeft, { backgroundColor: rightColor }]}>
+        <View
+          style={[
+            styles.reveal,
+            styles.revealLeft,
+            { backgroundColor: rightColor },
+          ]}
+        >
           <Text style={styles.revealLabel}>{rightLabel}</Text>
         </View>
       )}
       {/* Right reveal (shown when swiping left) */}
-      <View style={[styles.reveal, styles.revealRight, { backgroundColor: leftColor }]}>
+      <View
+        style={[
+          styles.reveal,
+          styles.revealRight,
+          { backgroundColor: leftColor },
+        ]}
+      >
         <Text style={styles.revealLabel}>{leftLabel}</Text>
       </View>
 
       <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.card, cardStyle]}>{children}</Animated.View>
+        <Animated.View style={[styles.card, cardStyle]}>
+          {children}
+        </Animated.View>
       </GestureDetector>
     </View>
   );
@@ -83,26 +97,26 @@ export function SwipeableItemWrapper({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   reveal: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 20,
   },
   revealLeft: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   revealRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   revealLabel: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
 });

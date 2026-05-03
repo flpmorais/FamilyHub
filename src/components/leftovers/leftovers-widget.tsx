@@ -11,7 +11,9 @@ interface LeftoversWidgetProps {
 export function LeftoversWidget({ items, onPress }: LeftoversWidgetProps) {
   const expired = items.filter((l) => daysUntilExpiry(l.expiryDate) < 0);
   const expiresToday = items.filter((l) => daysUntilExpiry(l.expiryDate) === 0);
-  const expiresTomorrow = items.filter((l) => daysUntilExpiry(l.expiryDate) === 1);
+  const expiresTomorrow = items.filter(
+    (l) => daysUntilExpiry(l.expiryDate) === 1,
+  );
 
   return (
     <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.7}>

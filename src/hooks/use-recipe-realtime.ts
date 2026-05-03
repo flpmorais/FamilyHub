@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { supabaseClient } from '../repositories/supabase/supabase.client';
-import { logger } from '../utils/logger';
+import { useEffect } from "react";
+import { supabaseClient } from "../repositories/supabase/supabase.client";
+import { logger } from "../utils/logger";
 
 /**
  * Subscribes to Supabase Realtime postgres_changes on the `recipes` table
@@ -17,15 +17,15 @@ export function useRecipeRealtime(
     const channel = supabaseClient
       .channel(`recipes-${familyId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'recipes',
+          event: "*",
+          schema: "public",
+          table: "recipes",
           filter: `family_id=eq.${familyId}`,
         },
         (payload) => {
-          logger.info('RecipeRealtime', `${payload.eventType} event received`);
+          logger.info("RecipeRealtime", `${payload.eventType} event received`);
           onRecipeChange();
         },
       )

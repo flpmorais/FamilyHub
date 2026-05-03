@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useUiStore } from '../../stores/ui.store';
+import { useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useUiStore } from "../../stores/ui.store";
 
 const DELAY_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -37,12 +37,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   icon: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: "rgba(255,255,255,0.7)",
   },
 });

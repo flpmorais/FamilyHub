@@ -1,11 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRepository } from '../../hooks/use-repository';
-import { useAuthStore } from '../../stores/auth.store';
-import { logger } from '../../utils/logger';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { useRepository } from "../../hooks/use-repository";
+import { useAuthStore } from "../../stores/auth.store";
+import { logger } from "../../utils/logger";
 
 export default function SignInScreen() {
-  const authRepository = useRepository('auth');
-  const { setUserAccount, setLoading, setError, isLoading, error } = useAuthStore();
+  const authRepository = useRepository("auth");
+  const { setUserAccount, setLoading, setError, isLoading, error } =
+    useAuthStore();
 
   async function handleSignIn() {
     setLoading(true);
@@ -14,8 +21,11 @@ export default function SignInScreen() {
       const userAccount = await authRepository.signInWithGoogle();
       setUserAccount(userAccount);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido ao iniciar sessão.';
-      logger.error('SignIn', 'handleSignIn failed', err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Erro desconhecido ao iniciar sessão.";
+      logger.error("SignIn", "handleSignIn failed", err);
       setError(message);
     } finally {
       setLoading(false);
@@ -46,36 +56,36 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 48,
-    color: '#B5451B',
+    color: "#B5451B",
   },
   error: {
-    color: '#D32F2F',
+    color: "#D32F2F",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   button: {
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 8,
     minWidth: 200,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

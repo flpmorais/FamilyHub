@@ -232,63 +232,66 @@ export default function SuggestionDetailScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <ScrollView contentContainerStyle={st.content} keyboardShouldPersistTaps="handled">
-        {/* Creator & date */}
-        <View style={st.creatorRow}>
-          {creator?.avatarUrl ? (
-            <Image source={{ uri: creator.avatarUrl }} style={st.avatar} />
-          ) : (
-            <View style={st.avatarFallback}>
-              <Text style={st.avatarInitial}>
-                {creator?.displayName?.[0]?.toUpperCase() ?? "?"}
-              </Text>
-            </View>
-          )}
-          <View>
-            <Text style={st.creatorName}>{creator?.displayName ?? ""}</Text>
-            <Text style={st.createdDate}>
-              Criado a {formatDatePt(suggestion.createdAt)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Description */}
-        {suggestion.description ? (
-          <Text style={st.description}>{suggestion.description}</Text>
-        ) : (
-          <Text style={st.descriptionEmpty}>Sem descrição.</Text>
-        )}
-
-        {/* Comments */}
-        {currentProfile && (
-          <SuggestionComments
-            suggestionId={suggestion.id}
-            currentProfileId={currentProfile.id}
-          />
-        )}
-
-        {/* Status history */}
-        {history.length > 0 && (
-          <View style={st.historySection}>
-            <Text style={st.sectionTitle}>Histórico</Text>
-            {history.map((h) => (
-              <View key={h.id} style={st.historyRow}>
-                <View
-                  style={[
-                    st.historyDot,
-                    { backgroundColor: STATUS_COLOR[h.newStatus] },
-                  ]}
-                />
-                <Text style={st.historyText}>
-                  {STATUS_LABEL[h.newStatus]} a {formatDatePt(h.changedAt)}
-                  {getProfileName(h.changedBy)
-                    ? ` por ${getProfileName(h.changedBy)}`
-                    : ""}
+        <ScrollView
+          contentContainerStyle={st.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Creator & date */}
+          <View style={st.creatorRow}>
+            {creator?.avatarUrl ? (
+              <Image source={{ uri: creator.avatarUrl }} style={st.avatar} />
+            ) : (
+              <View style={st.avatarFallback}>
+                <Text style={st.avatarInitial}>
+                  {creator?.displayName?.[0]?.toUpperCase() ?? "?"}
                 </Text>
               </View>
-            ))}
+            )}
+            <View>
+              <Text style={st.creatorName}>{creator?.displayName ?? ""}</Text>
+              <Text style={st.createdDate}>
+                Criado a {formatDatePt(suggestion.createdAt)}
+              </Text>
+            </View>
           </View>
-        )}
+
+          {/* Description */}
+          {suggestion.description ? (
+            <Text style={st.description}>{suggestion.description}</Text>
+          ) : (
+            <Text style={st.descriptionEmpty}>Sem descrição.</Text>
+          )}
+
+          {/* Comments */}
+          {currentProfile && (
+            <SuggestionComments
+              suggestionId={suggestion.id}
+              currentProfileId={currentProfile.id}
+            />
+          )}
+
+          {/* Status history */}
+          {history.length > 0 && (
+            <View style={st.historySection}>
+              <Text style={st.sectionTitle}>Histórico</Text>
+              {history.map((h) => (
+                <View key={h.id} style={st.historyRow}>
+                  <View
+                    style={[
+                      st.historyDot,
+                      { backgroundColor: STATUS_COLOR[h.newStatus] },
+                    ]}
+                  />
+                  <Text style={st.historyText}>
+                    {STATUS_LABEL[h.newStatus]} a {formatDatePt(h.changedAt)}
+                    {getProfileName(h.changedBy)
+                      ? ` por ${getProfileName(h.changedBy)}`
+                      : ""}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 

@@ -1,4 +1,4 @@
-import { UserAccount } from '../../types/profile.types';
+import { UserAccount } from "../../types/profile.types";
 
 export interface IAuthRepository {
   signInWithGoogle(): Promise<UserAccount>;

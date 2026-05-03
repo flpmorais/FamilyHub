@@ -1,6 +1,6 @@
 # Story 19.1: Browse and Filter Recipes
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

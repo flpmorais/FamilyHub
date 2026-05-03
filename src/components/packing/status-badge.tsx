@@ -1,14 +1,14 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { useStatusColours } from '../../constants/status-colours';
-import type { PackingStatus } from '../../types/packing.types';
+import { View, Text, StyleSheet } from "react-native";
+import { useStatusColours } from "../../constants/status-colours";
+import type { PackingStatus } from "../../types/packing.types";
 
 const STATUS_LABELS: Record<PackingStatus, string> = {
-  new: 'Novo',
-  buy: 'Comprar',
-  ready: 'Pronto',
-  issue: 'Problema',
-  last_minute: 'Últ. hora',
-  packed: 'Embalado',
+  new: "Novo",
+  buy: "Comprar",
+  ready: "Pronto",
+  issue: "Problema",
+  last_minute: "Últ. hora",
+  packed: "Embalado",
 };
 
 interface StatusBadgeProps {
@@ -25,7 +25,9 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       accessible={false}
       importantForAccessibility="no"
     >
-      <Text style={[styles.label, { color: tokens.text }]}>{STATUS_LABELS[status]}</Text>
+      <Text style={[styles.label, { color: tokens.text }]}>
+        {STATUS_LABELS[status]}
+      </Text>
     </View>
   );
 }
@@ -38,6 +40,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

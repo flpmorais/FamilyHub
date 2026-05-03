@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from "@supabase/supabase-js";
 import { IShoppingRepository } from "../interfaces/shopping.repository.interface";
 import {
   ShoppingItem,
@@ -36,7 +36,7 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
 
     try {
       const { data, error } = await this.client
-        .from('shopping_items')
+        .from("shopping_items")
         .insert({
           id,
           family_id: input.familyId,
@@ -108,9 +108,9 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
   async tickItem(id: string): Promise<ShoppingItem> {
     try {
       const { data, error } = await this.client
-        .from('shopping_items')
+        .from("shopping_items")
         .update({ is_ticked: true, checked_at: now(), updated_at: now() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -127,9 +127,9 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
   async untickItem(id: string): Promise<ShoppingItem> {
     try {
       const { data, error } = await this.client
-        .from('shopping_items')
+        .from("shopping_items")
         .update({ is_ticked: false, checked_at: null, updated_at: now() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -146,9 +146,9 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
   async setUrgent(id: string, isUrgent: boolean): Promise<ShoppingItem> {
     try {
       const { data, error } = await this.client
-        .from('shopping_items')
+        .from("shopping_items")
         .update({ is_urgent: isUrgent, updated_at: now() })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -162,21 +162,25 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
     }
   }
 
-  async editItem(id: string, data: UpdateShoppingItemInput): Promise<ShoppingItem> {
+  async editItem(
+    id: string,
+    data: UpdateShoppingItemInput,
+  ): Promise<ShoppingItem> {
     const updates: Record<string, unknown> = {};
 
     if (data.name !== undefined) updates.name = data.name;
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
-    if (data.quantityNote !== undefined) updates.quantity_note = data.quantityNote;
+    if (data.quantityNote !== undefined)
+      updates.quantity_note = data.quantityNote;
     if (data.isUrgent !== undefined) updates.is_urgent = data.isUrgent;
 
     updates.updated_at = now();
 
     try {
       const { data: row, error } = await this.client
-        .from('shopping_items')
+        .from("shopping_items")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -193,9 +197,9 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
   async deleteItem(id: string): Promise<void> {
     try {
       const { error } = await this.client
-        .from('shopping_items')
+        .from("shopping_items")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (err) {
@@ -209,11 +213,11 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
   async getItems(familyId: string): Promise<ShoppingItem[]> {
     try {
       const { data, error } = await this.client
-        .from('shopping_items')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('is_ticked', { ascending: true })
-        .order('created_at', { ascending: false });
+        .from("shopping_items")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("is_ticked", { ascending: true })
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return (data ?? []).map(mapShoppingItem);
@@ -225,13 +229,16 @@ export class SupabaseShoppingRepository implements IShoppingRepository {
     }
   }
 
-  async findByName(familyId: string, name: string): Promise<ShoppingItem | null> {
+  async findByName(
+    familyId: string,
+    name: string,
+  ): Promise<ShoppingItem | null> {
     try {
       const { data, error } = await this.client
-        .from('shopping_items')
-        .select('*')
-        .eq('family_id', familyId)
-        .ilike('name', name)
+        .from("shopping_items")
+        .select("*")
+        .eq("family_id", familyId)
+        .ilike("name", name)
         .maybeSingle();
 
       if (error) throw error;

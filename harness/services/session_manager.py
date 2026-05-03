@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import logging
 import uuid
@@ -14,6 +15,8 @@ from langgraph.prebuilt import create_react_agent
 from config import settings
 from services.fluent_loader import (
     _FLUENT_DB_FILES,
+    _load_json,
+    _save_json,
     create_read_db_tool,
     create_speak_tool,
     create_update_db_tool,
@@ -22,6 +25,13 @@ from services.fluent_loader import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_ts_ms(value: int | float) -> int:
+    f = float(value)
+    if f > 1e12:
+        return int(f)
+    return int(f * 1000)
 
 
 @dataclass
@@ -141,7 +151,7 @@ class SessionManager:
                 logger.warning("unexpected checkpoint format for user=%s", user_id)
                 raw_messages = []
 
-            for msg in raw_messages:
+            for idx, msg in enumerate(raw_messages):
                 role = "agent"
                 if hasattr(msg, "type"):
                     role = "user" if msg.type == "human" else "agent"
@@ -152,7 +162,7 @@ class SessionManager:
                 if hasattr(msg, "additional_kwargs"):
                     ts_meta = msg.additional_kwargs.get("timestamp")
                     if isinstance(ts_meta, (int, float)):
-                        ts = int(ts_meta)
+                        ts = _normalize_ts_ms(ts_meta)
                     elif isinstance(ts_meta, str):
                         try:
                             ts = int(datetime.fromisoformat(ts_meta).timestamp() * 1000)
@@ -161,17 +171,30 @@ class SessionManager:
                 elif hasattr(msg, "response_metadata"):
                     ts_meta = msg.response_metadata.get("timestamp")
                     if isinstance(ts_meta, (int, float)):
-                        ts = int(ts_meta * 1000)
+                        ts = _normalize_ts_ms(ts_meta)
 
+                content_str = str(msg.content) if hasattr(msg, "content") else str(msg)
+                msg_id = hashlib.sha256(
+                    f"{user_id}:{info.session_id}:{idx}:{content_str[:200]}".encode()
+                ).hexdigest()[:16]
                 messages.append({
-                    "id": str(uuid.uuid4()),
+                    "id": msg_id,
                     "role": role,
-                    "content": str(msg.content) if hasattr(msg, "content") else str(msg),
+                    "content": content_str,
                     "timestamp": ts,
                 })
 
         logger.info("resumed session for user=%s, %d messages", user_id, len(messages))
         return messages
+
+    def _persist_fluent_data(self, user_id: str, info: SessionInfo) -> None:
+        user_data_dir = Path(settings.FLUENT_DATA_DIR) / user_id / "fluent"
+        for db_file in _FLUENT_DB_FILES:
+            path = user_data_dir / db_file
+            data = _load_json(path)
+            if data is not None:
+                _save_json(path, data)
+        logger.info("persisted fluent data for user=%s session=%s", user_id, info.session_id)
 
     async def end_session(self, user_id: str) -> None:
         info = self.get_session_info(user_id)
@@ -181,6 +204,10 @@ class SessionManager:
 
         self._agents.pop(user_id, None)
         self._sessions.pop(user_id, None)
+        try:
+            await asyncio.to_thread(self._persist_fluent_data, user_id, info)
+        except Exception:
+            logger.exception("failed to persist fluent data for user=%s", user_id)
         try:
             await asyncio.to_thread(self.write_session_result, user_id, info)
         except Exception:

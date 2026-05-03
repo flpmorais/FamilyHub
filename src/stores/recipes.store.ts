@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { RecipeType } from '../types/recipe.types';
+import { create } from "zustand";
+import type { RecipeType } from "../types/recipe.types";
 
 interface RecipesState {
   scrollPosition: number;
@@ -14,9 +14,10 @@ interface RecipesState {
 export const useRecipesStore = create<RecipesState>((set) => ({
   scrollPosition: 0,
   activeTypeFilter: null,
-  searchTerm: '',
+  searchTerm: "",
   setScrollPosition: (pos) => set({ scrollPosition: pos }),
   setActiveTypeFilter: (type) => set({ activeTypeFilter: type }),
   setSearchTerm: (term) => set({ searchTerm: term }),
-  reset: () => set({ scrollPosition: 0, activeTypeFilter: null, searchTerm: '' }),
+  reset: () =>
+    set({ scrollPosition: 0, activeTypeFilter: null, searchTerm: "" }),
 }));

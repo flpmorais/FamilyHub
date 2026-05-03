@@ -74,9 +74,10 @@ export function LeftoverEditForm({
   const [eatenError, setEatenError] = useState("");
   const [thrownError, setThrownError] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ["name", "doses", "eaten", "thrown"],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["name", "doses", "eaten", "thrown"],
+    });
 
   useEffect(() => {
     if (item) {
@@ -138,10 +139,7 @@ export function LeftoverEditForm({
     }
 
     // Cross-field validation: eaten + thrown <= total
-    if (
-      !hasError &&
-      parsedEaten + parsedThrown > parsedDoses
-    ) {
+    if (!hasError && parsedEaten + parsedThrown > parsedDoses) {
       setDosesError(
         `Comidas (${parsedEaten}) + deitadas fora (${parsedThrown}) não pode exceder doses totais (${parsedDoses}).`,
       );
@@ -196,7 +194,10 @@ export function LeftoverEditForm({
           <ScrollView
             ref={scrollViewRef}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[s.scrollContent, { paddingBottom: keyboardHeight + 8 }]}
+            contentContainerStyle={[
+              s.scrollContent,
+              { paddingBottom: keyboardHeight + 8 },
+            ]}
           >
             <Text style={s.title}>Editar resto</Text>
 
@@ -238,9 +239,7 @@ export function LeftoverEditForm({
               keyboardType="number-pad"
               editable={!isSaving}
             />
-            {dosesError ? (
-              <Text style={s.fieldError}>{dosesError}</Text>
-            ) : null}
+            {dosesError ? <Text style={s.fieldError}>{dosesError}</Text> : null}
 
             <Text style={s.label}>Data de validade *</Text>
             <TouchableOpacity
@@ -274,9 +273,7 @@ export function LeftoverEditForm({
               keyboardType="number-pad"
               editable={!isSaving}
             />
-            {eatenError ? (
-              <Text style={s.fieldError}>{eatenError}</Text>
-            ) : null}
+            {eatenError ? <Text style={s.fieldError}>{eatenError}</Text> : null}
 
             <Text style={s.label}>Doses deitadas fora</Text>
             <TextInput

@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { Button } from "react-native-paper";
 import { router, useFocusEffect } from "expo-router";
 import { useRepository } from "../../../hooks/use-repository";
 import { useLanguageLearningStore } from "../../../stores/language-learning.store";
@@ -42,6 +43,11 @@ export default function LanguageLearningScreen() {
     }
   }, [authStatus]);
 
+  function handleRetry() {
+    setAuthError(null);
+    setAuthStatus(null);
+  }
+
   if (connectionStatus !== "connected") {
     return (
       <View style={s.container}>
@@ -54,6 +60,20 @@ export default function LanguageLearningScreen() {
     return (
       <View style={s.container}>
         <Text style={s.error}>{authError}</Text>
+        <Button mode="contained" onPress={handleRetry} style={s.retryButton}>
+          Tentar novamente
+        </Button>
+      </View>
+    );
+  }
+
+  if (authStatus?.configured) {
+    return (
+      <View style={s.container}>
+        <Text style={s.configured}>Configuração concluída!</Text>
+        <Text style={s.configuredSub}>
+          A preparar experiência de aprendizagem...
+        </Text>
       </View>
     );
   }
@@ -80,5 +100,18 @@ const s = StyleSheet.create({
     fontSize: 16,
     color: "#F44336",
     textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    marginTop: 8,
+  },
+  configured: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  configuredSub: {
+    fontSize: 14,
+    color: "#888888",
   },
 });

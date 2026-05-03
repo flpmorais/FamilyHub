@@ -1,4 +1,10 @@
-export type PackingStatus = 'new' | 'buy' | 'ready' | 'issue' | 'last_minute' | 'packed';
+export type PackingStatus =
+  | "new"
+  | "buy"
+  | "ready"
+  | "issue"
+  | "last_minute"
+  | "packed";
 
 export interface IconEntry {
   id: string;

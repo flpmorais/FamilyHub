@@ -1,11 +1,11 @@
 export type DishTypeKey =
-  | 'meal'
-  | 'main'
-  | 'side'
-  | 'soup'
-  | 'dessert'
-  | 'other'
-  | 'appetizer';
+  | "meal"
+  | "main"
+  | "side"
+  | "soup"
+  | "dessert"
+  | "other"
+  | "appetizer";
 
 export interface DishType {
   id: string;
@@ -19,11 +19,11 @@ export interface DishType {
 }
 
 export const DISH_TYPE_KEYS: readonly DishTypeKey[] = [
-  'appetizer',
-  'soup',
-  'meal',
-  'main',
-  'side',
-  'dessert',
-  'other',
+  "appetizer",
+  "soup",
+  "meal",
+  "main",
+  "side",
+  "dessert",
+  "other",
 ];

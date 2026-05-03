@@ -1,4 +1,8 @@
-import { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from "../../types/shopping.types";
+import {
+  ShoppingItem,
+  CreateShoppingItemInput,
+  UpdateShoppingItemInput,
+} from "../../types/shopping.types";
 
 export interface IShoppingRepository {
   addItem(data: CreateShoppingItemInput): Promise<ShoppingItem>;
@@ -9,6 +13,10 @@ export interface IShoppingRepository {
   deleteItem(id: string): Promise<void>;
   getItems(familyId: string): Promise<ShoppingItem[]>;
   getUnchecked(familyId: string): Promise<ShoppingItem[]>;
-  getCheckedPaginated(familyId: string, limit: number, offset: number): Promise<ShoppingItem[]>;
+  getCheckedPaginated(
+    familyId: string,
+    limit: number,
+    offset: number,
+  ): Promise<ShoppingItem[]>;
   findByName(familyId: string, name: string): Promise<ShoppingItem | null>;
 }

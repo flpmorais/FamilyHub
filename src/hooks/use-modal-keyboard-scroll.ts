@@ -19,7 +19,7 @@ interface UseModalKeyboardScrollReturn {
 }
 
 export function useModalKeyboardScroll(
-  options: UseModalKeyboardScrollOptions
+  options: UseModalKeyboardScrollOptions,
 ): UseModalKeyboardScrollReturn {
   const { inputKeys } = options;
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -38,11 +38,11 @@ export function useModalKeyboardScroll(
   useEffect(() => {
     const show = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => setKeyboardHeight(e.endCoordinates.height)
+      (e) => setKeyboardHeight(e.endCoordinates.height),
     );
     const hide = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardHeight(0)
+      () => setKeyboardHeight(0),
     );
     return () => {
       show.remove();

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { SyncStatus } from '../types/sync.types';
+import { create } from "zustand";
+import { SyncStatus } from "../types/sync.types";
 
 interface UiState {
   isOffline: boolean;
@@ -15,7 +15,7 @@ interface UiState {
 
 export const useUiStore = create<UiState>((set, get) => ({
   isOffline: false,
-  syncStatus: 'synced',
+  syncStatus: "synced",
   globalError: null,
   isSidebarOpen: false,
   setIsOffline: (isOffline) => set({ isOffline }),

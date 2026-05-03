@@ -1,5 +1,8 @@
 import type { SSEEvent } from "../../types/language-learning.types";
 import type { ISessionRepository } from "../interfaces/session.repository.interface";
+import { HEALTH_CHECK_TIMEOUT_MS } from "../../constants/language-learning-defaults";
+
+const NETWORK_ERROR = "Erro de ligação. Verifique a sua conexão.";
 
 export class SessionRepository implements ISessionRepository {
   constructor(
@@ -7,19 +10,27 @@ export class SessionRepository implements ISessionRepository {
     private readonly getToken: () => Promise<string | null>,
   ) {}
 
+  private async fetchWithTimeout(
+    url: string,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      HEALTH_CHECK_TIMEOUT_MS,
+    );
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async healthCheck(): Promise<boolean> {
     if (!this.baseUrl) return false;
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      try {
-        const response = await fetch(`${this.baseUrl}/health`, {
-          signal: controller.signal,
-        });
-        return response.ok;
-      } finally {
-        clearTimeout(timeout);
-      }
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/health`);
+      return response.ok;
     } catch {
       return false;
     }
@@ -27,18 +38,27 @@ export class SessionRepository implements ISessionRepository {
 
   async configureApiKey(apiKey: string): Promise<void> {
     const token = await this.getToken();
-    if (!token) throw new Error("Not authenticated");
-    const response = await fetch(`${this.baseUrl}/auth/configure`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ api_key: apiKey }),
-    });
+    if (!token) throw new Error("Sessão expirada. Inicie sessão novamente.");
+    let response: Response;
+    try {
+      response = await this.fetchWithTimeout(`${this.baseUrl}/auth/configure`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ api_key: apiKey }),
+      });
+    } catch {
+      throw new Error(NETWORK_ERROR);
+    }
     if (!response.ok) {
       const data = await response.json().catch(() => null);
       throw new Error(data?.detail ?? "Erro ao configurar a chave API");
+    }
+    const data = await response.json().catch(() => null);
+    if (!data?.provisioned) {
+      throw new Error("Erro ao configurar a chave API");
     }
   }
 
@@ -47,15 +67,22 @@ export class SessionRepository implements ISessionRepository {
     setupComplete: boolean;
   }> {
     const token = await this.getToken();
-    if (!token) throw new Error("Not authenticated");
-    const response = await fetch(`${this.baseUrl}/auth/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) throw new Error("Failed to get auth status");
+    if (!token) throw new Error("Sessão expirada. Inicie sessão novamente.");
+    let response: Response;
+    try {
+      response = await this.fetchWithTimeout(`${this.baseUrl}/auth/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      throw new Error(NETWORK_ERROR);
+    }
+    if (!response.ok) {
+      throw new Error("Erro ao obter estado de autenticação");
+    }
     const data = await response.json();
     return {
-      configured: data.configured,
-      setupComplete: data.setup_complete,
+      configured: !!data?.configured,
+      setupComplete: !!data?.setup_complete,
     };
   }
 

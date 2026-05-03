@@ -1,6 +1,6 @@
 # Story 13.4: Mobile API Key Setup Screen
 
-Status: review
+Status: done
 
 branch: feature/13-4-api-key-setup-screen
 
@@ -321,6 +321,32 @@ glm-5.1
 - src/app/(app)/(language-learning)/api-key-setup.tsx (new — API key setup screen)
 - src/app/(app)/(language-learning)/index.tsx (modified — gate logic replacing placeholder)
 
+## Review Findings
+
+### Decision Needed
+
+- [x] [Review][Decision→Patch] App dead-ends on spinner after successful API key config — Resolved: added placeholder "Configuração concluída!" message for configured=true state in index.tsx
+- [x] [Review][Decision→Patch] No retry mechanism on error screen — Resolved: added "Tentar novamente" button in index.tsx error view
+
+### Patches
+
+- [x] [Review][Patch] English error messages shown to users [session.repository.ts] — Fixed: all errors now Portuguese, network errors use "Erro de ligação. Verifique a sua conexão."
+- [x] [Review][Patch] No fetch timeout on configureApiKey/getAuthStatus [session.repository.ts] — Fixed: extracted fetchWithTimeout helper, all methods use AbortController with HEALTH_CHECK_TIMEOUT_MS
+- [x] [Review][Patch] No response body validation in getAuthStatus [session.repository.ts] — Fixed: uses !!data?.configured and !!data?.setup_complete
+- [x] [Review][Patch] configureApiKey doesn't verify provisioned: true [session.repository.ts] — Fixed: reads response body and checks data?.provisioned
+- [x] [Review][Patch] Missing screen title "Configurar Chave API" [api-key-setup.tsx] — Fixed: added title Text element
+- [x] [Review][Patch] Missing loading text "A validar chave..." [api-key-setup.tsx] — Fixed: shows when isConfiguring is true
+- [x] [Review][Patch] Hardcoded 8000ms timeout instead of constant [session.repository.ts] — Fixed: uses HEALTH_CHECK_TIMEOUT_MS from language-learning-defaults.ts
+
+### Deferred
+
+- [x] [Review][Defer] Relative navigation path `router.replace("../")` is fragile [api-key-setup.tsx:26] — deferred, maintainability concern not a bug
+- [x] [Review][Defer] Stale authStatus persists across disconnection/reconnection [index.tsx] — deferred, self-corrects on reconnection
+- [x] [Review][Defer] No cancellation guard on api-key-setup async flow [api-key-setup.tsx:20-31] — deferred, router.replace is global
+- [x] [Review][Defer] Transient state inconsistency on connectionStatus change mid-flight [index.tsx:17-30] — deferred, self-corrects
+- [x] [Review][Defer] Navigation useEffect ignores connectionStatus guard [index.tsx:37-42] — deferred, authStatus only set when connected via useFocusEffect guard
+
 ## Change Log
 
 - 2026-05-03: Implemented Story 13.4 — Mobile API Key Setup Screen. Implemented configureApiKey and getAuthStatus in session repository, added auth state to languageLearningStore, created api-key-setup screen with secure input and Portuguese error messages, rewrote index.tsx with auth gate logic. All lint/type-check pass.
+- 2026-05-03: Code review patches — Fixed 9 findings: Portuguese error messages (Mandate #8), fetchWithTimeout helper with AbortController for all methods, response body validation, provisioned check, screen title, loading text, HEALTH_CHECK_TIMEOUT_MS constant, placeholder message for configured state, retry button on error.

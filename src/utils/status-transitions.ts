@@ -1,18 +1,18 @@
-import type { PackingStatus } from '../types/packing.types';
+import type { PackingStatus } from "../types/packing.types";
 
 const PRIMARY_MAP: Record<PackingStatus, PackingStatus> = {
-  new: 'buy',
-  buy: 'ready',
-  ready: 'packed',
-  issue: 'ready',
-  last_minute: 'packed',
-  packed: 'packed',
+  new: "buy",
+  buy: "ready",
+  ready: "packed",
+  issue: "ready",
+  last_minute: "packed",
+  packed: "packed",
 };
 
 const SECONDARY_MAP: Record<PackingStatus, PackingStatus | null> = {
-  new: 'buy',
-  ready: 'issue',
-  buy: 'issue',
+  new: "buy",
+  ready: "issue",
+  buy: "issue",
   issue: null,
   last_minute: null,
   packed: null,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,11 @@ import {
   Image,
   StyleSheet,
   Alert,
-} from 'react-native';
-import { useRepository } from '../../hooks/use-repository';
-import { supabaseClient } from '../../repositories/supabase/supabase.client';
-import { logger } from '../../utils/logger';
-import type { RecipeCommentWithProfile } from '../../types/recipe.types';
+} from "react-native";
+import { useRepository } from "../../hooks/use-repository";
+import { supabaseClient } from "../../repositories/supabase/supabase.client";
+import { logger } from "../../utils/logger";
+import type { RecipeCommentWithProfile } from "../../types/recipe.types";
 
 interface RecipeCommentsProps {
   recipeId: string;
@@ -21,7 +21,7 @@ interface RecipeCommentsProps {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'agora';
+  if (mins < 1) return "agora";
   if (mins < 60) return `${mins} min`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
@@ -31,19 +31,25 @@ function timeAgo(dateStr: string): string {
   return `${months}m`;
 }
 
-export function RecipeComments({ recipeId, currentProfileId }: RecipeCommentsProps) {
-  const commentRepo = useRepository('recipeComment');
+export function RecipeComments({
+  recipeId,
+  currentProfileId,
+}: RecipeCommentsProps) {
+  const commentRepo = useRepository("recipeComment");
 
   const [comments, setComments] = useState<RecipeCommentWithProfile[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
+  const [editingContent, setEditingContent] = useState("");
   const [isSending, setIsSending] = useState(false);
 
   const loadComments = useCallback(() => {
-    commentRepo.getByRecipeId(recipeId).then(setComments).catch((err) => {
-      logger.error('RecipeComments', 'load failed', err);
-    });
+    commentRepo
+      .getByRecipeId(recipeId)
+      .then(setComments)
+      .catch((err) => {
+        logger.error("RecipeComments", "load failed", err);
+      });
   }, [commentRepo, recipeId]);
 
   useEffect(() => {
@@ -55,11 +61,11 @@ export function RecipeComments({ recipeId, currentProfileId }: RecipeCommentsPro
     const channel = supabaseClient
       .channel(`recipe-comments-${recipeId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'recipe_comments',
+          event: "*",
+          schema: "public",
+          table: "recipe_comments",
           filter: `recipe_id=eq.${recipeId}`,
         },
         () => {
@@ -80,10 +86,10 @@ export function RecipeComments({ recipeId, currentProfileId }: RecipeCommentsPro
     setIsSending(true);
     try {
       await commentRepo.create(recipeId, currentProfileId, trimmed);
-      setNewComment('');
+      setNewComment("");
       loadComments();
     } catch (err) {
-      logger.error('RecipeComments', 'create failed', err);
+      logger.error("RecipeComments", "create failed", err);
     } finally {
       setIsSending(false);
     }
@@ -96,25 +102,25 @@ export function RecipeComments({ recipeId, currentProfileId }: RecipeCommentsPro
     try {
       await commentRepo.update(commentId, trimmed);
       setEditingId(null);
-      setEditingContent('');
+      setEditingContent("");
       loadComments();
     } catch (err) {
-      logger.error('RecipeComments', 'update failed', err);
+      logger.error("RecipeComments", "update failed", err);
     }
   }
 
   function handleDelete(commentId: string) {
-    Alert.alert('Eliminar comentário?', 'Esta acção não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert("Eliminar comentário?", "Esta acção não pode ser desfeita.", [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: 'Eliminar',
-        style: 'destructive',
+        text: "Eliminar",
+        style: "destructive",
         onPress: async () => {
           try {
             await commentRepo.delete(commentId);
             loadComments();
           } catch (err) {
-            logger.error('RecipeComments', 'delete failed', err);
+            logger.error("RecipeComments", "delete failed", err);
           }
         },
       },
@@ -137,17 +143,22 @@ export function RecipeComments({ recipeId, currentProfileId }: RecipeCommentsPro
       {comments.map((comment) => (
         <View key={comment.id} style={s.commentRow}>
           {comment.profileAvatarUrl ? (
-            <Image source={{ uri: comment.profileAvatarUrl }} style={s.avatar} />
+            <Image
+              source={{ uri: comment.profileAvatarUrl }}
+              style={s.avatar}
+            />
           ) : (
             <View style={s.avatarFallback}>
               <Text style={s.avatarInitial}>
-                {comment.profileName?.[0]?.toUpperCase() ?? '?'}
+                {comment.profileName?.[0]?.toUpperCase() ?? "?"}
               </Text>
             </View>
           )}
           <View style={s.commentContent}>
             <View style={s.commentHeader}>
-              <Text style={s.profileName} numberOfLines={1}>{comment.profileName}</Text>
+              <Text style={s.profileName} numberOfLines={1}>
+                {comment.profileName}
+              </Text>
               <Text style={s.commentTime}>{timeAgo(comment.createdAt)}</Text>
             </View>
             {editingId === comment.id ? (
@@ -199,7 +210,10 @@ export function RecipeComments({ recipeId, currentProfileId }: RecipeCommentsPro
           editable={!isSending}
         />
         <TouchableOpacity
-          style={[s.addBtn, (!newComment.trim() || isSending) && s.addBtnDisabled]}
+          style={[
+            s.addBtn,
+            (!newComment.trim() || isSending) && s.addBtnDisabled,
+          ]}
           onPress={handleAdd}
           disabled={!newComment.trim() || isSending}
         >
@@ -216,19 +230,19 @@ const s = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#888888',
+    color: "#888888",
     marginBottom: 12,
   },
   commentRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   avatar: {
     width: 36,
@@ -240,100 +254,100 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 10,
   },
   avatarInitial: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   commentContent: {
     flex: 1,
   },
   commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 2,
   },
   profileName: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     flex: 1,
   },
   commentTime: {
     fontSize: 11,
-    color: '#AAAAAA',
+    color: "#AAAAAA",
   },
   commentText: {
     fontSize: 14,
-    color: '#333333',
+    color: "#333333",
     lineHeight: 20,
   },
   ownActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
     marginTop: 4,
   },
   actionText: {
     fontSize: 12,
-    color: '#B5451B',
-    fontWeight: '600',
+    color: "#B5451B",
+    fontWeight: "600",
   },
   actionTextDelete: {
     fontSize: 12,
-    color: '#D32F2F',
-    fontWeight: '600',
+    color: "#D32F2F",
+    fontWeight: "600",
   },
   editInput: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
     marginTop: 4,
   },
   editActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
     marginTop: 6,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   editCancel: {
     fontSize: 13,
-    color: '#888888',
-    fontWeight: '600',
+    color: "#888888",
+    fontWeight: "600",
   },
   editSave: {
     fontSize: 13,
-    color: '#B5451B',
-    fontWeight: '600',
+    color: "#B5451B",
+    fontWeight: "600",
   },
   addRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginTop: 4,
   },
   addInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
     maxHeight: 100,
   },
   addBtn: {
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -342,8 +356,8 @@ const s = StyleSheet.create({
     opacity: 0.5,
   },
   addBtnText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

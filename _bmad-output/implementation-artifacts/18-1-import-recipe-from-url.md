@@ -1,6 +1,6 @@
 # Story 18.1: Import Recipe from URL
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,42 +9,44 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
-} from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useRepository } from '../../../../hooks/use-repository';
-import { useAuthStore } from '../../../../stores/auth.store';
-import { logger } from '../../../../utils/logger';
-import { useModalKeyboardScroll } from '../../../../hooks/use-modal-keyboard-scroll';
-import type { BookingTask } from '../../../../types/vacation.types';
-import type { Profile } from '../../../../types/profile.types';
+} from "react-native";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { router, useLocalSearchParams } from "expo-router";
+import { useRepository } from "../../../../hooks/use-repository";
+import { useAuthStore } from "../../../../stores/auth.store";
+import { logger } from "../../../../utils/logger";
+import { useModalKeyboardScroll } from "../../../../hooks/use-modal-keyboard-scroll";
+import type { BookingTask } from "../../../../types/vacation.types";
+import type { Profile } from "../../../../types/profile.types";
 
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
+  const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
 function daysRemaining(dueDate: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate + 'T00:00:00');
+  const due = new Date(dueDate + "T00:00:00");
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function daysColor(days: number): string {
-  if (days <= 7) return '#D32F2F';
-  if (days <= 30) return '#E67E22';
-  return '#888888';
+  if (days <= 7) return "#D32F2F";
+  if (days <= 30) return "#E67E22";
+  return "#888888";
 }
 
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 }
 
 export default function BookingTasksScreen() {
   const { id: vacationId } = useLocalSearchParams<{ id: string }>();
-  const vacationRepository = useRepository('vacation');
-  const profileRepo = useRepository('profile');
+  const vacationRepository = useRepository("vacation");
+  const profileRepo = useRepository("profile");
   const { userAccount } = useAuthStore();
 
   const [tasks, setTasks] = useState<BookingTask[]>([]);
@@ -54,15 +56,16 @@ export default function BookingTasksScreen() {
 
   // Add task sheet
   const [sheetVisible, setSheetVisible] = useState(false);
-  const [formTitle, setFormTitle] = useState('');
+  const [formTitle, setFormTitle] = useState("");
   const [formDueDate, setFormDueDate] = useState(new Date());
   const [formProfileId, setFormProfileId] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['formTitle'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["formTitle"],
+    });
 
   async function loadTasks(showSpinner = false) {
     if (!vacationId || !userAccount?.familyId) return;
@@ -75,8 +78,10 @@ export default function BookingTasksScreen() {
       setTasks(list);
       setProfiles(profList);
     } catch (err) {
-      logger.error('BookingTasksScreen', 'loadTasks failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar tarefas.');
+      logger.error("BookingTasksScreen", "loadTasks failed", err);
+      setError(
+        err instanceof Error ? err.message : "Erro ao carregar tarefas.",
+      );
     } finally {
       if (showSpinner) setIsLoading(false);
     }
@@ -94,13 +99,15 @@ export default function BookingTasksScreen() {
       });
       await loadTasks();
     } catch (err) {
-      logger.error('BookingTasksScreen', 'toggleComplete failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao actualizar tarefa.');
+      logger.error("BookingTasksScreen", "toggleComplete failed", err);
+      setError(
+        err instanceof Error ? err.message : "Erro ao actualizar tarefa.",
+      );
     }
   }
 
   function openAddTask() {
-    setFormTitle('');
+    setFormTitle("");
     setFormDueDate(new Date());
     setFormProfileId(null);
     setShowDatePicker(false);
@@ -109,14 +116,14 @@ export default function BookingTasksScreen() {
   }
 
   function onDateChange(_: DateTimePickerEvent, date?: Date) {
-    setShowDatePicker(Platform.OS === 'ios');
+    setShowDatePicker(Platform.OS === "ios");
     if (date) setFormDueDate(date);
   }
 
   async function handleAddTask() {
     const title = formTitle.trim();
     if (!title) {
-      setError('O título é obrigatório.');
+      setError("O título é obrigatório.");
       return;
     }
     setError(null);
@@ -126,15 +133,15 @@ export default function BookingTasksScreen() {
         vacationId: vacationId!,
         familyId: userAccount!.familyId,
         title,
-        taskType: 'custom',
+        taskType: "custom",
         dueDate: toISODate(formDueDate),
         profileId: formProfileId ?? undefined,
       });
       setSheetVisible(false);
       await loadTasks();
     } catch (err) {
-      logger.error('BookingTasksScreen', 'handleAddTask failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao criar tarefa.');
+      logger.error("BookingTasksScreen", "handleAddTask failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao criar tarefa.");
     } finally {
       setIsSaving(false);
     }
@@ -154,7 +161,10 @@ export default function BookingTasksScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Text style={styles.backText}>← Voltar</Text>
         </TouchableOpacity>
 
@@ -169,8 +179,8 @@ export default function BookingTasksScreen() {
         {incomplete.map((task) => {
           const days = task.dueDate ? daysRemaining(task.dueDate) : null;
           const assigneeName = task.profileId
-            ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
-            : 'Família';
+            ? (profiles.find((p) => p.id === task.profileId)?.displayName ?? "")
+            : "Família";
           return (
             <TouchableOpacity
               key={task.id}
@@ -181,14 +191,25 @@ export default function BookingTasksScreen() {
               <View style={styles.taskInfo}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
                 <View style={styles.taskMetaRow}>
-                  {task.dueDate && <Text style={styles.taskDueDate}>{formatDate(task.dueDate)}</Text>}
+                  {task.dueDate && (
+                    <Text style={styles.taskDueDate}>
+                      {formatDate(task.dueDate)}
+                    </Text>
+                  )}
                   <Text style={styles.taskAssignee}>{assigneeName}</Text>
                 </View>
               </View>
               {days !== null && (
-                <View style={[styles.daysBadge, { backgroundColor: daysColor(days) + '18' }]}>
-                  <Text style={[styles.daysBadgeText, { color: daysColor(days) }]}>
-                    {days < 0 ? 'Atrasado' : `${days}d`}
+                <View
+                  style={[
+                    styles.daysBadge,
+                    { backgroundColor: daysColor(days) + "18" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.daysBadgeText, { color: daysColor(days) }]}
+                  >
+                    {days < 0 ? "Atrasado" : `${days}d`}
                   </Text>
                 </View>
               )}
@@ -201,8 +222,9 @@ export default function BookingTasksScreen() {
             <Text style={styles.sectionHeader}>Concluídas</Text>
             {completed.map((task) => {
               const assigneeName = task.profileId
-                ? profiles.find((p) => p.id === task.profileId)?.displayName ?? ''
-                : 'Família';
+                ? (profiles.find((p) => p.id === task.profileId)?.displayName ??
+                  "")
+                : "Família";
               return (
                 <TouchableOpacity
                   key={task.id}
@@ -220,7 +242,10 @@ export default function BookingTasksScreen() {
           </>
         )}
 
-        <TouchableOpacity style={styles.addButton} onPress={() => openAddTask()}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => openAddTask()}
+        >
           <Text style={styles.addButtonText}>Adicionar tarefa</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -243,7 +268,7 @@ export default function BookingTasksScreen() {
 
               <Text style={styles.label}>Título *</Text>
               <TextInput
-                {...getInputProps('formTitle')}
+                {...getInputProps("formTitle")}
                 style={styles.input}
                 value={formTitle}
                 onChangeText={setFormTitle}
@@ -258,7 +283,9 @@ export default function BookingTasksScreen() {
                 onPress={() => setShowDatePicker(true)}
                 disabled={isSaving}
               >
-                <Text style={styles.dateButtonText}>{formatDate(toISODate(formDueDate))}</Text>
+                <Text style={styles.dateButtonText}>
+                  {formatDate(toISODate(formDueDate))}
+                </Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -293,7 +320,8 @@ export default function BookingTasksScreen() {
                     key={profile.id}
                     style={[
                       styles.profileChip,
-                      formProfileId === profile.id && styles.profileChipSelected,
+                      formProfileId === profile.id &&
+                        styles.profileChipSelected,
                     ]}
                     onPress={() => setFormProfileId(profile.id)}
                     disabled={isSaving}
@@ -301,7 +329,8 @@ export default function BookingTasksScreen() {
                     <Text
                       style={[
                         styles.profileChipText,
-                        formProfileId === profile.id && styles.profileChipTextSelected,
+                        formProfileId === profile.id &&
+                          styles.profileChipTextSelected,
                       ]}
                     >
                       {profile.displayName}
@@ -322,7 +351,10 @@ export default function BookingTasksScreen() {
                 <Text style={styles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                style={[
+                  styles.saveButton,
+                  isSaving && styles.saveButtonDisabled,
+                ]}
                 onPress={handleAddTask}
                 disabled={isSaving}
               >
@@ -341,49 +373,70 @@ export default function BookingTasksScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
   content: { paddingTop: 24 },
   backButton: { marginBottom: 16, paddingHorizontal: 24 },
-  backText: { color: '#B5451B', fontSize: 16 },
-  heading: { fontSize: 24, fontWeight: '700', marginBottom: 24, color: '#1A1A1A', paddingHorizontal: 24 },
-  error: { color: '#D32F2F', marginBottom: 12, fontSize: 14, paddingHorizontal: 24 },
-  empty: { color: '#888888', textAlign: 'center', marginVertical: 16, paddingHorizontal: 24 },
+  backText: { color: "#B5451B", fontSize: 16 },
+  heading: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 24,
+    color: "#1A1A1A",
+    paddingHorizontal: 24,
+  },
+  error: {
+    color: "#D32F2F",
+    marginBottom: 12,
+    fontSize: 14,
+    paddingHorizontal: 24,
+  },
+  empty: {
+    color: "#888888",
+    textAlign: "center",
+    marginVertical: 16,
+    paddingHorizontal: 24,
+  },
   taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
-  taskCheck: { fontSize: 20, marginRight: 12, color: '#B5451B' },
+  taskCheck: { fontSize: 20, marginRight: 12, color: "#B5451B" },
   taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 15, color: '#1A1A1A' },
+  taskTitle: { fontSize: 15, color: "#1A1A1A" },
   taskTitleDone: {
     fontSize: 15,
-    color: '#AAAAAA',
-    textDecorationLine: 'line-through',
+    color: "#AAAAAA",
+    textDecorationLine: "line-through",
   },
-  taskMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
-  taskDueDate: { fontSize: 12, color: '#888888' },
-  taskDueDateDone: {
-    fontSize: 12,
-    color: '#CCCCCC',
+  taskMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     marginTop: 2,
   },
-  taskAssignee: { fontSize: 12, color: '#B5451B' },
+  taskDueDate: { fontSize: 12, color: "#888888" },
+  taskDueDateDone: {
+    fontSize: 12,
+    color: "#CCCCCC",
+    marginTop: 2,
+  },
+  taskAssignee: { fontSize: 12, color: "#B5451B" },
   daysBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     marginLeft: 8,
   },
-  daysBadgeText: { fontSize: 12, fontWeight: '600' },
+  daysBadgeText: { fontSize: 12, fontWeight: "600" },
   sectionHeader: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#AAAAAA',
+    fontWeight: "600",
+    color: "#AAAAAA",
     marginTop: 24,
     marginBottom: 8,
     paddingHorizontal: 24,
@@ -391,31 +444,36 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 24,
     marginHorizontal: 24,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  addButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  addButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
-  sheetTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A', marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4 },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 20,
+  },
+  label: { fontSize: 13, fontWeight: "600", color: "#555555", marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -424,43 +482,48 @@ const styles = StyleSheet.create({
   },
   dateButton: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
-  dateButtonText: { fontSize: 15, color: '#1A1A1A' },
-  sheetButtons: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  dateButtonText: { fontSize: 15, color: "#1A1A1A" },
+  sheetButtons: { flexDirection: "row", gap: 12, marginTop: 8 },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
+    borderColor: "#CCCCCC",
+    alignItems: "center",
   },
-  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  cancelText: { color: "#1A1A1A", fontSize: 16 },
   saveButton: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  profileList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  saveButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  profileList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
   profileChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#CCCCCC",
+    backgroundColor: "#FFFFFF",
   },
-  profileChipSelected: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  profileChipText: { fontSize: 14, color: '#555555' },
-  profileChipTextSelected: { color: '#FFFFFF', fontWeight: '500' },
+  profileChipSelected: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  profileChipText: { fontSize: 14, color: "#555555" },
+  profileChipTextSelected: { color: "#FFFFFF", fontWeight: "500" },
 });

@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,61 +11,66 @@ import {
   Alert,
   Image,
   type ListRenderItemInfo,
-} from 'react-native';
+} from "react-native";
 import ReorderableList, {
   reorderItems,
   useIsActive,
   useReorderableDrag,
   type ReorderableListReorderEvent,
-} from 'react-native-reorderable-list';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as ImagePicker from 'expo-image-picker';
-import { router, useFocusEffect } from 'expo-router';
-import { useRepository } from '../../../hooks/use-repository';
-import { useAuthStore } from '../../../stores/auth.store';
-import { useCurrentProfile } from '../../../hooks/use-current-profile';
-import { supabaseClient } from '../../../repositories/supabase/supabase.client';
-import { logger } from '../../../utils/logger';
-import { compressAvatar } from '../../../utils/image.utils';
-import { PageHeader } from '../../../components/page-header';
-import { useModalKeyboardScroll } from '../../../hooks/use-modal-keyboard-scroll';
-import type { Profile, ProfileStatus, UserRole, Family } from '../../../types/profile.types';
+} from "react-native-reorderable-list";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as ImagePicker from "expo-image-picker";
+import { router, useFocusEffect } from "expo-router";
+import { useRepository } from "../../../hooks/use-repository";
+import { useAuthStore } from "../../../stores/auth.store";
+import { useCurrentProfile } from "../../../hooks/use-current-profile";
+import { supabaseClient } from "../../../repositories/supabase/supabase.client";
+import { logger } from "../../../utils/logger";
+import { compressAvatar } from "../../../utils/image.utils";
+import { PageHeader } from "../../../components/page-header";
+import { useModalKeyboardScroll } from "../../../hooks/use-modal-keyboard-scroll";
+import type {
+  Profile,
+  ProfileStatus,
+  UserRole,
+  Family,
+} from "../../../types/profile.types";
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  admin: 'Administrador',
-  member: 'Membro',
-  maid: 'Empregada',
-  child: 'Criança',
+  admin: "Administrador",
+  member: "Membro",
+  maid: "Empregada",
+  child: "Criança",
 };
 
 // ── Status helpers ──────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<ProfileStatus, string> = {
-  active: 'Activo',
-  invited: 'Convidado',
-  enrolled: 'Inscrito',
-  inactive: 'Inactivo',
+  active: "Activo",
+  invited: "Convidado",
+  enrolled: "Inscrito",
+  inactive: "Inactivo",
 };
 
 const STATUS_COLOR: Record<ProfileStatus, string> = {
-  active: '#888888',
-  invited: '#E67E22',
-  enrolled: '#27AE60',
-  inactive: '#D32F2F',
+  active: "#888888",
+  invited: "#E67E22",
+  enrolled: "#27AE60",
+  inactive: "#D32F2F",
 };
 
 function validNextStatuses(current: ProfileStatus): ProfileStatus[] {
   switch (current) {
-    case 'active':
-      return ['invited', 'inactive'];
-    case 'invited':
-      return ['active', 'inactive'];
-    case 'enrolled':
-      return ['active', 'inactive'];
-    case 'inactive':
-      return ['active', 'invited'];
+    case "active":
+      return ["invited", "inactive"];
+    case "invited":
+      return ["active", "inactive"];
+    case "enrolled":
+      return ["active", "inactive"];
+    case "inactive":
+      return ["active", "invited"];
     default:
       return [];
   }
@@ -88,30 +93,51 @@ const ProfileDraggableRow = memo(function ProfileDraggableRow({
   const isActive = useIsActive();
 
   return (
-    <View style={[styles.row, isActive && { backgroundColor: '#F5F5F5' }]}>
-      <TouchableOpacity onLongPress={drag} delayLongPress={150} style={styles.dragHandle}>
+    <View style={[styles.row, isActive && { backgroundColor: "#F5F5F5" }]}>
+      <TouchableOpacity
+        onLongPress={drag}
+        delayLongPress={150}
+        style={styles.dragHandle}
+      >
         <Text style={styles.dragHandleText}>☰</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.rowContent} onPress={() => onOpenEdit(profile)} onLongPress={() => onOpenEdit(profile)}>
+      <TouchableOpacity
+        style={styles.rowContent}
+        onPress={() => onOpenEdit(profile)}
+        onLongPress={() => onOpenEdit(profile)}
+      >
         <View style={styles.avatarCircle}>
           {profile.avatarUrl ? (
-            <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
+            <Image
+              source={{ uri: profile.avatarUrl }}
+              style={styles.avatarImage}
+            />
           ) : (
             <Text style={styles.avatarInitial}>
-              {profile.displayName[0]?.toUpperCase() ?? '?'}
+              {profile.displayName[0]?.toUpperCase() ?? "?"}
             </Text>
           )}
         </View>
         <View style={styles.rowInfo}>
-          <Text style={[styles.rowName, profile.status === 'inactive' && styles.rowNameInactive]}>
+          <Text
+            style={[
+              styles.rowName,
+              profile.status === "inactive" && styles.rowNameInactive,
+            ]}
+          >
             {profile.displayName}
           </Text>
-          {profile.email && <Text style={styles.rowEmail}>{profile.email}</Text>}
+          {profile.email && (
+            <Text style={styles.rowEmail}>{profile.email}</Text>
+          )}
           <Text style={styles.rowRole}>{ROLE_LABEL[profile.role]}</Text>
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.badge, { backgroundColor: STATUS_COLOR[profile.status] }]}
+        style={[
+          styles.badge,
+          { backgroundColor: STATUS_COLOR[profile.status] },
+        ]}
         onPress={() => onBadgeTap(profile)}
       >
         <Text style={styles.badgeText}>{STATUS_LABEL[profile.status]}</Text>
@@ -123,10 +149,10 @@ const ProfileDraggableRow = memo(function ProfileDraggableRow({
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function ProfilesScreen() {
-  const profileRepository = useRepository('profile');
+  const profileRepository = useRepository("profile");
   const { userAccount } = useAuthStore();
   const currentProfile = useCurrentProfile();
-  const isAdmin = currentProfile?.role === 'admin';
+  const isAdmin = currentProfile?.role === "admin";
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [family, setFamily] = useState<Family | null>(null);
@@ -135,47 +161,63 @@ export default function ProfilesScreen() {
 
   // Family edit state
   const [familyEditVisible, setFamilyEditVisible] = useState(false);
-  const [familyName, setFamilyName] = useState('');
-  const [familyNameError, setFamilyNameError] = useState('');
+  const [familyName, setFamilyName] = useState("");
+  const [familyNameError, setFamilyNameError] = useState("");
   const [pendingBannerUri, setPendingBannerUri] = useState<string | null>(null);
   const [isSavingFamily, setIsSavingFamily] = useState(false);
 
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formRole, setFormRole] = useState<UserRole>('child');
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formRole, setFormRole] = useState<UserRole>("child");
   const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Status picker state
-  const [statusPickerProfile, setStatusPickerProfile] = useState<Profile | null>(null);
+  const [statusPickerProfile, setStatusPickerProfile] =
+    useState<Profile | null>(null);
 
   // Email prompt state (shown when changing to invited without email)
-  const [emailPromptProfile, setEmailPromptProfile] = useState<Profile | null>(null);
-  const [emailPromptValue, setEmailPromptValue] = useState('');
-  const [emailPromptRole, setEmailPromptRole] = useState<UserRole>('admin');
+  const [emailPromptProfile, setEmailPromptProfile] = useState<Profile | null>(
+    null,
+  );
+  const [emailPromptValue, setEmailPromptValue] = useState("");
+  const [emailPromptRole, setEmailPromptRole] = useState<UserRole>("admin");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ['familyName', 'formName', 'formEmail', 'emailPromptValue'],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["familyName", "formName", "formEmail", "emailPromptValue"],
+    });
 
   async function loadData(showSpinner = false) {
     if (!userAccount?.familyId) return;
     if (showSpinner) setIsLoading(true);
     try {
-      const list = await profileRepository.getProfilesByFamily(userAccount.familyId);
+      const list = await profileRepository.getProfilesByFamily(
+        userAccount.familyId,
+      );
       setProfiles(list);
 
-      const { data: famData } = await supabaseClient.from('families').select('*').eq('id', userAccount.familyId).single();
+      const { data: famData } = await supabaseClient
+        .from("families")
+        .select("*")
+        .eq("id", userAccount.familyId)
+        .single();
       if (famData) {
-        setFamily({ id: famData.id, name: famData.name, bannerUrl: famData.banner_url ?? null, createdAt: famData.created_at, updatedAt: famData.updated_at });
+        setFamily({
+          id: famData.id,
+          name: famData.name,
+          bannerUrl: famData.banner_url ?? null,
+          createdAt: famData.created_at,
+          updatedAt: famData.updated_at,
+        });
       }
     } catch (err) {
-      logger.error('ProfilesScreen', 'loadData failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar perfis.');
+      logger.error("ProfilesScreen", "loadData failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao carregar perfis.");
     } finally {
       if (showSpinner) setIsLoading(false);
     }
@@ -185,7 +227,7 @@ export default function ProfilesScreen() {
     setProfiles(data);
     try {
       await profileRepository.batchReorder(
-        data.map((p, i) => ({ id: p.id, sortOrder: i + 1 }))
+        data.map((p, i) => ({ id: p.id, sortOrder: i + 1 })),
       );
     } catch {
       // ignore
@@ -194,11 +236,14 @@ export default function ProfilesScreen() {
   }
 
   function openFamilyEdit() {
-    logger.info('ProfilesScreen', `openFamilyEdit called, family=${family ? family.name : 'null'}`);
+    logger.info(
+      "ProfilesScreen",
+      `openFamilyEdit called, family=${family ? family.name : "null"}`,
+    );
     if (!family) return;
     setFamilyName(family.name);
     setPendingBannerUri(null);
-    setFamilyNameError('');
+    setFamilyNameError("");
     setFamilyEditVisible(true);
   }
 
@@ -206,38 +251,53 @@ export default function ProfilesScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 1,
     });
-    if (!result.canceled && result.assets[0]) setPendingBannerUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0])
+      setPendingBannerUri(result.assets[0].uri);
   }
 
   async function handleSaveFamily() {
     const name = familyName.trim();
-    if (!name) { setFamilyNameError('O nome é obrigatório.'); return; }
+    if (!name) {
+      setFamilyNameError("O nome é obrigatório.");
+      return;
+    }
     if (!family || !userAccount) return;
     setIsSavingFamily(true);
     try {
-      const { supabaseClient } = await import('../../../repositories/supabase/supabase.client');
-      const FileSystem = await import('expo-file-system/legacy');
+      const { supabaseClient } =
+        await import("../../../repositories/supabase/supabase.client");
+      const FileSystem = await import("expo-file-system/legacy");
       let bannerUrl = family.bannerUrl;
 
-      logger.info('ProfilesScreen', `handleSaveFamily: name=${name}, pendingBannerUri=${pendingBannerUri ? 'yes' : 'no'}`);
+      logger.info(
+        "ProfilesScreen",
+        `handleSaveFamily: name=${name}, pendingBannerUri=${pendingBannerUri ? "yes" : "no"}`,
+      );
 
       if (pendingBannerUri) {
         const compressed = await compressAvatar(pendingBannerUri);
-        logger.info('ProfilesScreen', `compressed uri: ${compressed}`);
+        logger.info("ProfilesScreen", `compressed uri: ${compressed}`);
         const storagePath = `${family.id}/banner.jpg`;
 
         // Delete old banner if exists
-        const { error: delErr } = await supabaseClient.storage.from('family-banners').remove([storagePath]);
-        logger.info('ProfilesScreen', `delete old banner: ${delErr ? delErr.message : 'ok'}`);
+        const { error: delErr } = await supabaseClient.storage
+          .from("family-banners")
+          .remove([storagePath]);
+        logger.info(
+          "ProfilesScreen",
+          `delete old banner: ${delErr ? delErr.message : "ok"}`,
+        );
 
         // Upload new banner (same pattern as vacation covers)
-        const base64 = await FileSystem.readAsStringAsync(compressed, { encoding: FileSystem.EncodingType.Base64 });
-        logger.info('ProfilesScreen', `base64 length: ${base64.length}`);
+        const base64 = await FileSystem.readAsStringAsync(compressed, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        logger.info("ProfilesScreen", `base64 length: ${base64.length}`);
         const binaryString = atob(base64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -245,34 +305,52 @@ export default function ProfilesScreen() {
         }
 
         const { error: upErr } = await supabaseClient.storage
-          .from('family-banners')
-          .upload(storagePath, bytes, { contentType: 'image/jpeg', upsert: true });
+          .from("family-banners")
+          .upload(storagePath, bytes, {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
 
-        logger.info('ProfilesScreen', `upload result: ${upErr ? upErr.message : 'ok'}`);
+        logger.info(
+          "ProfilesScreen",
+          `upload result: ${upErr ? upErr.message : "ok"}`,
+        );
 
         if (upErr) {
-          logger.error('ProfilesScreen', 'banner upload failed', upErr);
+          logger.error("ProfilesScreen", "banner upload failed", upErr);
         } else {
-          const { data } = supabaseClient.storage.from('family-banners').getPublicUrl(storagePath);
-          bannerUrl = data.publicUrl + '?t=' + Date.now();
-          logger.info('ProfilesScreen', `bannerUrl: ${bannerUrl}`);
+          const { data } = supabaseClient.storage
+            .from("family-banners")
+            .getPublicUrl(storagePath);
+          bannerUrl = data.publicUrl + "?t=" + Date.now();
+          logger.info("ProfilesScreen", `bannerUrl: ${bannerUrl}`);
         }
       }
 
       // Update family via Supabase
-      logger.info('ProfilesScreen', `updating family: name=${name}, banner_url=${bannerUrl}`);
+      logger.info(
+        "ProfilesScreen",
+        `updating family: name=${name}, banner_url=${bannerUrl}`,
+      );
       const { error } = await supabaseClient
-        .from('families')
-        .update({ name, banner_url: bannerUrl, updated_at: new Date().toISOString() })
-        .eq('id', family.id);
+        .from("families")
+        .update({
+          name,
+          banner_url: bannerUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", family.id);
 
-      logger.info('ProfilesScreen', `family update result: ${error ? error.message : 'ok'}`);
+      logger.info(
+        "ProfilesScreen",
+        `family update result: ${error ? error.message : "ok"}`,
+      );
       if (error) throw error;
 
       setFamilyEditVisible(false);
       await loadData();
     } catch (err) {
-      logger.error('ProfilesScreen', 'handleSaveFamily failed', err);
+      logger.error("ProfilesScreen", "handleSaveFamily failed", err);
     } finally {
       setIsSavingFamily(false);
     }
@@ -282,17 +360,16 @@ export default function ProfilesScreen() {
     useCallback(() => {
       void loadData(true);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []),
   );
-
 
   // ── Bottom sheet openers ──────────────────────────────────────────────────
 
   function openCreate() {
     setEditingProfile(null);
-    setFormName('');
-    setFormEmail('');
-    setFormRole('child');
+    setFormName("");
+    setFormEmail("");
+    setFormRole("child");
     setPendingAvatarUri(null);
     setCurrentAvatarUrl(null);
     setError(null);
@@ -303,7 +380,7 @@ export default function ProfilesScreen() {
     if (!isAdmin && profile.id !== currentProfile?.id) return;
     setEditingProfile(profile);
     setFormName(profile.displayName);
-    setFormEmail(profile.email ?? '');
+    setFormEmail(profile.email ?? "");
     setFormRole(profile.role);
     setPendingAvatarUri(null);
     setCurrentAvatarUrl(profile.avatarUrl ?? null);
@@ -316,11 +393,11 @@ export default function ProfilesScreen() {
   async function handlePickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setError('Permissão para aceder à galeria negada.');
+      setError("Permissão para aceder à galeria negada.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
@@ -336,17 +413,21 @@ export default function ProfilesScreen() {
     const name = formName.trim();
     const email = formEmail.trim() || null;
     if (!name) {
-      setError('O nome é obrigatório.');
+      setError("O nome é obrigatório.");
       return;
     }
 
     // Email uniqueness within family
     if (email) {
       const duplicate = profiles.find(
-        (p) => p.email?.toLowerCase() === email.toLowerCase() && p.id !== editingProfile?.id
+        (p) =>
+          p.email?.toLowerCase() === email.toLowerCase() &&
+          p.id !== editingProfile?.id,
       );
       if (duplicate) {
-        setError(`O email "${email}" já está atribuído a "${duplicate.displayName}".`);
+        setError(
+          `O email "${email}" já está atribuído a "${duplicate.displayName}".`,
+        );
         return;
       }
     }
@@ -362,45 +443,59 @@ export default function ProfilesScreen() {
         avatarUrl = await profileRepository.uploadAvatar(
           profileId,
           userAccount!.familyId,
-          compressedUri
+          compressedUri,
         );
       }
 
       if (editingProfile) {
         const isInvitedOrEnrolled =
-          editingProfile.status === 'invited' || editingProfile.status === 'enrolled';
+          editingProfile.status === "invited" ||
+          editingProfile.status === "enrolled";
         const emailChanged = email !== (editingProfile.email ?? null);
         const emailCleared = !email && !!editingProfile.email;
 
         if (isInvitedOrEnrolled && emailCleared) {
           // Email removed → auto-transition to active (revokes auth if enrolled)
-          await profileRepository.setProfileStatus(editingProfile.id, 'active');
-          const updates: Partial<Pick<Profile, 'displayName' | 'avatarUrl' | 'email' | 'role'>> = {
+          await profileRepository.setProfileStatus(editingProfile.id, "active");
+          const updates: Partial<
+            Pick<Profile, "displayName" | "avatarUrl" | "email" | "role">
+          > = {
             displayName: name,
             email: null,
             role: formRole,
           };
           if (pendingAvatarUri) updates.avatarUrl = avatarUrl;
           await profileRepository.updateProfile(editingProfile.id, updates);
-        } else if (editingProfile.status === 'enrolled' && emailChanged && email) {
+        } else if (
+          editingProfile.status === "enrolled" &&
+          emailChanged &&
+          email
+        ) {
           // Enrolled + email changed → revoke auth, update email, set to invited
-          await profileRepository.setProfileStatus(editingProfile.id, 'active');
-          const updates: Partial<Pick<Profile, 'displayName' | 'avatarUrl' | 'email' | 'role'>> = {
+          await profileRepository.setProfileStatus(editingProfile.id, "active");
+          const updates: Partial<
+            Pick<Profile, "displayName" | "avatarUrl" | "email" | "role">
+          > = {
             displayName: name,
             email,
             role: formRole,
           };
           if (pendingAvatarUri) updates.avatarUrl = avatarUrl;
           await profileRepository.updateProfile(editingProfile.id, updates);
-          await profileRepository.setProfileStatus(editingProfile.id, 'invited');
+          await profileRepository.setProfileStatus(
+            editingProfile.id,
+            "invited",
+          );
         } else {
           // Normal update
-          const updates: Partial<Pick<Profile, 'displayName' | 'avatarUrl' | 'email' | 'role'>> = {
+          const updates: Partial<
+            Pick<Profile, "displayName" | "avatarUrl" | "email" | "role">
+          > = {
             displayName: name,
             role: formRole,
           };
           if (pendingAvatarUri) updates.avatarUrl = avatarUrl;
-          if (editingProfile.status !== 'enrolled') {
+          if (editingProfile.status !== "enrolled") {
             updates.email = email;
           }
           await profileRepository.updateProfile(editingProfile.id, updates);
@@ -411,15 +506,15 @@ export default function ProfilesScreen() {
           avatarUrl,
           userAccount!.familyId,
           email,
-          formRole
+          formRole,
         );
       }
 
       setBottomSheetVisible(false);
       await loadData();
     } catch (err) {
-      logger.error('ProfilesScreen', 'handleSave failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao guardar perfil.');
+      logger.error("ProfilesScreen", "handleSave failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao guardar perfil.");
     } finally {
       setIsSaving(false);
     }
@@ -436,27 +531,32 @@ export default function ProfilesScreen() {
     const profile = statusPickerProfile;
     if (!profile) return;
 
-    if (newStatus === 'invited' && !profile.email) {
+    if (newStatus === "invited" && !profile.email) {
       // No email → prompt for one before changing status
       setStatusPickerProfile(null);
-      setEmailPromptValue('');
-      setEmailPromptRole('child');
+      setEmailPromptValue("");
+      setEmailPromptRole("child");
       setEmailPromptProfile(profile);
       return;
     }
 
-    const isRevoke = newStatus === 'active' && profile.status === 'enrolled';
+    const isRevoke = newStatus === "active" && profile.status === "enrolled";
 
     setStatusPickerProfile(null);
     setTimeout(() => {
-      const title = isRevoke ? 'Revogar acesso' : `Alterar para ${STATUS_LABEL[newStatus]}`;
+      const title = isRevoke
+        ? "Revogar acesso"
+        : `Alterar para ${STATUS_LABEL[newStatus]}`;
       const message = isRevoke
         ? `O acesso de "${profile.displayName}" será revogado. Terá de ser convidado novamente para aceder à aplicação.`
         : `Alterar estado de "${profile.displayName}" para "${STATUS_LABEL[newStatus]}"?`;
 
       Alert.alert(title, message, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: () => void doStatusChange(profile.id, newStatus) },
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Confirmar",
+          onPress: () => void doStatusChange(profile.id, newStatus),
+        },
       ]);
     }, 300);
   }
@@ -467,27 +567,33 @@ export default function ProfilesScreen() {
 
     const email = emailPromptValue.trim();
     if (!email) {
-      setError('Email é obrigatório para convidar.');
+      setError("Email é obrigatório para convidar.");
       return;
     }
 
     const duplicate = profiles.find(
-      (p) => p.email?.toLowerCase() === email.toLowerCase() && p.id !== profile.id
+      (p) =>
+        p.email?.toLowerCase() === email.toLowerCase() && p.id !== profile.id,
     );
     if (duplicate) {
-      setError(`O email "${email}" já está atribuído a "${duplicate.displayName}".`);
+      setError(
+        `O email "${email}" já está atribuído a "${duplicate.displayName}".`,
+      );
       return;
     }
 
     setError(null);
     setEmailPromptProfile(null);
     try {
-      await profileRepository.updateProfile(profile.id, { email, role: emailPromptRole });
-      await profileRepository.setProfileStatus(profile.id, 'invited');
+      await profileRepository.updateProfile(profile.id, {
+        email,
+        role: emailPromptRole,
+      });
+      await profileRepository.setProfileStatus(profile.id, "invited");
       await loadData();
     } catch (err) {
-      logger.error('ProfilesScreen', 'handleEmailPromptConfirm failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao convidar.');
+      logger.error("ProfilesScreen", "handleEmailPromptConfirm failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao convidar.");
     }
   }
 
@@ -496,19 +602,19 @@ export default function ProfilesScreen() {
       await profileRepository.setProfileStatus(id, status);
       await loadData();
     } catch (err) {
-      logger.error('ProfilesScreen', 'doStatusChange failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao alterar estado.');
+      logger.error("ProfilesScreen", "doStatusChange failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao alterar estado.");
     }
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
   function confirmDelete(profile: Profile) {
-    Alert.alert('Eliminar', `Eliminar o perfil "${profile.displayName}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert("Eliminar", `Eliminar o perfil "${profile.displayName}"?`, [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: 'Confirmar',
-        style: 'destructive',
+        text: "Confirmar",
+        style: "destructive",
         onPress: () => void handleDelete(profile.id),
       },
     ]);
@@ -519,8 +625,8 @@ export default function ProfilesScreen() {
       await profileRepository.deleteProfile(id);
       await loadData();
     } catch (err) {
-      logger.error('ProfilesScreen', 'handleDelete failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao eliminar perfil.');
+      logger.error("ProfilesScreen", "handleDelete failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao eliminar perfil.");
     }
   }
 
@@ -532,7 +638,11 @@ export default function ProfilesScreen() {
 
   const renderProfileItem = useCallback(
     ({ item: profile }: ListRenderItemInfo<Profile>) => (
-      <ProfileDraggableRow profile={profile} onOpenEdit={openEdit} onBadgeTap={handleBadgeTap} />
+      <ProfileDraggableRow
+        profile={profile}
+        onOpenEdit={openEdit}
+        onBadgeTap={handleBadgeTap}
+      />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -559,7 +669,13 @@ export default function ProfilesScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <PageHeader title="Família" subtitle={family?.name} imageUri={family?.bannerUrl} showBack onEdit={isAdmin ? openFamilyEdit : undefined} />
+      <PageHeader
+        title="Família"
+        subtitle={family?.name}
+        imageUri={family?.bannerUrl}
+        showBack
+        onEdit={isAdmin ? openFamilyEdit : undefined}
+      />
 
       <View style={styles.content}>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -569,7 +685,9 @@ export default function ProfilesScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderProfileItem}
           onReorder={handleReorderEvent}
-          ListEmptyComponent={<Text style={styles.empty}>Nenhum perfil encontrado.</Text>}
+          ListEmptyComponent={
+            <Text style={styles.empty}>Nenhum perfil encontrado.</Text>
+          }
           ListFooterComponent={
             isAdmin ? (
               <TouchableOpacity style={styles.addButton} onPress={openCreate}>
@@ -594,110 +712,128 @@ export default function ProfilesScreen() {
             contentContainerStyle={{ paddingBottom: keyboardHeight }}
             keyboardShouldPersistTaps="handled"
           >
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>
-              {editingProfile ? 'Editar perfil' : 'Novo perfil'}
-            </Text>
+            <View style={styles.sheet}>
+              <Text style={styles.sheetTitle}>
+                {editingProfile ? "Editar perfil" : "Novo perfil"}
+              </Text>
 
-            {/* Avatar picker */}
-            <TouchableOpacity
-              style={styles.avatarPicker}
-              onPress={handlePickImage}
-              disabled={isSaving}
-            >
-              {sheetAvatarUri ? (
-                <Image source={{ uri: sheetAvatarUri }} style={styles.avatarPickerImage} />
-              ) : (
-                <Text style={styles.avatarPickerInitial}>{formName[0]?.toUpperCase() ?? '?'}</Text>
+              {/* Avatar picker */}
+              <TouchableOpacity
+                style={styles.avatarPicker}
+                onPress={handlePickImage}
+                disabled={isSaving}
+              >
+                {sheetAvatarUri ? (
+                  <Image
+                    source={{ uri: sheetAvatarUri }}
+                    style={styles.avatarPickerImage}
+                  />
+                ) : (
+                  <Text style={styles.avatarPickerInitial}>
+                    {formName[0]?.toUpperCase() ?? "?"}
+                  </Text>
+                )}
+                <View style={styles.avatarPickerBadge}>
+                  <Text style={styles.avatarPickerBadgeText}>foto</Text>
+                </View>
+              </TouchableOpacity>
+
+              <Text style={styles.label}>Nome *</Text>
+              <TextInput
+                {...getInputProps("formName")}
+                style={styles.input}
+                value={formName}
+                onChangeText={setFormName}
+                placeholder="ex: Aurora"
+                autoCapitalize="words"
+                autoCorrect={false}
+                editable={!isSaving}
+              />
+
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                {...getInputProps("formEmail")}
+                style={styles.input}
+                value={formEmail}
+                onChangeText={setFormEmail}
+                placeholder="email@exemplo.com (opcional)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSaving}
+              />
+
+              {isAdmin && (
+                <>
+                  <Text style={styles.label}>Função</Text>
+                  <View style={styles.roleRow}>
+                    {(["admin", "member", "maid", "child"] as UserRole[]).map(
+                      (r) => (
+                        <TouchableOpacity
+                          key={r}
+                          style={[
+                            styles.roleOption,
+                            formRole === r && styles.roleOptionSelected,
+                          ]}
+                          onPress={() => setFormRole(r)}
+                          disabled={isSaving}
+                        >
+                          <Text
+                            style={[
+                              styles.roleOptionText,
+                              formRole === r && styles.roleOptionTextSelected,
+                            ]}
+                          >
+                            {ROLE_LABEL[r]}
+                          </Text>
+                        </TouchableOpacity>
+                      ),
+                    )}
+                  </View>
+                </>
               )}
-              <View style={styles.avatarPickerBadge}>
-                <Text style={styles.avatarPickerBadgeText}>foto</Text>
-              </View>
-            </TouchableOpacity>
 
-            <Text style={styles.label}>Nome *</Text>
-            <TextInput
-              {...getInputProps('formName')}
-              style={styles.input}
-              value={formName}
-              onChangeText={setFormName}
-              placeholder="ex: Aurora"
-              autoCapitalize="words"
-              autoCorrect={false}
-              editable={!isSaving}
-            />
+              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              {...getInputProps('formEmail')}
-              style={styles.input}
-              value={formEmail}
-              onChangeText={setFormEmail}
-              placeholder="email@exemplo.com (opcional)"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isSaving}
-            />
-
-            {isAdmin && (
-              <>
-                <Text style={styles.label}>Função</Text>
-                <View style={styles.roleRow}>
-                  {(['admin', 'member', 'maid', 'child'] as UserRole[]).map((r) => (
+              <View style={styles.sheetButtons}>
+                {isAdmin &&
+                  editingProfile &&
+                  editingProfile.status !== "enrolled" && (
                     <TouchableOpacity
-                      key={r}
-                      style={[styles.roleOption, formRole === r && styles.roleOptionSelected]}
-                      onPress={() => setFormRole(r)}
+                      style={styles.deleteSheetButton}
+                      onPress={() => {
+                        const p = editingProfile;
+                        setBottomSheetVisible(false);
+                        setTimeout(() => confirmDelete(p), 400);
+                      }}
                       disabled={isSaving}
                     >
-                      <Text
-                        style={[styles.roleOptionText, formRole === r && styles.roleOptionTextSelected]}
-                      >
-                        {ROLE_LABEL[r]}
-                      </Text>
+                      <Text style={styles.deleteSheetText}>Eliminar</Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <View style={styles.sheetButtons}>
-              {isAdmin && editingProfile && editingProfile.status !== 'enrolled' && (
+                  )}
                 <TouchableOpacity
-                  style={styles.deleteSheetButton}
-                  onPress={() => {
-                    const p = editingProfile;
-                    setBottomSheetVisible(false);
-                    setTimeout(() => confirmDelete(p), 400);
-                  }}
+                  style={styles.cancelButton}
+                  onPress={() => setBottomSheetVisible(false)}
                   disabled={isSaving}
                 >
-                  <Text style={styles.deleteSheetText}>Eliminar</Text>
+                  <Text style={styles.cancelText}>Cancelar</Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setBottomSheetVisible(false)}
-                disabled={isSaving}
-              >
-                <Text style={styles.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Guardar</Text>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.saveButton,
+                    isSaving && styles.saveButtonDisabled,
+                  ]}
+                  onPress={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
           </ScrollView>
         </View>
       </Modal>
@@ -717,19 +853,27 @@ export default function ProfilesScreen() {
           <View style={styles.pickerCard}>
             {statusPickerProfile && (
               <>
-                <Text style={styles.pickerName}>{statusPickerProfile.displayName}</Text>
+                <Text style={styles.pickerName}>
+                  {statusPickerProfile.displayName}
+                </Text>
 
                 {/* Current status */}
                 <View
                   style={[
                     styles.pickerCurrent,
-                    { backgroundColor: STATUS_COLOR[statusPickerProfile.status] + '18' },
+                    {
+                      backgroundColor:
+                        STATUS_COLOR[statusPickerProfile.status] + "18",
+                    },
                   ]}
                 >
                   <View
                     style={[
                       styles.pickerDot,
-                      { backgroundColor: STATUS_COLOR[statusPickerProfile.status] },
+                      {
+                        backgroundColor:
+                          STATUS_COLOR[statusPickerProfile.status],
+                      },
                     ]}
                   />
                   <Text
@@ -750,12 +894,25 @@ export default function ProfilesScreen() {
                       key={s}
                       style={[
                         styles.pickerOption,
-                        { borderColor: STATUS_COLOR[s], backgroundColor: STATUS_COLOR[s] + '10' },
+                        {
+                          borderColor: STATUS_COLOR[s],
+                          backgroundColor: STATUS_COLOR[s] + "10",
+                        },
                       ]}
                       onPress={() => handleStatusPick(s)}
                     >
-                      <View style={[styles.pickerDot, { backgroundColor: STATUS_COLOR[s] }]} />
-                      <Text style={[styles.pickerOptionText, { color: STATUS_COLOR[s] }]}>
+                      <View
+                        style={[
+                          styles.pickerDot,
+                          { backgroundColor: STATUS_COLOR[s] },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.pickerOptionText,
+                          { color: STATUS_COLOR[s] },
+                        ]}
+                      >
                         {STATUS_LABEL[s]}
                       </Text>
                     </TouchableOpacity>
@@ -779,14 +936,19 @@ export default function ProfilesScreen() {
           activeOpacity={1}
           onPress={() => setEmailPromptProfile(null)}
         >
-          <View style={styles.pickerCard} onStartShouldSetResponder={() => true}>
+          <View
+            style={styles.pickerCard}
+            onStartShouldSetResponder={() => true}
+          >
             {emailPromptProfile && (
               <>
-                <Text style={styles.pickerName}>Convidar {emailPromptProfile.displayName}</Text>
+                <Text style={styles.pickerName}>
+                  Convidar {emailPromptProfile.displayName}
+                </Text>
 
                 <Text style={styles.label}>Email *</Text>
                 <TextInput
-                  {...getInputProps('emailPromptValue')}
+                  {...getInputProps("emailPromptValue")}
                   style={styles.input}
                   value={emailPromptValue}
                   onChangeText={setEmailPromptValue}
@@ -798,25 +960,28 @@ export default function ProfilesScreen() {
 
                 <Text style={styles.label}>Função</Text>
                 <View style={styles.roleRow}>
-                  {(['admin', 'member', 'maid', 'child'] as UserRole[]).map((r) => (
-                    <TouchableOpacity
-                      key={r}
-                      style={[
-                        styles.roleOption,
-                        emailPromptRole === r && styles.roleOptionSelected,
-                      ]}
-                      onPress={() => setEmailPromptRole(r)}
-                    >
-                      <Text
+                  {(["admin", "member", "maid", "child"] as UserRole[]).map(
+                    (r) => (
+                      <TouchableOpacity
+                        key={r}
                         style={[
-                          styles.roleOptionText,
-                          emailPromptRole === r && styles.roleOptionTextSelected,
+                          styles.roleOption,
+                          emailPromptRole === r && styles.roleOptionSelected,
                         ]}
+                        onPress={() => setEmailPromptRole(r)}
                       >
-                        {ROLE_LABEL[r]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.roleOptionText,
+                            emailPromptRole === r &&
+                              styles.roleOptionTextSelected,
+                          ]}
+                        >
+                          {ROLE_LABEL[r]}
+                        </Text>
+                      </TouchableOpacity>
+                    ),
+                  )}
                 </View>
 
                 {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -828,7 +993,10 @@ export default function ProfilesScreen() {
                   >
                     <Text style={styles.cancelText}>Cancelar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.saveButton} onPress={handleEmailPromptConfirm}>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleEmailPromptConfirm}
+                  >
                     <Text style={styles.saveButtonText}>Convidar</Text>
                   </TouchableOpacity>
                 </View>
@@ -839,43 +1007,79 @@ export default function ProfilesScreen() {
       </Modal>
 
       {/* ── Family edit modal ────────────────────────────────────────── */}
-      <Modal visible={familyEditVisible} animationType="slide" transparent onRequestClose={() => setFamilyEditVisible(false)}>
+      <Modal
+        visible={familyEditVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFamilyEditVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <ScrollView
             ref={scrollViewRef}
             contentContainerStyle={{ paddingBottom: keyboardHeight }}
             keyboardShouldPersistTaps="handled"
           >
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Editar família</Text>
+            <View style={styles.sheet}>
+              <Text style={styles.sheetTitle}>Editar família</Text>
 
-            <Text style={styles.label}>Nome *</Text>
-            <TextInput
-              {...getInputProps('familyName')}
-              style={[styles.input, familyNameError ? styles.inputError : null]} value={familyName}
-              onChangeText={(t) => { setFamilyName(t); setFamilyNameError(''); }} placeholder="ex: Morais" editable={!isSavingFamily} />
-            {familyNameError ? <Text style={styles.fieldError}>{familyNameError}</Text> : null}
+              <Text style={styles.label}>Nome *</Text>
+              <TextInput
+                {...getInputProps("familyName")}
+                style={[
+                  styles.input,
+                  familyNameError ? styles.inputError : null,
+                ]}
+                value={familyName}
+                onChangeText={(t) => {
+                  setFamilyName(t);
+                  setFamilyNameError("");
+                }}
+                placeholder="ex: Morais"
+                editable={!isSavingFamily}
+              />
+              {familyNameError ? (
+                <Text style={styles.fieldError}>{familyNameError}</Text>
+              ) : null}
 
-            <Text style={styles.label}>Foto de capa</Text>
-            <TouchableOpacity style={styles.coverBtn} onPress={pickBanner} disabled={isSavingFamily}>
-              <Text style={styles.coverBtnText}>
-                {pendingBannerUri
-                  ? 'Imagem selecionada ✓'
-                  : family?.bannerUrl
-                    ? 'Alterar imagem'
-                    : 'Escolher imagem'}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.sheetButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setFamilyEditVisible(false)} disabled={isSavingFamily}>
-                <Text style={styles.cancelText}>Cancelar</Text>
+              <Text style={styles.label}>Foto de capa</Text>
+              <TouchableOpacity
+                style={styles.coverBtn}
+                onPress={pickBanner}
+                disabled={isSavingFamily}
+              >
+                <Text style={styles.coverBtnText}>
+                  {pendingBannerUri
+                    ? "Imagem selecionada ✓"
+                    : family?.bannerUrl
+                      ? "Alterar imagem"
+                      : "Escolher imagem"}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.saveButton, isSavingFamily && { opacity: 0.6 }]} onPress={handleSaveFamily} disabled={isSavingFamily}>
-                {isSavingFamily ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>Guardar</Text>}
-              </TouchableOpacity>
+
+              <View style={styles.sheetButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setFamilyEditVisible(false)}
+                  disabled={isSavingFamily}
+                >
+                  <Text style={styles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.saveButton,
+                    isSavingFamily && { opacity: 0.6 },
+                  ]}
+                  onPress={handleSaveFamily}
+                  disabled={isSavingFamily}
+                >
+                  {isSavingFamily ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
           </ScrollView>
         </View>
       </Modal>
@@ -888,12 +1092,12 @@ export default function ProfilesScreen() {
 const styles = StyleSheet.create({
   centered: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   content: {
     flex: 1,
@@ -902,70 +1106,70 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   backText: {
-    color: '#B5451B',
+    color: "#B5451B",
     fontSize: 16,
   },
   heading: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 24,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
   error: {
-    color: '#D32F2F',
+    color: "#D32F2F",
     marginBottom: 12,
     fontSize: 14,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
   rowContent: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   avatarCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   avatarImage: {
     width: 40,
     height: 40,
   },
   avatarInitial: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   rowInfo: {
     flex: 1,
   },
   rowName: {
     fontSize: 15,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
   rowNameInactive: {
-    color: '#AAAAAA',
-    textDecorationLine: 'line-through',
+    color: "#AAAAAA",
+    textDecorationLine: "line-through",
   },
   rowEmail: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
     marginTop: 2,
   },
   rowRole: {
     fontSize: 11,
-    color: '#AAAAAA',
+    color: "#AAAAAA",
     marginTop: 1,
   },
   badge: {
@@ -975,35 +1179,35 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   empty: {
-    color: '#888888',
-    textAlign: 'center',
+    color: "#888888",
+    textAlign: "center",
     marginVertical: 16,
   },
   addButton: {
     marginTop: 24,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
@@ -1011,162 +1215,162 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     marginBottom: 20,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   avatarPicker: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   avatarPickerImage: {
     width: 88,
     height: 88,
   },
   avatarPickerInitial: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 36,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   avatarPickerBadge: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: "rgba(0,0,0,0.45)",
     paddingVertical: 4,
-    alignItems: 'center',
+    alignItems: "center",
   },
   avatarPickerBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#555555',
+    fontWeight: "600",
+    color: "#555555",
     marginBottom: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     marginBottom: 16,
-    width: '100%',
+    width: "100%",
   },
   roleRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginBottom: 16,
-    width: '100%',
+    width: "100%",
   },
   roleOption: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
+    borderColor: "#CCCCCC",
+    alignItems: "center",
   },
   roleOptionSelected: {
-    borderColor: '#B5451B',
-    backgroundColor: '#FFF0EB',
+    borderColor: "#B5451B",
+    backgroundColor: "#FFF0EB",
   },
   roleOptionText: {
     fontSize: 14,
-    color: '#555555',
+    color: "#555555",
   },
   roleOptionTextSelected: {
-    color: '#B5451B',
-    fontWeight: '600',
+    color: "#B5451B",
+    fontWeight: "600",
   },
   sheetButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
-    width: '100%',
+    width: "100%",
   },
   deleteSheetButton: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D32F2F',
-    alignItems: 'center',
+    borderColor: "#D32F2F",
+    alignItems: "center",
   },
   deleteSheetText: {
-    color: '#D32F2F',
+    color: "#D32F2F",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
+    borderColor: "#CCCCCC",
+    alignItems: "center",
   },
   cancelText: {
-    color: '#1A1A1A',
+    color: "#1A1A1A",
     fontSize: 16,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonDisabled: {
     opacity: 0.6,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   pickerOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   pickerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 24,
-    width: '80%',
+    width: "80%",
     maxWidth: 320,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
   },
   pickerName: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pickerCurrent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 10,
@@ -1174,7 +1378,7 @@ const styles = StyleSheet.create({
   },
   pickerCurrentText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   pickerDot: {
     width: 8,
@@ -1184,17 +1388,17 @@ const styles = StyleSheet.create({
   },
   pickerHint: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
     marginBottom: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pickerOptions: {
     gap: 10,
   },
   pickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,
@@ -1202,33 +1406,37 @@ const styles = StyleSheet.create({
   },
   pickerOptionText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  dragHandle: { paddingHorizontal: 8, paddingVertical: 12, justifyContent: 'center' },
-  dragHandleText: { fontSize: 18, color: '#CCCCCC' },
+  dragHandle: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    justifyContent: "center",
+  },
+  dragHandleText: { fontSize: 18, color: "#CCCCCC" },
   editFamilyBtn: {
-    position: 'absolute',
+    position: "absolute",
     top: 56,
     right: 12,
     zIndex: 2,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  editFamilyBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  inputError: { borderColor: '#D32F2F' },
-  fieldError: { color: '#D32F2F', fontSize: 12, marginBottom: 8 },
+  editFamilyBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  inputError: { borderColor: "#D32F2F" },
+  fieldError: { color: "#D32F2F", fontSize: 12, marginBottom: 8 },
   coverBtn: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  coverBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
+  coverBtnText: { fontSize: 14, color: "#B5451B", fontWeight: "500" },
 });

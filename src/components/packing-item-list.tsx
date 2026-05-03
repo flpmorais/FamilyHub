@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,32 +11,45 @@ import {
   Modal,
   Alert,
   Switch,
-} from 'react-native';
-import { Icon, Snackbar } from 'react-native-paper';
-import { logger } from '../utils/logger';
-import { useStatusColours } from '../constants/status-colours';
-import { usePackingStore } from '../stores/packing.store';
+} from "react-native";
+import { Icon, Snackbar } from "react-native-paper";
+import { logger } from "../utils/logger";
+import { useStatusColours } from "../constants/status-colours";
+import { usePackingStore } from "../stores/packing.store";
 import {
   StatusCountPill,
   FilterPanel,
   PackingItemCard,
   PackingCompletionState,
-} from './packing';
-import { IconPicker } from './icon-picker';
-import { useIconStore } from '../stores/icon.store';
-import type { PackingItem, PackingStatus, Category, Tag, BagTemplate } from '../types/packing.types';
-import type { Profile } from '../types/profile.types';
-import type { VacationBag } from '../types/vacation.types';
+} from "./packing";
+import { IconPicker } from "./icon-picker";
+import { useIconStore } from "../stores/icon.store";
+import type {
+  PackingItem,
+  PackingStatus,
+  Category,
+  Tag,
+  BagTemplate,
+} from "../types/packing.types";
+import type { Profile } from "../types/profile.types";
+import type { VacationBag } from "../types/vacation.types";
 
 const STATUS_LABELS: Record<PackingStatus, string> = {
-  new: 'Novo',
-  buy: 'Comprar',
-  ready: 'Pronto',
-  issue: 'Problema',
-  last_minute: 'Última hora',
-  packed: 'Embalado',
+  new: "Novo",
+  buy: "Comprar",
+  ready: "Pronto",
+  issue: "Problema",
+  last_minute: "Última hora",
+  packed: "Embalado",
 };
-const ALL_STATUSES: PackingStatus[] = ['new', 'buy', 'issue', 'ready', 'last_minute', 'packed'];
+const ALL_STATUSES: PackingStatus[] = [
+  "new",
+  "buy",
+  "issue",
+  "ready",
+  "last_minute",
+  "packed",
+];
 
 interface PackingItemListProps {
   items: PackingItem[];
@@ -53,7 +66,7 @@ interface PackingItemListProps {
     categoryId: string | null,
     iconId: string,
     isAllFamily: boolean,
-    vacationBagId: string | null
+    vacationBagId: string | null,
   ) => Promise<void>;
   onUpdateItem: (
     id: string,
@@ -67,10 +80,14 @@ interface PackingItemListProps {
       iconId: string;
       isAllFamily: boolean;
       vacationBagId: string | null;
-    }
+    },
   ) => Promise<void>;
   onDeleteItem: (id: string) => Promise<void>;
-  onStatusChange: (id: string, status: PackingStatus, vacationBagId?: string) => Promise<void>;
+  onStatusChange: (
+    id: string,
+    status: PackingStatus,
+    vacationBagId?: string,
+  ) => Promise<void>;
 }
 
 export function PackingItemList({
@@ -103,7 +120,10 @@ export function PackingItemList({
 
   const { icons, resolveIconName } = useIconStore();
 
-  const bagsMap = useMemo(() => new Map(bagTemplates.map((b) => [b.id, b])), [bagTemplates]);
+  const bagsMap = useMemo(
+    () => new Map(bagTemplates.map((b) => [b.id, b])),
+    [bagTemplates],
+  );
 
   // Status counts (all items, unfiltered)
   const statusCounts = useMemo(() => {
@@ -120,12 +140,20 @@ export function PackingItemList({
     const hasProfileFilter = activeProfileFilters.length > 0;
     const hasCategoryFilter = activeCategoryFilters.length > 0;
     const hasTagFilter = activeTagFilters.length > 0;
-    if (!hasStatusFilter && !hasProfileFilter && !hasCategoryFilter && !hasTagFilter) return items;
+    if (
+      !hasStatusFilter &&
+      !hasProfileFilter &&
+      !hasCategoryFilter &&
+      !hasTagFilter
+    )
+      return items;
     return items.filter((item) => {
-      if (hasStatusFilter && !activeStatusFilters.includes(item.status)) return false;
+      if (hasStatusFilter && !activeStatusFilters.includes(item.status))
+        return false;
       if (
         hasProfileFilter &&
-        (!item.assignedProfileId || !activeProfileFilters.includes(item.assignedProfileId))
+        (!item.assignedProfileId ||
+          !activeProfileFilters.includes(item.assignedProfileId))
       )
         return false;
       if (
@@ -133,10 +161,20 @@ export function PackingItemList({
         (!item.categoryId || !activeCategoryFilters.includes(item.categoryId))
       )
         return false;
-      if (hasTagFilter && !(item.tagIds ?? []).some((tid) => activeTagFilters.includes(tid))) return false;
+      if (
+        hasTagFilter &&
+        !(item.tagIds ?? []).some((tid) => activeTagFilters.includes(tid))
+      )
+        return false;
       return true;
     });
-  }, [items, activeStatusFilters, activeProfileFilters, activeCategoryFilters, activeTagFilters]);
+  }, [
+    items,
+    activeStatusFilters,
+    activeProfileFilters,
+    activeCategoryFilters,
+    activeTagFilters,
+  ]);
 
   // Count for filter panel "Ver N itens"
   const filteredCount = filteredItems.length;
@@ -147,29 +185,35 @@ export function PackingItemList({
     activeProfileFilters.length > 0 ||
     activeCategoryFilters.length > 0 ||
     activeTagFilters.length > 0;
-  const allPacked = items.length > 0 && items.every((i) => i.status === 'packed');
+  const allPacked =
+    items.length > 0 && items.every((i) => i.status === "packed");
   const [showAllOverride, setShowAllOverride] = useState(false);
-  const showCompletionState = allPacked && !hasActiveFilters && !showAllOverride;
+  const showCompletionState =
+    allPacked && !hasActiveFilters && !showAllOverride;
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<PackingItem | null>(null);
-  const [formName, setFormName] = useState('');
+  const [formName, setFormName] = useState("");
   const [formProfileId, setFormProfileId] = useState<string | null>(null);
-  const [formQty, setFormQty] = useState('1');
-  const [formStatus, setFormStatus] = useState<PackingStatus>('new');
-  const [formNotes, setFormNotes] = useState('');
+  const [formQty, setFormQty] = useState("1");
+  const [formStatus, setFormStatus] = useState<PackingStatus>("new");
+  const [formNotes, setFormNotes] = useState("");
   const [formCategoryId, setFormCategoryId] = useState<string | null>(null);
   const [formAllFamily, setFormAllFamily] = useState(false);
-  const [formIconId, setFormIconId] = useState('');
+  const [formIconId, setFormIconId] = useState("");
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [formTagIds, setFormTagIds] = useState<string[]>([]);
-  const [formVacationBagId, setFormVacationBagId] = useState<string | null>(null);
+  const [formVacationBagId, setFormVacationBagId] = useState<string | null>(
+    null,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUsedProfileId, setLastUsedProfileId] = useState<string | null>(null);
+  const [lastUsedProfileId, setLastUsedProfileId] = useState<string | null>(
+    null,
+  );
 
   // Success toast
-  const [successMsg, setSuccessMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState("");
   const [successVisible, setSuccessVisible] = useState(false);
 
   // Snackbar undo state
@@ -178,23 +222,27 @@ export function PackingItemList({
     itemId: string;
     previousStatus: PackingStatus;
   } | null>(null);
-  const [snackMessage, setSnackMessage] = useState('');
+  const [snackMessage, setSnackMessage] = useState("");
 
   // Status picker modal state
-  const [statusPickerItem, setStatusPickerItem] = useState<PackingItem | null>(null);
+  const [statusPickerItem, setStatusPickerItem] = useState<PackingItem | null>(
+    null,
+  );
   const [packingBagStep, setPackingBagStep] = useState(false);
-  const [pendingPackedItemId, setPendingPackedItemId] = useState<string | null>(null);
+  const [pendingPackedItemId, setPendingPackedItemId] = useState<string | null>(
+    null,
+  );
 
   function openAdd() {
     setEditingItem(null);
-    setFormName('');
+    setFormName("");
     setFormProfileId(lastUsedProfileId);
-    setFormQty('1');
-    setFormStatus('new');
-    setFormNotes('');
+    setFormQty("1");
+    setFormStatus("new");
+    setFormNotes("");
     const defaultCat = categories.length > 0 ? categories[0] : null;
     setFormCategoryId(defaultCat?.id ?? null);
-    setFormIconId(defaultCat?.iconId ?? '');
+    setFormIconId(defaultCat?.iconId ?? "");
     setFormAllFamily(false);
     setFormTagIds([]);
     setFormVacationBagId(null);
@@ -208,7 +256,7 @@ export function PackingItemList({
     setFormProfileId(item.assignedProfileId);
     setFormQty(String(item.quantity));
     setFormStatus(item.status);
-    setFormNotes(item.notes ?? '');
+    setFormNotes(item.notes ?? "");
     setFormCategoryId(item.categoryId);
     setFormIconId(item.iconId);
     setFormAllFamily(item.isAllFamily);
@@ -230,7 +278,7 @@ export function PackingItemList({
   async function doSave(keepOpen: boolean) {
     const name = formName.trim();
     if (!name) {
-      setError('O nome é obrigatório.');
+      setError("O nome é obrigatório.");
       return;
     }
     setError(null);
@@ -250,20 +298,28 @@ export function PackingItemList({
           vacationBagId: formVacationBagId,
         });
         setSheetVisible(false);
-        setSuccessMsg('Item actualizado');
+        setSuccessMsg("Item actualizado");
         setSuccessVisible(true);
       } else {
-        await onCreateItem(name, formAllFamily ? null : formProfileId, qty, formCategoryId, formIconId, formAllFamily, formVacationBagId);
+        await onCreateItem(
+          name,
+          formAllFamily ? null : formProfileId,
+          qty,
+          formCategoryId,
+          formIconId,
+          formAllFamily,
+          formVacationBagId,
+        );
         setLastUsedProfileId(formProfileId);
-        setSuccessMsg('Item adicionado');
+        setSuccessMsg("Item adicionado");
         setSuccessVisible(true);
         if (!keepOpen) {
           setSheetVisible(false);
         }
       }
     } catch (err) {
-      logger.error('PackingItemList', 'handleSave failed', err);
-      setError(err instanceof Error ? err.message : 'Erro ao guardar item.');
+      logger.error("PackingItemList", "handleSave failed", err);
+      setError(err instanceof Error ? err.message : "Erro ao guardar item.");
     } finally {
       setIsSaving(false);
     }
@@ -271,21 +327,28 @@ export function PackingItemList({
 
   function handleDeleteInEdit() {
     if (!editingItem) return;
-    Alert.alert(`Eliminar "${editingItem.name}"?`, 'Esta acção não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          await onDeleteItem(editingItem.id);
-          setSheetVisible(false);
+    Alert.alert(
+      `Eliminar "${editingItem.name}"?`,
+      "Esta acção não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            await onDeleteItem(editingItem.id);
+            setSheetVisible(false);
+          },
         },
-      },
-    ]);
+      ],
+    );
   }
 
-  async function handleStatusChange(item: PackingItem, newStatus: PackingStatus) {
-    if (newStatus === 'packed' && vacationBags.length > 0) {
+  async function handleStatusChange(
+    item: PackingItem,
+    newStatus: PackingStatus,
+  ) {
+    if (newStatus === "packed" && vacationBags.length > 0) {
       // Show bag selection step instead of immediately changing status
       setPendingPackedItemId(item.id);
       setPackingBagStep(true);
@@ -298,7 +361,7 @@ export function PackingItemList({
     try {
       await onStatusChange(item.id, newStatus);
     } catch (err) {
-      logger.error('PackingItemList', 'handleStatusChange failed', err);
+      logger.error("PackingItemList", "handleStatusChange failed", err);
     }
   }
 
@@ -311,12 +374,12 @@ export function PackingItemList({
     setPackingBagStep(false);
     setPendingPackedItemId(null);
     setUndoInfo({ itemId: item.id, previousStatus });
-    setSnackMessage('Item embalado');
+    setSnackMessage("Item embalado");
     setSnackVisible(true);
     try {
-      await onStatusChange(item.id, 'packed', vacationBagId);
+      await onStatusChange(item.id, "packed", vacationBagId);
     } catch (err) {
-      logger.error('PackingItemList', 'handlePackedBagSelect failed', err);
+      logger.error("PackingItemList", "handlePackedBagSelect failed", err);
     }
   }
 
@@ -326,19 +389,19 @@ export function PackingItemList({
     try {
       await onStatusChange(undoInfo.itemId, undoInfo.previousStatus);
     } catch (err) {
-      logger.error('PackingItemList', 'handleUndo failed', err);
+      logger.error("PackingItemList", "handleUndo failed", err);
     }
     setUndoInfo(null);
   }
 
   function profileName(id: string | null): string {
-    if (!id) return '';
-    return profiles.find((p) => p.id === id)?.displayName ?? '';
+    if (!id) return "";
+    return profiles.find((p) => p.id === id)?.displayName ?? "";
   }
 
   function categoryName(id: string | null): string {
-    if (!id) return '';
-    return categories.find((c) => c.id === id)?.name ?? '';
+    if (!id) return "";
+    return categories.find((c) => c.id === id)?.name ?? "";
   }
 
   function itemIcon(item: PackingItem): string {
@@ -359,7 +422,7 @@ export function PackingItemList({
       />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profiles, categories, icons]
+    [profiles, categories, icons],
   );
 
   return (
@@ -398,10 +461,14 @@ export function PackingItemList({
           contentContainerStyle={st.scroll}
           ListEmptyComponent={
             items.length === 0 ? (
-              <Text style={st.empty}>Lista vazia — adiciona o primeiro item</Text>
+              <Text style={st.empty}>
+                Lista vazia — adiciona o primeiro item
+              </Text>
             ) : (
               <View style={st.emptyFilter}>
-                <Text style={st.emptyFilterText}>Nenhum item corresponde aos filtros activos</Text>
+                <Text style={st.emptyFilterText}>
+                  Nenhum item corresponde aos filtros activos
+                </Text>
                 <TouchableOpacity onPress={clearAllFilters}>
                   <Text style={st.clearLink}>Limpar filtros</Text>
                 </TouchableOpacity>
@@ -438,9 +505,15 @@ export function PackingItemList({
         visible={snackVisible}
         onDismiss={() => setSnackVisible(false)}
         duration={4000}
-        action={{ label: 'Desfazer', onPress: handleUndo, textColor: '#FFFFFF' }}
+        action={{
+          label: "Desfazer",
+          onPress: handleUndo,
+          textColor: "#FFFFFF",
+        }}
         style={st.snackbar}
-        theme={{ colors: { inverseSurface: '#333333', inverseOnSurface: '#FFFFFF' } }}
+        theme={{
+          colors: { inverseSurface: "#333333", inverseOnSurface: "#FFFFFF" },
+        }}
       >
         {snackMessage}
       </Snackbar>
@@ -451,7 +524,9 @@ export function PackingItemList({
         onDismiss={() => setSuccessVisible(false)}
         duration={2000}
         style={st.successSnackbar}
-        theme={{ colors: { inverseSurface: '#388E3C', inverseOnSurface: '#FFFFFF' } }}
+        theme={{
+          colors: { inverseSurface: "#388E3C", inverseOnSurface: "#FFFFFF" },
+        }}
       >
         {successMsg}
       </Snackbar>
@@ -462,12 +537,20 @@ export function PackingItemList({
           visible
           animationType="fade"
           transparent
-          onRequestClose={() => { setStatusPickerItem(null); setPackingBagStep(false); setPendingPackedItemId(null); }}
+          onRequestClose={() => {
+            setStatusPickerItem(null);
+            setPackingBagStep(false);
+            setPendingPackedItemId(null);
+          }}
         >
           <TouchableOpacity
             style={st.pickerOverlay}
             activeOpacity={1}
-            onPress={() => { setStatusPickerItem(null); setPackingBagStep(false); setPendingPackedItemId(null); }}
+            onPress={() => {
+              setStatusPickerItem(null);
+              setPackingBagStep(false);
+              setPendingPackedItemId(null);
+            }}
           >
             <View style={st.pickerCard}>
               {packingBagStep ? (
@@ -478,18 +561,33 @@ export function PackingItemList({
                     {vacationBags.map((vb) => {
                       const bt = bagsMap.get(vb.bagTemplateId);
                       if (!bt) return null;
-                      const isSuggested = statusPickerItem.vacationBagId === vb.id;
+                      const isSuggested =
+                        statusPickerItem.vacationBagId === vb.id;
                       return (
                         <TouchableOpacity
                           key={vb.id}
                           style={[
                             st.pickerOption,
-                            { borderColor: bt.color, backgroundColor: isSuggested ? bt.color + '20' : '#FFFFFF' },
+                            {
+                              borderColor: bt.color,
+                              backgroundColor: isSuggested
+                                ? bt.color + "20"
+                                : "#FFFFFF",
+                            },
                           ]}
                           onPress={() => handlePackedBagSelect(vb.id)}
                         >
-                          <View style={[st.pickerDot, { backgroundColor: bt.color }]} />
-                          <Text style={[st.pickerOptionText, { color: bt.color }]}>{bt.name}</Text>
+                          <View
+                            style={[
+                              st.pickerDot,
+                              { backgroundColor: bt.color },
+                            ]}
+                          />
+                          <Text
+                            style={[st.pickerOptionText, { color: bt.color }]}
+                          >
+                            {bt.name}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -509,11 +607,13 @@ export function PackingItemList({
                             st.pickerOption,
                             {
                               borderColor: colours[s].bg,
-                              backgroundColor: isCurrent ? colours[s].bg : colours[s].bg + '10',
+                              backgroundColor: isCurrent
+                                ? colours[s].bg
+                                : colours[s].bg + "10",
                             },
                           ]}
                           onPress={() => {
-                            if (s === 'packed' && vacationBags.length > 0) {
+                            if (s === "packed" && vacationBags.length > 0) {
                               setPendingPackedItemId(statusPickerItem.id);
                               setPackingBagStep(true);
                               return;
@@ -527,13 +627,17 @@ export function PackingItemList({
                           <View
                             style={[
                               st.pickerDot,
-                              { backgroundColor: isCurrent ? '#FFFFFF' : colours[s].bg },
+                              {
+                                backgroundColor: isCurrent
+                                  ? "#FFFFFF"
+                                  : colours[s].bg,
+                              },
                             ]}
                           />
                           <Text
                             style={[
                               st.pickerOptionText,
-                              { color: isCurrent ? '#FFFFFF' : colours[s].bg },
+                              { color: isCurrent ? "#FFFFFF" : colours[s].bg },
                             ]}
                           >
                             {STATUS_LABELS[s]}
@@ -585,194 +689,289 @@ export function PackingItemList({
       >
         <View style={st.modalOverlay}>
           <View style={st.sheet}>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={st.sheetTitle}>{editingItem ? 'Editar item' : 'Adicionar item'}</Text>
-            <Text style={st.label}>Nome *</Text>
-            <TextInput
-              style={st.input}
-              value={formName}
-              onChangeText={setFormName}
-              placeholder="ex: T-shirts"
-              autoCapitalize="sentences"
-              editable={!isSaving}
-            />
-            <View style={st.toggleRow}>
-              <Text style={st.toggleLabel}>Toda a família</Text>
-              <Switch
-                value={formAllFamily}
-                onValueChange={(v) => { setFormAllFamily(v); if (v) setFormProfileId(null); }}
-                trackColor={{ true: '#B5451B' }}
-                disabled={isSaving}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={st.sheetTitle}>
+                {editingItem ? "Editar item" : "Adicionar item"}
+              </Text>
+              <Text style={st.label}>Nome *</Text>
+              <TextInput
+                style={st.input}
+                value={formName}
+                onChangeText={setFormName}
+                placeholder="ex: T-shirts"
+                autoCapitalize="sentences"
+                editable={!isSaving}
               />
-            </View>
-            {!formAllFamily && (
-              <>
-                <Text style={st.label}>Pessoa *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
-                  {profiles
-                    .filter((p) => p.status !== 'inactive')
-                    .map((p) => (
+              <View style={st.toggleRow}>
+                <Text style={st.toggleLabel}>Toda a família</Text>
+                <Switch
+                  value={formAllFamily}
+                  onValueChange={(v) => {
+                    setFormAllFamily(v);
+                    if (v) setFormProfileId(null);
+                  }}
+                  trackColor={{ true: "#B5451B" }}
+                  disabled={isSaving}
+                />
+              </View>
+              {!formAllFamily && (
+                <>
+                  <Text style={st.label}>Pessoa *</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={st.chipRow}
+                  >
+                    {profiles
+                      .filter((p) => p.status !== "inactive")
+                      .map((p) => (
+                        <TouchableOpacity
+                          key={p.id}
+                          style={[
+                            st.chip,
+                            formProfileId === p.id && st.chipActive,
+                          ]}
+                          onPress={() => setFormProfileId(p.id)}
+                          disabled={isSaving}
+                        >
+                          <Text
+                            style={[
+                              st.chipText,
+                              formProfileId === p.id && st.chipTextActive,
+                            ]}
+                          >
+                            {p.displayName}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                </>
+              )}
+              <Text style={st.label}>Quantidade</Text>
+              <TextInput
+                style={st.input}
+                value={formQty}
+                onChangeText={setFormQty}
+                keyboardType="number-pad"
+                editable={!isSaving}
+              />
+              <Text style={st.label}>Notas</Text>
+              <TextInput
+                style={[st.input, st.notesInput]}
+                value={formNotes}
+                onChangeText={setFormNotes}
+                placeholder="Notas adicionais"
+                multiline
+                editable={!isSaving}
+              />
+              <Text style={st.label}>Categoria</Text>
+              {categories.length === 0 ? (
+                <Text style={st.noCategoriesHint}>
+                  Crie categorias nas definições
+                </Text>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={st.chipRow}
+                >
+                  {categories
+                    .filter((c) => c.active)
+                    .map((cat) => (
                       <TouchableOpacity
-                        key={p.id}
-                        style={[st.chip, formProfileId === p.id && st.chipActive]}
-                        onPress={() => setFormProfileId(p.id)}
+                        key={cat.id}
+                        style={[
+                          st.chip,
+                          formCategoryId === cat.id && st.chipActive,
+                        ]}
+                        onPress={() => handleCategoryChange(cat.id)}
                         disabled={isSaving}
                       >
-                        <Text style={[st.chipText, formProfileId === p.id && st.chipTextActive]}>
-                          {p.displayName}
+                        <Text
+                          style={[
+                            st.chipText,
+                            formCategoryId === cat.id && st.chipTextActive,
+                          ]}
+                        >
+                          {cat.name}
                         </Text>
                       </TouchableOpacity>
                     ))}
                 </ScrollView>
-              </>
-            )}
-            <Text style={st.label}>Quantidade</Text>
-            <TextInput
-              style={st.input}
-              value={formQty}
-              onChangeText={setFormQty}
-              keyboardType="number-pad"
-              editable={!isSaving}
-            />
-            <Text style={st.label}>Notas</Text>
-            <TextInput
-              style={[st.input, st.notesInput]}
-              value={formNotes}
-              onChangeText={setFormNotes}
-              placeholder="Notas adicionais"
-              multiline
-              editable={!isSaving}
-            />
-            <Text style={st.label}>Categoria</Text>
-            {categories.length === 0 ? (
-              <Text style={st.noCategoriesHint}>Crie categorias nas definições</Text>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
-                {categories
-                  .filter((c) => c.active)
-                  .map((cat) => (
+              )}
+              <Text style={st.label}>Ícone</Text>
+              <TouchableOpacity
+                style={st.iconPickerBtn}
+                onPress={() => setIconPickerVisible(true)}
+                disabled={isSaving}
+              >
+                <Icon
+                  source={resolveIconName(formIconId)}
+                  size={24}
+                  color="#B5451B"
+                />
+                <Text style={st.iconPickerBtnText}>Selecionar ícone</Text>
+              </TouchableOpacity>
+              {vacationBags.length > 0 && (
+                <>
+                  <Text style={st.label}>Mala</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={st.chipRow}
+                  >
                     <TouchableOpacity
-                      key={cat.id}
-                      style={[st.chip, formCategoryId === cat.id && st.chipActive]}
-                      onPress={() => handleCategoryChange(cat.id)}
+                      style={[
+                        st.chip,
+                        formVacationBagId === null && st.chipActive,
+                      ]}
+                      onPress={() => setFormVacationBagId(null)}
                       disabled={isSaving}
                     >
-                      <Text style={[st.chipText, formCategoryId === cat.id && st.chipTextActive]}>
-                        {cat.name}
+                      <Text
+                        style={[
+                          st.chipText,
+                          formVacationBagId === null && st.chipTextActive,
+                        ]}
+                      >
+                        Nenhuma
                       </Text>
                     </TouchableOpacity>
-                  ))}
-              </ScrollView>
-            )}
-            <Text style={st.label}>Ícone</Text>
-            <TouchableOpacity
-              style={st.iconPickerBtn}
-              onPress={() => setIconPickerVisible(true)}
-              disabled={isSaving}
-            >
-              <Icon source={resolveIconName(formIconId)} size={24} color="#B5451B" />
-              <Text style={st.iconPickerBtnText}>Selecionar ícone</Text>
-            </TouchableOpacity>
-            {vacationBags.length > 0 && (
-              <>
-                <Text style={st.label}>Mala</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
-                  <TouchableOpacity
-                    style={[st.chip, formVacationBagId === null && st.chipActive]}
-                    onPress={() => setFormVacationBagId(null)}
-                    disabled={isSaving}
-                  >
-                    <Text style={[st.chipText, formVacationBagId === null && st.chipTextActive]}>Nenhuma</Text>
-                  </TouchableOpacity>
-                  {vacationBags.map((vb) => {
-                    const bt = bagsMap.get(vb.bagTemplateId);
-                    if (!bt) return null;
-                    return (
-                      <TouchableOpacity
-                        key={vb.id}
-                        style={[st.chip, formVacationBagId === vb.id && { backgroundColor: bt.color, borderColor: bt.color }]}
-                        onPress={() => setFormVacationBagId(vb.id)}
-                        disabled={isSaving}
-                      >
-                        <View style={[st.bagChipDot, { backgroundColor: formVacationBagId === vb.id ? '#FFFFFF' : bt.color }]} />
-                        <Text style={[st.chipText, formVacationBagId === vb.id && { color: '#FFFFFF' }]}>{bt.name}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </>
-            )}
-            {tags.length > 0 && (
-              <>
-                <Text style={st.label}>Etiquetas</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.chipRow}>
-                  {tags
-                    .filter((t) => t.active)
-                    .map((tag) => {
-                      const selected = formTagIds.includes(tag.id);
+                    {vacationBags.map((vb) => {
+                      const bt = bagsMap.get(vb.bagTemplateId);
+                      if (!bt) return null;
                       return (
                         <TouchableOpacity
-                          key={tag.id}
+                          key={vb.id}
                           style={[
                             st.chip,
-                            selected && { backgroundColor: tag.color, borderColor: tag.color },
+                            formVacationBagId === vb.id && {
+                              backgroundColor: bt.color,
+                              borderColor: bt.color,
+                            },
                           ]}
-                          onPress={() =>
-                            setFormTagIds((prev) =>
-                              selected ? prev.filter((id) => id !== tag.id) : [...prev, tag.id]
-                            )
-                          }
+                          onPress={() => setFormVacationBagId(vb.id)}
                           disabled={isSaving}
                         >
-                          <Icon source={tag.icon} size={14} color={selected ? '#FFFFFF' : tag.color} />
-                          <Text style={[st.chipText, selected && { color: '#FFFFFF' }]}>
-                            {tag.name}
+                          <View
+                            style={[
+                              st.bagChipDot,
+                              {
+                                backgroundColor:
+                                  formVacationBagId === vb.id
+                                    ? "#FFFFFF"
+                                    : bt.color,
+                              },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              st.chipText,
+                              formVacationBagId === vb.id && {
+                                color: "#FFFFFF",
+                              },
+                            ]}
+                          >
+                            {bt.name}
                           </Text>
                         </TouchableOpacity>
                       );
                     })}
-                </ScrollView>
-              </>
-            )}
-            {error ? <Text style={st.formError}>{error}</Text> : null}
-            <View style={st.sheetBtns}>
-              <TouchableOpacity
-                style={st.cancelBtn}
-                onPress={() => setSheetVisible(false)}
-                disabled={isSaving}
-              >
-                <Text style={st.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              {editingItem && (
+                  </ScrollView>
+                </>
+              )}
+              {tags.length > 0 && (
+                <>
+                  <Text style={st.label}>Etiquetas</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={st.chipRow}
+                  >
+                    {tags
+                      .filter((t) => t.active)
+                      .map((tag) => {
+                        const selected = formTagIds.includes(tag.id);
+                        return (
+                          <TouchableOpacity
+                            key={tag.id}
+                            style={[
+                              st.chip,
+                              selected && {
+                                backgroundColor: tag.color,
+                                borderColor: tag.color,
+                              },
+                            ]}
+                            onPress={() =>
+                              setFormTagIds((prev) =>
+                                selected
+                                  ? prev.filter((id) => id !== tag.id)
+                                  : [...prev, tag.id],
+                              )
+                            }
+                            disabled={isSaving}
+                          >
+                            <Icon
+                              source={tag.icon}
+                              size={14}
+                              color={selected ? "#FFFFFF" : tag.color}
+                            />
+                            <Text
+                              style={[
+                                st.chipText,
+                                selected && { color: "#FFFFFF" },
+                              ]}
+                            >
+                              {tag.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                  </ScrollView>
+                </>
+              )}
+              {error ? <Text style={st.formError}>{error}</Text> : null}
+              <View style={st.sheetBtns}>
                 <TouchableOpacity
-                  style={st.deleteBtn}
-                  onPress={handleDeleteInEdit}
+                  style={st.cancelBtn}
+                  onPress={() => setSheetVisible(false)}
                   disabled={isSaving}
                 >
-                  <Text style={st.deleteText}>Eliminar</Text>
+                  <Text style={st.cancelText}>Cancelar</Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[st.saveBtn, isSaving && st.saveBtnDisabled]}
-                onPress={() => doSave(false)}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={st.saveText}>Guardar</Text>
+                {editingItem && (
+                  <TouchableOpacity
+                    style={st.deleteBtn}
+                    onPress={handleDeleteInEdit}
+                    disabled={isSaving}
+                  >
+                    <Text style={st.deleteText}>Eliminar</Text>
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-              {!editingItem && (
                 <TouchableOpacity
-                  style={[st.continuarBtn, isSaving && st.saveBtnDisabled]}
-                  onPress={() => doSave(true)}
+                  style={[st.saveBtn, isSaving && st.saveBtnDisabled]}
+                  onPress={() => doSave(false)}
                   disabled={isSaving}
                 >
-                  <Text style={st.continuarText}>+ Continuar</Text>
+                  {isSaving ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={st.saveText}>Guardar</Text>
+                  )}
                 </TouchableOpacity>
-              )}
-            </View>
+                {!editingItem && (
+                  <TouchableOpacity
+                    style={[st.continuarBtn, isSaving && st.saveBtnDisabled]}
+                    onPress={() => doSave(true)}
+                    disabled={isSaving}
+                  >
+                    <Text style={st.continuarText}>+ Continuar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -786,174 +985,192 @@ const st = StyleSheet.create({
   pillScroll: { flexGrow: 0 },
   pillRow: { paddingHorizontal: 16, paddingVertical: 8 },
   fabRow: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   filterFab: {
-    backgroundColor: '#6D6D6D',
+    backgroundColor: "#6D6D6D",
     width: 48,
     height: 48,
     borderRadius: 14,
   },
   scroll: { padding: 16, paddingBottom: 80 },
-  empty: { color: '#888888', textAlign: 'center', marginVertical: 32 },
-  emptyFilter: { alignItems: 'center', marginVertical: 32 },
-  emptyFilterText: { color: '#888888', textAlign: 'center', marginBottom: 8 },
-  clearLink: { color: '#B5451B', fontWeight: '500' },
+  empty: { color: "#888888", textAlign: "center", marginVertical: 32 },
+  emptyFilter: { alignItems: "center", marginVertical: 32 },
+  emptyFilterText: { color: "#888888", textAlign: "center", marginBottom: 8 },
+  clearLink: { color: "#B5451B", fontWeight: "500" },
   fab: {
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  fabText: { color: '#FFFFFF', fontSize: 28, fontWeight: '400', marginTop: -2 },
-  snackbar: { position: 'absolute', top: 48 },
-  successSnackbar: { position: 'absolute', top: 48, backgroundColor: '#388E3C' },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  fabText: { color: "#FFFFFF", fontSize: 28, fontWeight: "400", marginTop: -2 },
+  snackbar: { position: "absolute", top: 48 },
+  successSnackbar: {
+    position: "absolute",
+    top: 48,
+    backgroundColor: "#388E3C",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
-  sheetTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A', marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555555', marginBottom: 4 },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 20,
+  },
+  label: { fontSize: 13, fontWeight: "600", color: "#555555", marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     marginBottom: 16,
   },
-  notesInput: { minHeight: 60, textAlignVertical: 'top' },
+  notesInput: { minHeight: 60, textAlignVertical: "top" },
   chipRow: { marginBottom: 16, flexGrow: 0 },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     marginRight: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
-  chipActive: { backgroundColor: '#B5451B', borderColor: '#B5451B' },
-  chipText: { fontSize: 13, color: '#555555' },
-  chipTextActive: { color: '#FFFFFF' },
+  chipActive: { backgroundColor: "#B5451B", borderColor: "#B5451B" },
+  chipText: { fontSize: 13, color: "#555555" },
+  chipTextActive: { color: "#FFFFFF" },
   toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
     paddingVertical: 4,
   },
-  toggleLabel: { fontSize: 15, color: '#1A1A1A' },
-  formError: { color: '#D32F2F', marginBottom: 12, fontSize: 14 },
-  sheetBtns: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  toggleLabel: { fontSize: 15, color: "#1A1A1A" },
+  formError: { color: "#D32F2F", marginBottom: 12, fontSize: 14 },
+  sheetBtns: { flexDirection: "row", gap: 12, marginTop: 8 },
   cancelBtn: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
+    borderColor: "#CCCCCC",
+    alignItems: "center",
   },
-  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  cancelText: { color: "#1A1A1A", fontSize: 16 },
   deleteBtn: {
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D32F2F',
-    alignItems: 'center',
+    borderColor: "#D32F2F",
+    alignItems: "center",
   },
-  deleteText: { color: '#D32F2F', fontSize: 14, fontWeight: '600' },
+  deleteText: { color: "#D32F2F", fontSize: 14, fontWeight: "600" },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  saveText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   continuarBtn: {
     flex: 1,
-    backgroundColor: '#6D6D6D',
+    backgroundColor: "#6D6D6D",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  continuarText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  noCategoriesHint: { fontSize: 13, color: '#AAAAAA', fontStyle: 'italic', marginBottom: 16 },
+  continuarText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  noCategoriesHint: {
+    fontSize: 13,
+    color: "#AAAAAA",
+    fontStyle: "italic",
+    marginBottom: 16,
+  },
   iconPickerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 16,
     gap: 12,
   },
-  iconPickerBtnText: { fontSize: 14, color: '#B5451B', fontWeight: '500' },
+  iconPickerBtnText: { fontSize: 14, color: "#B5451B", fontWeight: "500" },
   // Status picker modal
   pickerOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   pickerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 24,
-    width: '80%',
+    width: "80%",
     maxWidth: 320,
     elevation: 8,
   },
   pickerHeading: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pickerItemName: {
     fontSize: 14,
-    color: '#888888',
-    textAlign: 'center',
+    color: "#888888",
+    textAlign: "center",
     marginBottom: 20,
   },
   pickerOptions: { gap: 10 },
   pickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,
     borderWidth: 1.5,
   },
   pickerDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  pickerOptionText: { fontSize: 15, fontWeight: '600' },
+  pickerOptionText: { fontSize: 15, fontWeight: "600" },
   bagChipDot: { width: 10, height: 10, borderRadius: 5 },
 });

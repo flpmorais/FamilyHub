@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,15 +8,18 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-} from 'react-native';
-import { Icon } from 'react-native-paper';
-import { DEFAULT_EXPIRY_DAYS, DEFAULT_TOTAL_DOSES } from '../../constants/leftover-defaults';
-import { DishTypeTag } from '../common/dish-type-tag';
-import { getDishDisplay } from '../../types/meal-plan.types';
-import type { MealEntryDish } from '../../types/meal-plan.types';
-import type { RecipeType } from '../../types/recipe.types';
-import type { LeftoverType } from '../../types/leftover.types';
-import { useModalKeyboardScroll } from '../../hooks/use-modal-keyboard-scroll';
+} from "react-native";
+import { Icon } from "react-native-paper";
+import {
+  DEFAULT_EXPIRY_DAYS,
+  DEFAULT_TOTAL_DOSES,
+} from "../../constants/leftover-defaults";
+import { DishTypeTag } from "../common/dish-type-tag";
+import { getDishDisplay } from "../../types/meal-plan.types";
+import type { MealEntryDish } from "../../types/meal-plan.types";
+import type { RecipeType } from "../../types/recipe.types";
+import type { LeftoverType } from "../../types/leftover.types";
+import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 interface DishLeftoverEntry {
   dishId: string;
@@ -31,22 +34,39 @@ interface LeftoverFromDishesFormProps {
   visible: boolean;
   dishes: MealEntryDish[];
   onClose: () => void;
-  onSave: (items: { name: string; type: LeftoverType; totalDoses: number; expiryDays: number }[]) => Promise<void>;
+  onSave: (
+    items: {
+      name: string;
+      type: LeftoverType;
+      totalDoses: number;
+      expiryDays: number;
+    }[],
+  ) => Promise<void>;
 }
 
-export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: LeftoverFromDishesFormProps) {
+export function LeftoverFromDishesForm({
+  visible,
+  dishes,
+  onClose,
+  onSave,
+}: LeftoverFromDishesFormProps) {
   const [entries, setEntries] = useState<DishLeftoverEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: entries.map((e) => `doses-${e.dishId}`).concat(entries.map((e) => `expiry-${e.dishId}`)),
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: entries
+        .map((e) => `doses-${e.dishId}`)
+        .concat(entries.map((e) => `expiry-${e.dishId}`)),
+    });
 
   useEffect(() => {
     if (visible && dishes.length > 0) {
       // Only show recipe and manual dishes
-      const eligible = dishes.filter((d) => d.dishType === 'recipe' || d.dishType === 'manual');
+      const eligible = dishes.filter(
+        (d) => d.dishType === "recipe" || d.dishType === "manual",
+      );
       setEntries(
         eligible.map((d) => {
           const display = getDishDisplay(d);
@@ -60,18 +80,24 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
           };
         }),
       );
-      setError('');
+      setError("");
     }
   }, [visible, dishes]);
 
   function toggleDish(dishId: string) {
     setEntries((prev) =>
-      prev.map((e) => (e.dishId === dishId ? { ...e, selected: !e.selected } : e)),
+      prev.map((e) =>
+        e.dishId === dishId ? { ...e, selected: !e.selected } : e,
+      ),
     );
-    setError('');
+    setError("");
   }
 
-  function updateField(dishId: string, field: 'doses' | 'expiryDays', value: string) {
+  function updateField(
+    dishId: string,
+    field: "doses" | "expiryDays",
+    value: string,
+  ) {
     setEntries((prev) =>
       prev.map((e) => (e.dishId === dishId ? { ...e, [field]: value } : e)),
     );
@@ -80,7 +106,7 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
   async function handleSave() {
     const selected = entries.filter((e) => e.selected);
     if (selected.length === 0) {
-      setError('Selecione pelo menos um prato');
+      setError("Selecione pelo menos um prato");
       return;
     }
 
@@ -115,16 +141,21 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={s.overlay}>
         <View style={s.sheet}>
           <Text style={s.title}>Guardar como restos</Text>
           <Text style={s.subtitle}>Selecione os pratos que sobraram</Text>
 
-          <ScrollView 
-            ref={scrollViewRef} 
-            style={s.scroll} 
-            keyboardShouldPersistTaps="handled" 
+          <ScrollView
+            ref={scrollViewRef}
+            style={s.scroll}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: keyboardHeight + 8 }}
           >
             {entries.length === 0 ? (
@@ -133,14 +164,27 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
               entries.map((entry) => {
                 return (
                   <View key={entry.dishId} style={s.entryCard}>
-                    <TouchableOpacity style={s.checkRow} onPress={() => toggleDish(entry.dishId)}>
+                    <TouchableOpacity
+                      style={s.checkRow}
+                      onPress={() => toggleDish(entry.dishId)}
+                    >
                       <Icon
-                        source={entry.selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                        source={
+                          entry.selected
+                            ? "checkbox-marked"
+                            : "checkbox-blank-outline"
+                        }
                         size={22}
-                        color={entry.selected ? '#B5451B' : '#CCC'}
+                        color={entry.selected ? "#B5451B" : "#CCC"}
                       />
-                      <DishTypeTag typeKey={entry.category} variant="filled" size="sm" />
-                      <Text style={s.entryName} numberOfLines={1}>{entry.name}</Text>
+                      <DishTypeTag
+                        typeKey={entry.category}
+                        variant="filled"
+                        size="sm"
+                      />
+                      <Text style={s.entryName} numberOfLines={1}>
+                        {entry.name}
+                      </Text>
                     </TouchableOpacity>
 
                     {entry.selected && (
@@ -151,7 +195,9 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
                             {...getInputProps(`doses-${entry.dishId}`)}
                             style={s.fieldInput}
                             value={entry.doses}
-                            onChangeText={(t) => updateField(entry.dishId, 'doses', t)}
+                            onChangeText={(t) =>
+                              updateField(entry.dishId, "doses", t)
+                            }
                             keyboardType="number-pad"
                             editable={!isSaving}
                           />
@@ -162,7 +208,9 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
                             {...getInputProps(`expiry-${entry.dishId}`)}
                             style={s.fieldInput}
                             value={entry.expiryDays}
-                            onChangeText={(t) => updateField(entry.dishId, 'expiryDays', t)}
+                            onChangeText={(t) =>
+                              updateField(entry.dishId, "expiryDays", t)
+                            }
                             keyboardType="number-pad"
                             editable={!isSaving}
                           />
@@ -178,10 +226,18 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
           {error ? <Text style={s.errorText}>{error}</Text> : null}
 
           <View style={s.buttons}>
-            <TouchableOpacity style={s.cancelBtn} onPress={onClose} disabled={isSaving}>
+            <TouchableOpacity
+              style={s.cancelBtn}
+              onPress={onClose}
+              disabled={isSaving}
+            >
               <Text style={s.cancelText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.saveBtn, isSaving && s.btnDisabled]} onPress={handleSave} disabled={isSaving}>
+            <TouchableOpacity
+              style={[s.saveBtn, isSaving && s.btnDisabled]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
               {isSaving ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
@@ -196,57 +252,66 @@ export function LeftoverFromDishesForm({ visible, dishes, onClose, onSave }: Lef
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
   sheet: {
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
     paddingBottom: 40,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#1A1A1A', marginBottom: 2 },
-  subtitle: { fontSize: 14, color: '#888', marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: "700", color: "#1A1A1A", marginBottom: 2 },
+  subtitle: { fontSize: 14, color: "#888", marginBottom: 16 },
   scroll: { maxHeight: 350 },
-  emptyText: { color: '#888', fontSize: 14, padding: 16, textAlign: 'center' },
+  emptyText: { color: "#888", fontSize: 14, padding: 16, textAlign: "center" },
   entryCard: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
     borderRadius: 8,
     padding: 10,
     marginBottom: 8,
   },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  entryName: { flex: 1, fontSize: 15, color: '#1A1A1A', fontWeight: '500' },
-  fieldsRow: { flexDirection: 'row', gap: 12, marginTop: 10, paddingLeft: 30 },
+  checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  entryName: { flex: 1, fontSize: 15, color: "#1A1A1A", fontWeight: "500" },
+  fieldsRow: { flexDirection: "row", gap: 12, marginTop: 10, paddingLeft: 30 },
   fieldGroup: { flex: 1 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: '#555', marginBottom: 4 },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#555",
+    marginBottom: 4,
+  },
   fieldInput: {
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: "#DDD",
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
-  errorText: { color: '#D32F2F', fontSize: 12, marginTop: 8 },
-  buttons: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  errorText: { color: "#D32F2F", fontSize: 12, marginTop: 8 },
+  buttons: { flexDirection: "row", gap: 12, marginTop: 16 },
   cancelBtn: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCC',
-    alignItems: 'center',
+    borderColor: "#CCC",
+    alignItems: "center",
   },
-  cancelText: { color: '#1A1A1A', fontSize: 16 },
+  cancelText: { color: "#1A1A1A", fontSize: 16 },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   btnDisabled: { opacity: 0.6 },
-  saveText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  saveText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
 });

@@ -1,7 +1,13 @@
-import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
-import { RECIPE_TYPE_LIST } from '../../constants/recipe-defaults';
-import { DishTypeTag } from '../common/dish-type-tag';
-import type { RecipeType } from '../../types/recipe.types';
+import {
+  ScrollView,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  View,
+} from "react-native";
+import { RECIPE_TYPE_LIST } from "../../constants/recipe-defaults";
+import { DishTypeTag } from "../common/dish-type-tag";
+import type { RecipeType } from "../../types/recipe.types";
 
 interface RecipeTypeFilterProps {
   counts: Record<string, number>;
@@ -9,7 +15,11 @@ interface RecipeTypeFilterProps {
   onSelect: (type: RecipeType | null) => void;
 }
 
-export function RecipeTypeFilter({ counts, activeType, onSelect }: RecipeTypeFilterProps) {
+export function RecipeTypeFilter({
+  counts,
+  activeType,
+  onSelect,
+}: RecipeTypeFilterProps) {
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
   return (
     <ScrollView
@@ -22,7 +32,9 @@ export function RecipeTypeFilter({ counts, activeType, onSelect }: RecipeTypeFil
         style={[s.allChip, !activeType && s.allChipActive]}
         onPress={() => onSelect(null)}
       >
-        <Text style={[s.allChipText, !activeType && s.allChipTextActive]}>Todos ({total})</Text>
+        <Text style={[s.allChipText, !activeType && s.allChipTextActive]}>
+          Todos ({total})
+        </Text>
       </TouchableOpacity>
       {RECIPE_TYPE_LIST.map((t) => {
         const count = counts[t.key] ?? 0;
@@ -31,7 +43,7 @@ export function RecipeTypeFilter({ counts, activeType, onSelect }: RecipeTypeFil
           <View key={t.key}>
             <DishTypeTag
               typeKey={t.key}
-              variant={activeType === t.key ? 'filled' : 'outlined'}
+              variant={activeType === t.key ? "filled" : "outlined"}
               size="md"
               count={count}
               onPress={() => onSelect(t.key)}
@@ -50,23 +62,23 @@ const s = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     gap: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   allChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   allChipActive: {
-    backgroundColor: '#B5451B',
+    backgroundColor: "#B5451B",
   },
   allChipText: {
     fontSize: 13,
-    color: '#666666',
-    fontWeight: '600',
+    color: "#666666",
+    fontWeight: "600",
   },
   allChipTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
 });

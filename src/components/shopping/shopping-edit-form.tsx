@@ -10,7 +10,10 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import type { ShoppingItem, ShoppingCategory } from "../../types/shopping.types";
+import type {
+  ShoppingItem,
+  ShoppingCategory,
+} from "../../types/shopping.types";
 import { useModalKeyboardScroll } from "../../hooks/use-modal-keyboard-scroll";
 
 interface ShoppingEditFormProps {
@@ -20,7 +23,12 @@ interface ShoppingEditFormProps {
   onClose: () => void;
   onSave: (
     id: string,
-    data: { name?: string; categoryId?: string; quantityNote?: string | null; isUrgent?: boolean },
+    data: {
+      name?: string;
+      categoryId?: string;
+      quantityNote?: string | null;
+      isUrgent?: boolean;
+    },
   ) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
@@ -40,9 +48,10 @@ export function ShoppingEditForm({
   const [isSaving, setIsSaving] = useState(false);
   const [nameError, setNameError] = useState("");
 
-  const { keyboardHeight, scrollViewRef, getInputProps } = useModalKeyboardScroll({
-    inputKeys: ["name", "quantityNote"],
-  });
+  const { keyboardHeight, scrollViewRef, getInputProps } =
+    useModalKeyboardScroll({
+      inputKeys: ["name", "quantityNote"],
+    });
 
   useEffect(() => {
     if (item) {
@@ -170,7 +179,12 @@ export function ShoppingEditForm({
                     onPress={() => setIsUrgent(false)}
                     disabled={isSaving}
                   >
-                    <Text style={[s.priorityChipText, !isUrgent && s.priorityChipTextComprar]}>
+                    <Text
+                      style={[
+                        s.priorityChipText,
+                        !isUrgent && s.priorityChipTextComprar,
+                      ]}
+                    >
                       Comprar
                     </Text>
                   </TouchableOpacity>
@@ -179,7 +193,12 @@ export function ShoppingEditForm({
                     onPress={() => setIsUrgent(true)}
                     disabled={isSaving}
                   >
-                    <Text style={[s.priorityChipText, isUrgent && s.priorityChipTextUrgente]}>
+                    <Text
+                      style={[
+                        s.priorityChipText,
+                        isUrgent && s.priorityChipTextUrgente,
+                      ]}
+                    >
                       Urgente
                     </Text>
                   </TouchableOpacity>

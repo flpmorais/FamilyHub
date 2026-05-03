@@ -1,5 +1,8 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IClassificationRepository, ClassificationResult } from "../interfaces/classification.repository.interface";
+import { SupabaseClient } from "@supabase/supabase-js";
+import {
+  IClassificationRepository,
+  ClassificationResult,
+} from "../interfaces/classification.repository.interface";
 import { OTHER_CATEGORY_NAME } from "../../constants/shopping-defaults";
 import { logger } from "../../utils/logger";
 
@@ -13,21 +16,32 @@ const FALLBACK = (itemName: string): ClassificationResult => ({
 export class SupabaseClassificationRepository implements IClassificationRepository {
   constructor(private readonly client: SupabaseClient) {}
 
-  async classifyItem(itemName: string, categories: string[]): Promise<ClassificationResult> {
+  async classifyItem(
+    itemName: string,
+    categories: string[],
+  ): Promise<ClassificationResult> {
     try {
-      const { data, error } = await this.client.functions.invoke('classify-item', {
-        body: { itemName, categories },
-      });
+      const { data, error } = await this.client.functions.invoke(
+        "classify-item",
+        {
+          body: { itemName, categories },
+        },
+      );
 
       if (error) {
-        logger.warn("ClassificationRepository", "Edge Function error, using fallback", error);
+        logger.warn(
+          "ClassificationRepository",
+          "Edge Function error, using fallback",
+          error,
+        );
         return FALLBACK(itemName);
       }
 
       const category = data?.category;
-      const validCategory = typeof category === "string" && categories.includes(category)
-        ? category
-        : OTHER_CATEGORY_NAME;
+      const validCategory =
+        typeof category === "string" && categories.includes(category)
+          ? category
+          : OTHER_CATEGORY_NAME;
 
       return {
         category: validCategory,
@@ -36,7 +50,11 @@ export class SupabaseClassificationRepository implements IClassificationReposito
         isUrgent: Boolean(data?.isUrgent),
       };
     } catch (err) {
-      logger.warn("ClassificationRepository", "classify failed, using fallback", err);
+      logger.warn(
+        "ClassificationRepository",
+        "classify failed, using fallback",
+        err,
+      );
       return FALLBACK(itemName);
     }
   }

@@ -1,4 +1,10 @@
-import { Linking, TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import {
+  Linking,
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+} from "react-native";
 
 interface RecipeSourceProps {
   source: string | null;
@@ -53,17 +59,17 @@ const s = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: '#888888',
-    fontWeight: '600',
+    color: "#888888",
+    fontWeight: "600",
     marginBottom: 2,
   },
   linkText: {
     fontSize: 14,
-    color: '#1976D2',
-    textDecorationLine: 'underline',
+    color: "#1976D2",
+    textDecorationLine: "underline",
   },
   plainText: {
     fontSize: 14,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
 });

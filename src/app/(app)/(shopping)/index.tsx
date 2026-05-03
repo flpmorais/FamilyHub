@@ -21,7 +21,10 @@ import { PAGE_SIZE } from "../../../constants/pagination";
 import { logger } from "../../../utils/logger";
 import { PageHeader } from "../../../components/page-header";
 import { supabaseClient } from "../../../repositories/supabase/supabase.client";
-import type { ShoppingItem, ShoppingCategory } from "../../../types/shopping.types";
+import type {
+  ShoppingItem,
+  ShoppingCategory,
+} from "../../../types/shopping.types";
 
 interface ShoppingSection {
   title: string;
@@ -63,7 +66,9 @@ function buildSections(
   if (uncheckedOrphaned.length > 0) {
     const otherSection = sections.find((s) => s.title === OTHER_CATEGORY_NAME);
     if (otherSection) {
-      otherSection.data = [...otherSection.data, ...uncheckedOrphaned].sort(sortByUrgent);
+      otherSection.data = [...otherSection.data, ...uncheckedOrphaned].sort(
+        sortByUrgent,
+      );
     } else {
       sections.push({
         title: OTHER_CATEGORY_NAME,
@@ -131,10 +136,16 @@ export default function ShoppingScreen() {
     useCallback(() => {
       void reload();
       if (familyId) {
-        supabaseClient.from('families').select('banner_url').eq('id', familyId).single()
-          .then(({ data }) => { if (data) setFamilyBannerUrl(data.banner_url ?? null); });
+        supabaseClient
+          .from("families")
+          .select("banner_url")
+          .eq("id", familyId)
+          .single()
+          .then(({ data }) => {
+            if (data) setFamilyBannerUrl(data.banner_url ?? null);
+          });
       }
-    }, [reload, familyId])
+    }, [reload, familyId]),
   );
 
   async function loadMoreChecked() {
@@ -170,7 +181,11 @@ export default function ShoppingScreen() {
     setSuccessVisible(true);
   }
 
-  async function handleAdd(data: { name: string; quantityNote?: string; isUrgent?: boolean }) {
+  async function handleAdd(data: {
+    name: string;
+    quantityNote?: string;
+    isUrgent?: boolean;
+  }) {
     if (!familyId) return { status: "created" as const };
 
     try {
@@ -185,12 +200,18 @@ export default function ShoppingScreen() {
       }
 
       // AI classification for new items (FR68) — only active categories
-      const categoryNames = categories.filter((c) => c.active).map((c) => c.name);
-      const result = await classificationRepo.classifyItem(data.name, categoryNames);
+      const categoryNames = categories
+        .filter((c) => c.active)
+        .map((c) => c.name);
+      const result = await classificationRepo.classifyItem(
+        data.name,
+        categoryNames,
+      );
       const matchedCat = categories.find((c) => c.name === result.category);
-      const categoryId = matchedCat?.id
-        ?? categories.find((c) => c.name === OTHER_CATEGORY_NAME)?.id
-        ?? categories[0]?.id;
+      const categoryId =
+        matchedCat?.id ??
+        categories.find((c) => c.name === OTHER_CATEGORY_NAME)?.id ??
+        categories[0]?.id;
 
       if (!categoryId) {
         showError("Sem categorias disponíveis");
@@ -263,7 +284,9 @@ export default function ShoppingScreen() {
     try {
       await shoppingRepo.setUrgent(item.id, !item.isUrgent);
       const update = (list: ShoppingItem[]) =>
-        list.map((i) => (i.id === item.id ? { ...i, isUrgent: !i.isUrgent } : i));
+        list.map((i) =>
+          i.id === item.id ? { ...i, isUrgent: !i.isUrgent } : i,
+        );
       setUncheckedItems((prev) => update(prev));
       setCheckedItems((prev) => update(prev));
     } catch (err) {
@@ -311,7 +334,11 @@ export default function ShoppingScreen() {
 
   return (
     <View style={s.container}>
-      <PageHeader title="Compras" imageUri={familyBannerUrl} familyBannerUri={familyBannerUrl} />
+      <PageHeader
+        title="Compras"
+        imageUri={familyBannerUrl}
+        familyBannerUri={familyBannerUrl}
+      />
 
       <View style={{ height: 16 }} />
 

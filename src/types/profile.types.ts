@@ -1,5 +1,5 @@
-export type UserRole = 'admin' | 'member' | 'maid' | 'child';
-export type ProfileStatus = 'active' | 'invited' | 'enrolled' | 'inactive';
+export type UserRole = "admin" | "member" | "maid" | "child";
+export type ProfileStatus = "active" | "invited" | "enrolled" | "inactive";
 
 export interface Family {
   id: string;

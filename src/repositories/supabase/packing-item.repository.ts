@@ -1,8 +1,12 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IPackingItemRepository } from '../interfaces/packing-item.repository.interface';
-import { PackingItem, CreatePackingItemInput, PackingStatus } from '../../types/packing.types';
-import { logger } from '../../utils/logger';
-import { uuid } from '../../utils/uuid';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IPackingItemRepository } from "../interfaces/packing-item.repository.interface";
+import {
+  PackingItem,
+  CreatePackingItemInput,
+  PackingStatus,
+} from "../../types/packing.types";
+import { logger } from "../../utils/logger";
+import { uuid } from "../../utils/uuid";
 
 export function mapPackingRow(row: any, tagIds: string[] = []): PackingItem {
   return {
@@ -34,10 +38,10 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
   async getPackingItems(vacationId: string): Promise<PackingItem[]> {
     try {
       const { data: rows, error } = await this.client
-        .from('packing_items')
-        .select('*')
-        .eq('vacation_id', vacationId)
-        .order('created_at', { ascending: true });
+        .from("packing_items")
+        .select("*")
+        .eq("vacation_id", vacationId)
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
 
@@ -46,9 +50,9 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
       let tagMap = new Map<string, string[]>();
       if (itemIds.length > 0) {
         const { data: tagRows, error: tagError } = await this.client
-          .from('packing_item_tags')
-          .select('packing_item_id, tag_id')
-          .in('packing_item_id', itemIds);
+          .from("packing_item_tags")
+          .select("packing_item_id, tag_id")
+          .in("packing_item_id", itemIds);
 
         if (tagError) throw tagError;
 
@@ -59,10 +63,14 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
         }
       }
 
-      return (rows ?? []).map((r: any) => mapPackingRow(r, tagMap.get(r.id) ?? []));
+      return (rows ?? []).map((r: any) =>
+        mapPackingRow(r, tagMap.get(r.id) ?? []),
+      );
     } catch (err) {
-      logger.error('PackingItemRepository', 'getPackingItems failed', err);
-      throw new Error(`Erro ao carregar itens: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("PackingItemRepository", "getPackingItems failed", err);
+      throw new Error(
+        `Erro ao carregar itens: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
@@ -75,29 +83,29 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
         // Fallback: use category icon if available, otherwise 'package-variant'
         if (input.categoryId) {
           const { data: catRow } = await this.client
-            .from('categories')
-            .select('icon_id')
-            .eq('id', input.categoryId)
+            .from("categories")
+            .select("icon_id")
+            .eq("id", input.categoryId)
             .single();
           iconId = catRow?.icon_id;
         }
         if (!iconId) {
           const { data: fallback } = await this.client
-            .from('icons')
-            .select('id')
-            .eq('name', 'package-variant')
+            .from("icons")
+            .select("id")
+            .eq("name", "package-variant")
             .single();
           iconId = fallback?.id;
         }
       }
       const { data, error } = await this.client
-        .from('packing_items')
+        .from("packing_items")
         .insert({
           id,
           vacation_id: input.vacationId,
           family_id: input.familyId,
           title: input.name,
-          status: 'new',
+          status: "new",
           profile_id: input.assignedProfileId ?? null,
           quantity: input.quantity ?? 1,
           notes: input.notes ?? null,
@@ -114,57 +122,66 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
       if (error) throw error;
       return mapPackingRow(data);
     } catch (err) {
-      logger.error('PackingItemRepository', 'createPackingItem failed', err);
-      throw new Error(`Erro ao criar item: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("PackingItemRepository", "createPackingItem failed", err);
+      throw new Error(
+        `Erro ao criar item: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async updatePackingItem(
     id: string,
-    data: Partial<Omit<PackingItem, 'id' | 'createdAt' | 'updatedAt'>>
+    data: Partial<Omit<PackingItem, "id" | "createdAt" | "updatedAt">>,
   ): Promise<PackingItem> {
     const updates: Record<string, unknown> = {};
 
     if (data.name !== undefined) updates.title = data.name;
     if (data.status !== undefined) updates.status = data.status;
-    if (data.assignedProfileId !== undefined) updates.profile_id = data.assignedProfileId;
+    if (data.assignedProfileId !== undefined)
+      updates.profile_id = data.assignedProfileId;
     if (data.quantity !== undefined) updates.quantity = data.quantity;
     if (data.notes !== undefined) updates.notes = data.notes;
     if (data.categoryId !== undefined) updates.category_id = data.categoryId;
     if (data.iconId !== undefined) updates.icon_id = data.iconId;
-    if (data.isAllFamily !== undefined) updates.is_all_family = data.isAllFamily;
-    if (data.vacationBagId !== undefined) updates.vacation_bag_id = data.vacationBagId;
+    if (data.isAllFamily !== undefined)
+      updates.is_all_family = data.isAllFamily;
+    if (data.vacationBagId !== undefined)
+      updates.vacation_bag_id = data.vacationBagId;
 
     updates.updated_at = now();
 
     try {
       const { data: row, error } = await this.client
-        .from('packing_items')
+        .from("packing_items")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      if (!row) throw new Error('Item não encontrado');
+      if (!row) throw new Error("Item não encontrado");
       return mapPackingRow(row);
     } catch (err) {
-      logger.error('PackingItemRepository', 'updatePackingItem failed', err);
-      throw new Error(`Erro ao actualizar item: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("PackingItemRepository", "updatePackingItem failed", err);
+      throw new Error(
+        `Erro ao actualizar item: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
   async deletePackingItem(id: string): Promise<void> {
     try {
       const { error } = await this.client
-        .from('packing_items')
+        .from("packing_items")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     } catch (err) {
-      logger.error('PackingItemRepository', 'deletePackingItem failed', err);
-      throw new Error(`Erro ao eliminar item: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("PackingItemRepository", "deletePackingItem failed", err);
+      throw new Error(
+        `Erro ao eliminar item: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 
@@ -173,14 +190,16 @@ export class SupabasePackingItemRepository implements IPackingItemRepository {
     const ts = now();
     try {
       const { error } = await this.client
-        .from('packing_items')
+        .from("packing_items")
         .update({ status, updated_at: ts })
-        .in('id', ids);
+        .in("id", ids);
 
       if (error) throw error;
     } catch (err) {
-      logger.error('PackingItemRepository', 'bulkUpdateStatus failed', err);
-      throw new Error(`Erro ao actualizar estado: ${err instanceof Error ? err.message : 'Erro'}`);
+      logger.error("PackingItemRepository", "bulkUpdateStatus failed", err);
+      throw new Error(
+        `Erro ao actualizar estado: ${err instanceof Error ? err.message : "Erro"}`,
+      );
     }
   }
 }

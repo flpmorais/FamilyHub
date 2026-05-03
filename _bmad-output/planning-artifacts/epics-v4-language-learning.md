@@ -1,6 +1,13 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
-inputDocuments: ['_bmad-output/planning-artifacts/prd.md', '_bmad-output/planning-artifacts/architecture.md']
+status: 'complete'
+completedAt: '2026-05-02'
+inputDocuments:
+  - '_bmad-output/planning-artifacts/prd/functional-requirements.md'
+  - '_bmad-output/planning-artifacts/prd/non-functional-requirements.md'
+  - '_bmad-output/planning-artifacts/prd/user-journeys.md'
+  - '_bmad-output/planning-artifacts/ux-design-specification.md'
+  - '_bmad-output/planning-artifacts/architecture-v4-language-learning.md'
 scope: 'V4 Language Learning'
 ---
 
@@ -8,485 +15,568 @@ scope: 'V4 Language Learning'
 
 ## Overview
 
-This document provides the complete epic and story breakdown for FamilyHub V4 Language Learning, decomposing the V4 requirements (FR100-FR115, NFR27-NFR30) into implementable stories. Continues from Epic 12 (V3 Meal Plan Dashboard Widget). Next epic number: 13.
+This document provides the complete epic and story breakdown for FamilyHub V4 Language Learning, decomposing the requirements from the PRD, UX Design, and Architecture into implementable stories.
 
 ## Requirements Inventory
 
 ### Functional Requirements
 
-**Session Service**
-FR100: App can start a new learning session on the Pi by calling the session service with a userId and skill parameter — the service creates a tmux session under the user's Linux account, launches Claude Code with the specified skill, and returns success
-FR101: App can resume an existing tmux session for a user by calling the session service — the service reattaches to the tmux session and returns success
-FR102: App can end an active session by calling the session service — the service terminates the tmux session and returns success
-FR103: App can query session status for a user — the service returns whether a tmux session exists and which skill is running
-
-**WebSocket & TTS**
-FR104: App connects to the Pi's WebSocket server with a userId parameter and receives only messages routed to that user — zero cross-talk between users
-FR105: When the app receives Greek text via WebSocket, it speaks each phrase aloud twice via TTS (el-GR) with a pause between repetitions; multiple phrases received in a single message are spoken in sequence
-FR106: App displays received Greek text on screen alongside TTS playback so the user can read while listening
-
-**Voice Input**
-FR107: App provides a mic button that captures spoken Greek via Android's built-in speech-to-text (el-GR locale), transcribes it, and sends the transcript to the terminal session as text input — no enter key required
-FR108: Claude receives voice-originated text input identically to keyboard-originated text input — the input method is invisible to Claude
-
-**Skill System**
-FR109: App presents a skill selection screen with available learning skills: Learn (default), Review, Vocab, Writing, Speaking, Reading, Progress — each starts a new session with the corresponding skill parameter
-FR110: Only one session per user is active at any time — selecting a different skill kills the existing session and starts a fresh one; resume is only offered within the same skill
-
-**Onboarding**
-FR111: On first launch, the app checks Supabase for a setup-complete flag for the user; if absent, the app auto-starts a session with the `/setup` skill — no other skills are available until setup completes
-FR112: For users who have not authenticated Claude on the Pi, the app triggers `claude login` via the session service, captures the OAuth URL, and opens it in an in-app WebView — the user sees a standard login screen with no terminal or SSH visible; one-time setup per user
-
-**Learning Profiles**
-FR113: Each admin's learning profile (goals, preferred input method, level) is stored per-user and determines the app's input mode — keyboard+mic for read/write/speak learners, mic-only for speak-only learners
-
-**Connection & Signals**
-FR114: App displays connection status to the Pi — connected, disconnected, or reconnecting — so the user knows immediately if the Pi is unreachable
-FR115: When Claude sends a skill-complete signal via WebSocket, the app automatically calls the session end endpoint and returns the user to the skill selection screen
+- **FR100:** App can start a new learning session by calling the harness API with a userId and skill parameter — the API creates a LangGraph state machine for the specified Fluent skill, loads the user's learner data, and returns a session token (V4)
+- **FR101:** App can resume an existing session for a user by calling the harness API — the API rehydrates the LangGraph state from the checkpoint and returns the session token (V4)
+- **FR102:** App can end an active session by calling the harness API — the API persists final learner data (Fluent's 6 JSON databases), writes a session result file, and terminates the session (V4)
+- **FR103:** App can query session status for a user — the API returns whether an active session exists and which skill is running (V4)
+- **FR104:** App sends user messages to the harness API and receives streamed responses — each response contains the agent's reply text and optional structured events (e.g., speak, skill-complete) (V4)
+- **FR105:** App displays the learning session as a chat interface — the agent's messages appear as chat bubbles, the user's typed or spoken input appears as user bubbles (V4)
+- **FR106:** When the agent's response contains Greek text, the app speaks each phrase aloud twice via TTS (el-GR) with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases; multiple phrases in a single response are spoken in sequence (V4)
+- **FR107:** App displays Greek text in a visually distinct area alongside TTS playback so the user can read while listening (V4)
+- **FR108:** App provides a mic button that captures spoken Greek via Android's built-in speech-to-text (el-GR locale), transcribes it, and sends the transcript as a user message to the harness API — no enter key required (V4)
+- **FR109:** The harness receives voice-originated text identically to keyboard-originated text — the input method is invisible to the Fluent skill (V4)
+- **FR110:** App presents a skill selection screen with available Fluent learning skills: Setup (one-time onboarding), Learn (default), Review, Vocab, Writing, Speaking, Reading, Progress — each starts a new session with the corresponding skill parameter (V4)
+- **FR111:** Only one session per user is active at any time — selecting a different skill ends the existing session and starts a fresh one; resume is only offered within the same skill (V4)
+- **FR112:** When a user enters the Language Learning module and their learning profile does not have `api_key_configured` set to true, the app presents an API key setup screen — the user cannot access the skill menu or start a session until the key is configured (V4)
+- **FR113:** App provides an input for the user to enter their GLM 5.1 API key; on submission, the app sends the key to the harness API over HTTPS (`POST /auth/configure`), which validates the key by making a test API call, stores the key per-user within the container, and provisions the user's isolated data directory (Fluent's 6 JSON databases + session results) — no SSH or terminal access required (V4)
+- **FR114:** Once the API key is validated and the user's data directory is provisioned, the harness API returns success; the app navigates the user to the skill selection screen (V4)
+- **FR115:** Each admin has an isolated data directory within the container containing their own Fluent learner data (6 JSON databases), session results, and API key — one user's learning data, session history, and API key are never visible to another user (V4)
+- **FR116:** App displays connection status to the harness API — connected, disconnected, or reconnecting — so the user knows immediately if the service is unreachable (V4)
+- **FR117:** When the harness sends a skill-complete event in the streamed response, the app automatically calls the session end endpoint and returns the user to the skill selection screen (V4)
+- **FR118:** On first use, the app auto-starts a session with the Setup skill — no other skills are available until setup completes and the learner profile is created in Fluent's database (V4)
 
 ### NonFunctional Requirements
 
-NFR27: Session service endpoints (start/resume/end/status) must respond within 5 seconds — session start includes tmux creation and Claude launch
-NFR28: Greek text received via WebSocket must begin TTS playback within 500ms of message arrival on the phone
-NFR29: Android STT transcription must complete and send the transcript to the terminal within 2 seconds of the user finishing speech
-NFR30: TTS double-speak must play each phrase twice with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases, matching the Pi-side speak-greek.sh timing
+- **NFR27:** Harness API endpoints (start/resume/end/status) must respond within 5 seconds — session start includes LangGraph state creation and Fluent learner data loading (V4)
+- **NFR28:** Greek text in the agent's streamed response must begin TTS playback within 500ms of message arrival on the phone (V4)
+- **NFR29:** Android STT transcription must complete and send the transcript to the harness API within 2 seconds of the user finishing speech (V4)
+- **NFR30:** TTS double-speak must play each phrase twice with a 0.8-second pause between repetitions and a 1.2-second pause between distinct phrases, matching the Fluent skill speak timing (V4)
+- **NFR31:** API keys submitted through the app must be transmitted over HTTPS (Cloudflare Tunnel) — the key never travels over an unencrypted connection (V4)
+- **NFR32:** API keys stored in the container must be isolated per-user at the application level — one user's API key must never be accessible by another user's session (V4)
+- **NFR33:** The harness agent's first streamed token must arrive within 3 seconds of receiving a user message (V4)
 
 ### Additional Requirements
 
-- `learning_profiles` Supabase table + RLS + migration (family_id, user_account_id, setup_complete, claude_authenticated, goals, preferred_input_method, level)
-- `ISessionRepository` interface + implementation wrapping Pi HTTP REST (start/resume/end/status/auth)
-- `ILearningProfileRepository` interface + implementation for Supabase learning_profiles CRUD
-- `WebSocketService` class + React Context provider in src/services/ (long-lived connection, not repository pattern)
-- Zustand store: languageLearningStore (connectionStatus, activeSession, ttsQueue, terminalOutput, isSpeaking, isListening)
-- Expo Router screens under src/app/(app)/(language-learning)/
-- New packages: expo-speech, expo-speech-recognition, react-native-webview
-- Environment config: PI_SESSION_URL, PI_WEBSOCKET_URL in .env files + app.config.ts
-- Types: LearningProfile, PiWebSocketMessage (discriminated union), LearningSkill, SessionStatus
-- Constants: language-learning-defaults.ts (TTS_REPEAT_PAUSE=800, TTS_PHRASE_PAUSE=1200, SKILLS list)
-- Pi-side code is a separate repository — this epic covers only phone-side implementation
-- RECORD_AUDIO permission required for STT — request on first mic tap, not at app launch
+- Harness lives in `harness/` within the FamilyHub repo — Python backend alongside the React Native mobile app
+- FastAPI (Python) + uvicorn, single Podman container, port 8000
+- Supabase JWT passthrough for auth — harness verifies JWT using SUPABASE_JWT_SECRET
+- SSE-only communication (no WebSocket) — 5 event types: token, speak, skill-complete, error, done
+- LangGraph + SqliteSaver for session checkpointing (shared checkpoints.db)
+- Zero Supabase footprint — no `learning_profiles` table, no migrations
+- Fluent data stored as files per user via FLUENT_DATA_DIR — zero changes to Fluent scripts
+- 8 harness API endpoints: GET /health, POST /auth/configure, GET /auth/status, POST /session/start, POST /session/resume, POST /session/end, GET /session/status, POST /session/message
+- GET /auth/status returns `{ configured: bool, setupComplete: bool }`
+- POST /session/resume returns JSON `{ messages: ChatMessage[] }` with history from checkpoint
+- Mobile additions: 4 screens, 5 components, 4 hooks, 1 service, 1 store, 1 repository interface
+- All user-facing error messages in Portuguese
 
 ### UX Design Requirements
 
-No UX design specification available for V4. Stories will reference existing app patterns and Material Design 3 conventions.
+- V4 inherits the shared UX design language: Material Design via React Native Paper, one-handed use, Android touch-only
+- Chat interface follows UX spec interaction patterns: real-time streaming text, distinct Greek text styling, mic button alongside keyboard input
+- Connection status bar follows the existing pattern for contextual status indicators
+- Skill selection uses card-based layout consistent with other module selection patterns
 
 ### FR Coverage Map
 
 | FR | Epic | Description |
 |---|---|---|
-| FR100 | 13 | Start learning session on Pi |
-| FR101 | 13 | Resume existing tmux session |
-| FR102 | 13 | End active session |
-| FR103 | 13 | Query session status |
-| FR104 | 13 | WebSocket connection with userId routing |
-| FR105 | 15 | TTS double-speak playback (el-GR) |
-| FR106 | 15 | Display Greek text alongside TTS |
-| FR107 | 16 | Mic button + STT capture (el-GR) |
-| FR108 | 16 | Transparent input method (Claude unaware) |
-| FR109 | 14 | Skill selection screen |
-| FR110 | 14 | One session at a time, skill switching kills existing |
-| FR111 | 14 | Setup gate on first launch |
-| FR112 | 14 | Claude OAuth via in-app WebView |
-| FR113 | 14 | Learning profile storage and input mode |
-| FR114 | 13 | Pi connection status display |
-| FR115 | 15 | Skill-complete signal handling |
+| FR100 | Epic 14 | Start new learning session via harness API |
+| FR101 | Epic 14 | Resume existing session from LangGraph checkpoint |
+| FR102 | Epic 14 | End active session, persist learner data |
+| FR103 | Epic 14 | Query session status (active, skill) |
+| FR104 | Epic 14 | Send message and receive streamed SSE response |
+| FR105 | Epic 15 | Chat interface with agent/user bubbles |
+| FR106 | Epic 15 | TTS double-speak for Greek text (0.8s/1.2s timing) |
+| FR107 | Epic 15 | Greek text displayed visually distinct |
+| FR108 | Epic 15 | Mic button captures Greek speech via STT |
+| FR109 | Epic 15 | Voice input invisible to Fluent agent |
+| FR110 | Epic 14 | Skill selection screen (8 Fluent skills) |
+| FR111 | Epic 14 | One session at a time, skill switching kills existing |
+| FR112 | Epic 13 | API key gate on module entry |
+| FR113 | Epic 13 | API key validation, per-user provisioning |
+| FR114 | Epic 13 | Post-configure navigation to skill menu |
+| FR115 | Epic 13 | Per-user data isolation in container |
+| FR116 | Epic 13 | Connection status display (connected/disconnected/reconnecting) |
+| FR117 | Epic 14 | Skill-complete event auto-ends session |
+| FR118 | Epic 14 | First-use auto-starts Setup skill |
+
+**All 19 FRs covered. All 7 NFRs distributed across epics.**
 
 ## Epic List
 
-### Epic 13: Language Learning — Data Layer & Pi Connection
-Admin can open the Language Learning module, see whether the Pi is reachable, and manage learning sessions (start, resume, end, check status) through the session service.
-**FRs covered:** FR100, FR101, FR102, FR103, FR104, FR114
+### Epic 13: Service Connection & API Key Setup
 
-### Epic 14: Language Learning — Onboarding & Skill Selection
-Admin can authenticate Claude on the Pi, complete their learning profile setup on first launch, and choose which skill to practice from a selection screen.
-**FRs covered:** FR109, FR110, FR111, FR112, FR113
+Users open the Language Learning module and see the service is connected. On first use, they configure their LLM API key through an in-app setup screen. The harness API is running, authenticated via Supabase JWT, and provisions per-user isolated data directories.
 
-### Epic 15: Language Learning — TTS Playback & Terminal Display
-During a session, Greek text arrives via WebSocket, is displayed on screen, and spoken aloud twice per phrase. Skill-complete signals return the user to the skill menu.
-**FRs covered:** FR105, FR106, FR115
+**FRs covered:** FR112, FR113, FR114, FR115, FR116
+**NFRs covered:** NFR27, NFR31, NFR32
 
-### Epic 16: Language Learning — Voice Input
-Admin can speak Greek into the phone's mic as an alternative to typing — the transcript is sent to the terminal as text input, invisible to Claude.
-**FRs covered:** FR107, FR108
+### Epic 14: Learning Sessions & Skill Selection
 
----
+Users start learning sessions by selecting from 8 Fluent skills. Sessions stream agent responses via SSE. The first session auto-starts the Setup skill for onboarding. Sessions persist across app closes and can be resumed. Skill-complete events return users to the skill menu.
 
-## Epic 13: Language Learning — Data Layer & Pi Connection
+**FRs covered:** FR100, FR101, FR102, FR103, FR104, FR110, FR111, FR117, FR118
+**NFRs covered:** NFR27, NFR33
 
-Admin can open the Language Learning module, see whether the Pi is reachable, and manage learning sessions (start, resume, end, check status) through the session service.
+### Epic 15: Interactive Learning — Voice & Audio
 
-### Story 13.1: Language Learning Foundation — Migration, Repositories, Store & Route Shell
+Users hear Greek pronunciation via TTS double-speak with precise timing. Greek text is displayed in a visually distinct style. Users can speak Greek back via the mic button (STT), with the input method invisible to the agent.
+
+**FRs covered:** FR105, FR106, FR107, FR108, FR109
+**NFRs covered:** NFR28, NFR29, NFR30
+
+## Epic 13: Service Connection & API Key Setup
+
+Users open the Language Learning module and see the service is connected. On first use, they configure their LLM API key through an in-app setup screen. The harness API is running, authenticated via Supabase JWT, and provisions per-user isolated data directories.
+
+### Story 13.1: Harness API Foundation
 
 As an admin,
-I want the Language Learning module's data layer and route to exist,
-So that future stories can build session management, WebSocket, and UI on top of a working foundation.
+I want the Language Learning harness API to be running and accessible,
+so that my phone can connect to the learning service.
 
 **Acceptance Criteria:**
 
-**Given** the app starts
-**When** navigating to Language Learning
-**Then** the `(language-learning)` route group loads with a placeholder screen
+**Given** the harness API is deployed in a Podman container
+**When** a request is sent to `GET /health`
+**Then** the API responds with `{ status: "ok" }` and HTTP 200
 
-**Given** the Supabase schema
-**When** the migration runs
-**Then** `learning_profiles` table exists with all columns (`id`, `family_id`, `user_account_id`, `setup_complete`, `claude_authenticated`, `goals`, `preferred_input_method`, `level`, `created_at`, `updated_at`), constraints (`UNIQUE(user_account_id)`, `CHECK(preferred_input_method IN ('keyboard_and_mic', 'mic_only'))`), and RLS policy (admins read/write own profile within family)
+**Given** a request to any harness endpoint without an Authorization header
+**When** the request is received
+**Then** the API responds with HTTP 401 and `{ detail: "Not authenticated" }`
 
-**Given** the codebase
-**When** I inspect repositories
-**Then** `ISessionRepository` (Pi HTTP: start/resume/end/status/auth) and `ILearningProfileRepository` (Supabase CRUD) interfaces + implementations exist and are registered in `RepositoryContext`
+**Given** a request with a valid Supabase JWT in the Authorization header
+**When** the request is received
+**Then** the API extracts the userId from the JWT `sub` claim and makes it available to the route handler
 
-**Given** the codebase
-**When** I inspect types
-**Then** `LearningProfile`, `PiWebSocketMessage` (discriminated union with `speak`, `signal`, `terminal`), `LearningSkill`, and `SessionStatus` types exist in `language-learning.types.ts`
+**Given** a request with an expired or invalid JWT
+**When** the request is received
+**Then** the API responds with HTTP 401 and `{ detail: "Invalid token" }`
 
-**Given** the codebase
-**When** I inspect stores
-**Then** `languageLearningStore` exists with `connectionStatus`, `activeSession`, `ttsQueue`, `terminalOutput`, `isSpeaking`, `isListening`
+**Repo:** FamilyHub (`harness/`)
+**Files:** `main.py`, `config.py`, `dependencies.py`, `routers/health.py`, `Containerfile`, `pyproject.toml`
+**Architecture ref:** Section 2 (Auth & Security), Section 5 (Infrastructure)
 
-**Given** the codebase
-**When** I inspect constants
-**Then** `language-learning-defaults.ts` exists with `TTS_REPEAT_PAUSE=800`, `TTS_PHRASE_PAUSE=1200`, and `SKILLS` list
-
-**Given** the env config
-**When** I inspect `.env.example`
-**Then** `PI_SESSION_URL` and `PI_WEBSOCKET_URL` are documented
-
-**Given** the codebase
-**When** I inspect packages
-**Then** `expo-speech`, `expo-speech-recognition`, and `react-native-webview` are installed
-
----
-
-### Story 13.2: WebSocket Service & Connection Status
+### Story 13.2: API Key Configuration & User Provisioning
 
 As an admin,
-I want to see whether my phone can reach the Pi,
-So that I know immediately if language learning is available before starting a session.
+I want to configure my LLM API key through the app so that the harness can run learning sessions on my behalf,
+without needing SSH or terminal access to the server.
 
 **Acceptance Criteria:**
 
-**Given** the user enters the `(language-learning)` route group
-**When** the layout mounts
-**Then** `WebSocketService` connects to `PI_WEBSOCKET_URL` with the current user's userId parameter
+**Given** a user with a valid JWT but no configured API key
+**When** `POST /auth/configure` is called with `{ api_key: "sk-..." }`
+**Then** the harness validates the key by making a test API call to the LLM provider
+**And** creates the directory `/data/users/{userId}/` with subdirectories `fluent/` and `results/`
+**And** copies Fluent data templates into the `fluent/` directory (6 JSON databases)
+**And** writes `/data/users/{userId}/api_key.json` with chmod 600 permissions
+**And** returns `{ provisioned: true }` with HTTP 200
 
-**Given** the WebSocket connects successfully
-**When** the connection is established
-**Then** `languageLearningStore.connectionStatus` is set to `'connected'` and the connection status bar shows a green connected indicator
+**Given** an invalid API key
+**When** `POST /auth/configure` is called
+**Then** the test API call fails and the harness responds with HTTP 400 and `{ detail: "API key validation failed" }`
 
-**Given** the Pi is unreachable
-**When** the WebSocket fails to connect
-**Then** `connectionStatus` is `'disconnected'` and the status bar shows a red disconnected indicator
+**Given** a user with an already configured API key
+**When** `GET /auth/status` is called
+**Then** the harness returns `{ configured: true, setupComplete: false }` (setup not yet run)
 
-**Given** the WebSocket disconnects unexpectedly
-**When** the connection drops
-**Then** `connectionStatus` is `'reconnecting'` and the service retries with exponential backoff (1s, 2s, 4s, max 10s)
+**Given** a user with no configured API key
+**When** `GET /auth/status` is called
+**Then** the harness returns `{ configured: false, setupComplete: false }`
 
-**Given** the WebSocket receives a message
-**When** the message arrives
-**Then** it is parsed as `PiWebSocketMessage` and dispatched via the discriminated union switch pattern (`speak`, `signal`, `terminal`)
+**Given** a user whose Fluent learner-profile.json exists
+**When** `GET /auth/status` is called
+**Then** the harness returns `{ configured: true, setupComplete: true }`
 
-**Given** the user leaves the `(language-learning)` route group
-**When** the layout unmounts
-**Then** the WebSocket connection is closed cleanly
+**Given** two different users (filipe and angela)
+**When** each configures their API key
+**Then** each user's data directory is completely isolated — filipe cannot read angela's api_key.json or Fluent data (NFR32)
 
----
+**Repo:** FamilyHub (`harness/`)
+**Files:** `routers/auth.py`, `services/user_provisioner.py`, `models/requests.py`, `models/responses.py`
+**FRs:** FR113, FR115
+**NFRs:** NFR31, NFR32
 
-### Story 13.3: Session Lifecycle — Start, Resume, End & Status
+### Story 13.3: Mobile Language Learning Route Shell & Connection Status
 
 As an admin,
-I want to start, resume, end, and check the status of learning sessions on the Pi,
-So that I can control my learning experience from the phone.
+I want to see whether the Language Learning service is reachable when I open the module,
+so that I know immediately if learning is available.
 
 **Acceptance Criteria:**
 
-**Given** the Pi is connected
-**When** the app calls `ISessionRepository.start(userId, skill)`
-**Then** a POST to `/session/start?userId=X&skill=Y` is made and `languageLearningStore.activeSession` is set with the skill name on success (FR100)
+**Given** the admin navigates to the Language Learning module in the app
+**When** the `(language-learning)/_layout.tsx` mounts
+**Then** the app calls `GET /health` on the harness API
+**And** the connection status bar shows "Connected" if the request succeeds
 
-**Given** an active tmux session exists for the user
-**When** the app calls `ISessionRepository.resume(userId)`
-**Then** a POST to `/session/resume?userId=X` reattaches the session (FR101)
+**Given** the harness API is unreachable
+**When** the health check request fails
+**Then** the connection status bar shows "Disconnected"
+**And** retries every 10 seconds, showing "Reconnecting" during retry
 
-**Given** an active session
-**When** the app calls `ISessionRepository.end(userId)`
-**Then** a POST to `/session/end?userId=X` kills the tmux session and `activeSession` is set to null (FR102)
+**Given** the admin leaves the Language Learning module
+**When** the `(language-learning)/_layout.tsx` unmounts
+**Then** health check polling stops
 
-**Given** any state
-**When** the app calls `ISessionRepository.status(userId)`
-**Then** a GET to `/session/status?userId=X` returns `{ active: boolean, skill: string }` (FR103)
+**Given** the connection status changes
+**When** the status bar updates
+**Then** the indicator uses the `languageLearningStore.connectionStatus` field
 
-**Given** a session service call fails or takes >5s
-**When** the timeout is exceeded
-**Then** an error is shown to the user and `activeSession` is not modified (NFR27)
+**Repo:** FamilyHub mobile
+**Files:** `app/(app)/(language-learning)/_layout.tsx`, `hooks/use-learning-connection.ts`, `components/language-learning/connection-status-bar.tsx`, `stores/language-learning.store.ts`, `types/language-learning.types.ts`, `constants/language-learning-defaults.ts`, `repositories/interfaces/session.repository.interface.ts`, `repositories/supabase/session.repository.ts`
+**FRs:** FR116
 
-**Given** the WebSocket reconnects after a disconnection
-**When** the connection is restored
-**Then** `ISessionRepository.status()` is called automatically to verify whether the session is still active
-
----
-
-## Epic 14: Language Learning — Onboarding & Skill Selection
-
-Admin can authenticate Claude on the Pi, complete their learning profile setup on first launch, and choose which skill to practice from a selection screen.
-
-### Story 14.1: Claude OAuth Onboarding via WebView
+### Story 13.4: Mobile API Key Setup Screen
 
 As an admin,
-I want to authenticate Claude on the Pi through a familiar login screen on my phone,
-So that I never have to SSH into the Pi or touch a terminal to set up my account.
+I want to enter my LLM API key on a setup screen when I first open Language Learning,
+so that I can start learning without needing terminal access.
 
 **Acceptance Criteria:**
 
-**Given** the user opens Language Learning and `learning_profiles.claude_authenticated` is `false` (or no profile exists)
-**When** the module loads
-**Then** the app shows an "Authenticate Claude" screen instead of the skill menu (FR112)
+**Given** the admin navigates to the Language Learning module for the first time
+**When** `GET /auth/status` returns `{ configured: false }`
+**Then** the app shows the API key setup screen instead of the skill menu (FR112)
 
-**Given** the onboarding screen
-**When** the user taps "Connect your account"
-**Then** the app calls `POST /auth/login?userId=X` on the Pi session service and receives an OAuth URL
+**Given** the admin is on the API key setup screen
+**When** they enter their API key and tap submit
+**Then** the app calls `ISessionRepository.configureApiKey(key)`
+**And** shows a loading indicator during validation
 
-**Given** an OAuth URL is returned
-**When** the URL is received
-**Then** a `<WebView>` opens displaying the standard Claude login page — no terminal or SSH is visible to the user
+**Given** the API key is validated successfully
+**When** the harness returns `{ provisioned: true }`
+**Then** the app navigates to the skill selection screen (FR114)
 
-**Given** the user completes OAuth in the WebView
-**When** authentication succeeds
-**Then** the app updates `learning_profiles.claude_authenticated = true` in Supabase and dismisses the WebView
+**Given** the API key validation fails
+**When** the harness returns an error
+**Then** the app displays a Portuguese error message (e.g., "A chave API é inválida. Tente novamente.")
+**And** stays on the setup screen for retry
 
-**Given** the user cancels or closes the WebView
-**When** they return to the onboarding screen
-**Then** `claude_authenticated` remains `false` and they can retry
+**Repo:** FamilyHub mobile
+**Files:** `app/(app)/(language-learning)/api-key-setup.tsx`, `app/(app)/(language-learning)/index.tsx` (gate logic)
+**FRs:** FR112, FR114
 
-**Given** `claude_authenticated` is already `true`
-**When** the user opens Language Learning
-**Then** the OAuth screen is never shown — the user proceeds directly to setup or skill selection
+## Epic 14: Learning Sessions & Skill Selection
 
----
+Users start learning sessions by selecting from 8 Fluent skills. Sessions stream agent responses via SSE. The first session auto-starts the Setup skill for onboarding. Sessions persist across app closes and can be resumed. Skill-complete events return users to the skill menu.
 
-### Story 14.2: First-Launch Setup Gate & Learning Profile
+### Story 14.1: LangGraph Agent & Fluent Skill Integration
 
 As an admin,
-I want the app to guide me through an initial learning profile setup the first time I use Language Learning,
-So that Claude knows my goals, level, and preferred input method before lessons begin.
+I want the harness to create a LangGraph agent that runs Fluent learning skills,
+so that I can have interactive language learning sessions.
 
 **Acceptance Criteria:**
 
-**Given** the user has `claude_authenticated = true` but `setup_complete = false`
-**When** they enter Language Learning
-**Then** the app auto-starts a session with `skill=setup` — no other skills are available (FR111)
+**Given** a user with a configured API key
+**When** the session manager creates a new agent for the "learn" skill
+**Then** a LangGraph ReAct agent is initialized with the Fluent Learn SKILL.md as the system prompt
+**And** Fluent's Python tools (read-db, update-db) are registered as LangChain tools
+**And** the agent uses the user's API key for LLM calls
+**And** the user's FLUENT_DATA_DIR is set to `/data/users/{userId}/fluent/`
 
-**Given** the `/setup` session is active
-**When** Claude sends terminal output via WebSocket
-**Then** the terminal output is displayed on the session screen so the user can interact with the setup flow
+**Given** the agent is created
+**When** the user's Fluent data is loaded
+**Then** all 6 JSON databases are accessible to the agent via read-db tools
 
-**Given** Claude sends a `{ type: 'signal', name: 'setup-complete' }` via WebSocket
-**When** the signal is received
-**Then** the app calls `ISessionRepository.end(userId)`, updates `learning_profiles.setup_complete = true` in Supabase, and navigates to the skill selection screen
+**Given** a LangGraph agent completes a message turn
+**When** the agent produces output
+**Then** the output is checkpointed to SqliteSaver (`/data/checkpoints.db`)
 
-**Given** the setup completes
-**When** the learning profile is updated
-**Then** `goals`, `preferred_input_method`, and `level` fields are populated in `learning_profiles` from the data Claude collected during setup (FR113)
+**Repo:** FamilyHub (`harness/`)
+**Files:** `services/session_manager.py`, `services/fluent_loader.py`
+**FRs:** FR100 (agent creation)
 
-**Given** `preferred_input_method` is `'mic_only'`
-**When** the user enters a future session
-**Then** the keyboard input is hidden and only the mic button is shown (FR113)
-
-**Given** `setup_complete = true`
-**When** the user opens Language Learning in the future
-**Then** the setup flow is never triggered again — the user goes straight to skill selection
-
----
-
-### Story 14.3: Skill Selection Screen with Resume
+### Story 14.2: Session Lifecycle Endpoints
 
 As an admin,
-I want to choose which learning skill to practice and resume where I left off,
-So that I can focus on the aspect of Greek that matters to me right now.
+I want the harness to manage session lifecycle (start, resume, end, status),
+so that my learning sessions persist and I can resume where I left off.
 
 **Acceptance Criteria:**
 
-**Given** `setup_complete = true` and the Pi is connected
-**When** the skill selection screen loads
-**Then** it displays skill cards for: Learn (default, highlighted), Review, Vocab, Writing, Speaking, Reading, Progress (FR109)
+**Given** a user with no active session
+**When** `POST /session/start` is called with `{ skill: "learn" }`
+**Then** the harness creates a LangGraph agent for the specified skill, loads the user's Fluent data, and returns `{ session_id: "...", skill: "learn" }` within 5 seconds (NFR27)
 
-**Given** no active session exists
-**When** the user taps a skill card
-**Then** the app calls `ISessionRepository.start(userId, skill)` and navigates to the session screen
+**Given** a user with no active session
+**When** `POST /session/start` is called
+**Then** the harness responds within 5 seconds (NFR27)
 
-**Given** an active session exists for the same skill (from `ISessionRepository.status()`)
-**When** the skill selection screen loads
-**Then** that skill card shows a "Resume" badge (FR110)
+**Given** a user with an active "learn" session
+**When** `GET /session/status` is called
+**Then** the harness returns `{ active: true, skill: "learn" }`
 
-**Given** a skill card has a "Resume" badge
-**When** the user taps it
-**Then** the app offers "Resume" or "New Session" — Resume calls `ISessionRepository.resume(userId)`, New Session calls `end` then `start` (FR101, FR110)
+**Given** a user with no active session
+**When** `GET /session/status` is called
+**Then** the harness returns `{ active: false, skill: null }`
 
-**Given** an active session exists for a different skill
-**When** the user taps a new skill
-**Then** the existing session is killed via `ISessionRepository.end()` before starting the new one — no confirmation needed (FR110)
+**Given** a user with an active "learn" session
+**When** `POST /session/resume` is called
+**Then** the harness rehydrates the LangGraph state from SqliteSaver
+**And** returns `{ messages: ChatMessage[] }` with the chat history from the checkpoint (FR101)
 
-**Given** the Pi is disconnected
-**When** the skill selection screen loads
-**Then** all skill cards are disabled and the connection status bar shows the Pi is unreachable
+**Given** a user with an active session
+**When** `POST /session/end` is called
+**Then** the harness persists the final Fluent data (6 JSON databases via update-db)
+**And** writes a session result file to `/data/users/{userId}/results/`
+**And** clears the active session
 
----
+**Given** a user with an active "learn" session
+**When** `POST /session/start` is called with `{ skill: "vocab" }`
+**Then** the harness ends the existing "learn" session first (persisting data)
+**And** starts a new "vocab" session (FR111 — one session at a time)
 
-## Epic 15: Language Learning — TTS Playback & Terminal Display
+**Repo:** FamilyHub (`harness/`)
+**Files:** `routers/session.py` (start/resume/end/status), `services/session_manager.py` (lifecycle methods)
+**FRs:** FR100, FR101, FR102, FR103, FR111
+**NFRs:** NFR27
 
-During a session, Greek text arrives via WebSocket, is displayed on screen, and spoken aloud twice per phrase. Skill-complete signals return the user to the skill menu.
-
-### Story 15.1: TTS Queue with Double-Speak Pattern
+### Story 14.3: SSE Streaming & Event Emission
 
 As an admin,
-I want to hear Greek phrases spoken aloud twice each on my phone,
-So that I can learn pronunciation through repeated audio exposure.
+I want the agent's responses to stream to my phone in real-time,
+so that I see the learning content appear immediately as the agent generates it.
 
 **Acceptance Criteria:**
 
-**Given** a WebSocket message `{ type: 'speak', phrases: ['Καλημέρα'] }` arrives
-**When** the message is processed
-**Then** `expo-speech` speaks "Καλημέρα" in el-GR, pauses 0.8s, speaks "Καλημέρα" again (NFR30, FR105)
+**Given** a user with an active session
+**When** `POST /session/message` is called with `{ content: "Γεια σου" }`
+**Then** the harness sends the message to the LangGraph agent
+**And** returns an SSE stream
 
-**Given** a message with multiple phrases `{ type: 'speak', phrases: ['Καλημέρα', 'Με λένε'] }`
-**When** processed
-**Then** each phrase is double-spoken in sequence: "Καλημέρα" → 0.8s → "Καλημέρα" → 1.2s → "Με λένε" → 0.8s → "Με λένε" (NFR30)
+**Given** the agent generates text output
+**When** the LLM streams a token
+**Then** the harness emits `event: token\ndata: { "content": "..." }\n\n`
 
-**Given** multiple `speak` messages arrive in quick succession
-**When** the TTS queue processes them
-**Then** they are played in order — no concurrent speech, no skipped messages
+**Given** the agent calls its speak tool with Greek phrases
+**When** the speak tool output is detected
+**Then** the harness emits `event: speak\ndata: { "phrases": ["Καλημέρα", "Με λένε"] }\n\n`
 
-**Given** a `speak` message arrives
-**When** TTS begins
-**Then** `languageLearningStore.isSpeaking` is set to `true`; when the queue empties, it is set to `false`
+**Given** the agent signals skill completion
+**When** the skill-complete condition is met
+**Then** the harness emits `event: skill-complete\ndata: { "skill": "learn" }\n\n`
 
-**Given** a `speak` message arrives
-**When** TTS starts
-**Then** playback begins within 500ms of message arrival (NFR28)
+**Given** an error occurs during LLM generation
+**When** the error is caught
+**Then** the harness emits `event: error\ndata: { "message": "..." }\n\n`
 
-**Given** `isSpeaking` is `true`
-**When** the `tts-indicator` component renders
-**Then** a visual indicator shows that audio is playing
+**Given** the agent finishes generating
+**When** the stream is complete
+**Then** the harness emits `event: done\ndata: {}\n\n` and closes the stream
 
----
+**Given** a user sends a message
+**When** the first SSE token event arrives
+**Then** it arrives within 3 seconds of the user's request (NFR33)
 
-### Story 15.2: Terminal Display — Greek Text Alongside Audio
+**Repo:** FamilyHub (`harness/`)
+**Files:** `services/sse_streamer.py`, `routers/session.py` (message endpoint)
+**FRs:** FR104, FR117
+**NFRs:** NFR33
+
+### Story 14.4: Mobile SSE Client & Session Hooks
 
 As an admin,
-I want to read the Greek text on screen while hearing it spoken,
-So that I can associate the written form with the pronunciation.
+I want the mobile app to consume the SSE stream and manage session state,
+so that I can interact with the learning agent through the app.
 
 **Acceptance Criteria:**
 
-**Given** a WebSocket message `{ type: 'terminal', content: '...' }` arrives
-**When** the message is processed
-**Then** the content is appended to `languageLearningStore.terminalOutput` and displayed in the `terminal-display` component (FR106)
+**Given** the app is on the session screen
+**When** the user types a message and taps send
+**Then** `ISessionRepository.sendMessage(content)` is called
+**And** the returned SSE stream is consumed by `sse-client.ts`
+**And** each `token` event appends text to the current agent chat bubble in real-time
+**And** each `speak` event enqueues phrases into `languageLearningStore.ttsQueue`
+**And** each `skill-complete` event triggers `ISessionRepository.endSession()` and navigates to the skill menu (FR117)
 
-**Given** terminal output accumulates
-**When** the display updates
-**Then** it auto-scrolls to the bottom to show the latest content
+**Given** the SSE stream starts
+**When** the first `token` event arrives
+**Then** `languageLearningStore.isStreaming` is set to `true`
 
-**Given** a `speak` message arrives
-**When** the phrases are added to the TTS queue
-**Then** the same phrases are displayed in a visually distinct area (e.g., highlighted card or banner) alongside the terminal so the user can read while listening (FR106)
+**Given** the SSE stream ends with a `done` event
+**When** the event is processed
+**Then** `languageLearningStore.isStreaming` is set to `false`
 
-**Given** the session screen is active
-**When** the user scrolls the terminal display
-**Then** auto-scroll pauses until the user scrolls back to the bottom
+**Given** an `error` SSE event arrives
+**When** the event is processed
+**Then** a Portuguese error message is displayed to the user
 
-**Given** the session ends or the user navigates away
-**When** they return to skill selection
-**Then** the terminal output is cleared from the store
+**Given** the SSE stream connection fails
+**When** a network error occurs
+**Then** a Portuguese error message is shown and the user can retry
 
----
+**Repo:** FamilyHub mobile
+**Files:** `services/sse-client.ts`, `hooks/use-session.ts`, `stores/language-learning.store.ts` (updated with messages, isStreaming)
+**FRs:** FR104, FR117
 
-### Story 15.3: Skill-Complete Signal Handling
+### Story 14.5: Skill Selection Screen
 
 As an admin,
-I want the app to automatically close my session when Claude signals the skill is done,
-So that I'm returned to the skill menu without manual intervention.
+I want to see all available learning skills and select one to start a session,
+so that I can choose what type of practice I want.
 
 **Acceptance Criteria:**
 
-**Given** an active session
-**When** a `{ type: 'signal', name: 'skill-complete' }` WebSocket message arrives
-**Then** the app calls `ISessionRepository.end(userId)` (FR115)
+**Given** the admin opens Language Learning and has a configured API key
+**When** `GET /auth/status` returns `{ configured: true, setupComplete: true }`
+**Then** the app shows the skill selection screen with 8 skill cards: Setup, Learn, Review, Vocab, Writing, Speaking, Reading, Progress (FR110)
 
-**Given** the session end call succeeds
-**When** the session is terminated
-**Then** `languageLearningStore.activeSession` is set to null and the app navigates to the skill selection screen (FR115)
+**Given** the admin opens Language Learning with a configured API key but setup not complete
+**When** `GET /auth/status` returns `{ configured: true, setupComplete: false }`
+**Then** the app auto-starts a session with the Setup skill (FR118)
+**And** only the Setup skill card is shown (other skills disabled or hidden)
 
-**Given** the TTS queue still has phrases playing when skill-complete arrives
-**When** the signal is processed
-**Then** TTS playback completes the current phrase (not the full queue) before navigating away
+**Given** the admin taps a skill card (e.g., "Learn")
+**When** no active session exists for this skill
+**Then** `ISessionRepository.startSession("learn")` is called
+**And** the app navigates to the session screen
 
-**Given** a `{ type: 'signal', name: 'setup-complete' }` arrives
-**When** the signal is processed
-**Then** it is handled by the onboarding flow (Story 14.2) — not by this skill-complete handler
+**Given** the admin taps a skill card with an active session in that skill
+**When** `GET /session/status` returns `{ active: true, skill: "learn" }`
+**Then** the skill card shows a "Resume" badge
+**And** tapping it calls `ISessionRepository.resumeSession()`
+**And** the chat history from the response populates the store
 
----
+**Given** the admin taps a different skill card while a session is active
+**When** the active skill is "learn" and the admin taps "Vocab"
+**Then** the harness ends the existing "learn" session and starts a "vocab" session (FR111)
 
-## Epic 16: Language Learning — Voice Input
+**Repo:** FamilyHub mobile
+**Files:** `app/(app)/(language-learning)/index.tsx`, `components/language-learning/skill-card.tsx`
+**FRs:** FR110, FR118
 
-Admin can speak Greek into the phone's mic as an alternative to typing — the transcript is sent to the terminal as text input, invisible to Claude.
-
-### Story 16.1: Mic Button & Speech-to-Text Capture
+### Story 14.6: Chat Interface
 
 As an admin,
-I want to tap a mic button and speak Greek instead of typing,
-So that I can practice pronunciation and interact hands-free.
+I want to see my learning session as a chat conversation,
+so that I can follow along with the agent's teaching.
 
 **Acceptance Criteria:**
 
-**Given** the session screen is active
-**When** the screen renders
-**Then** a mic button is visible (positioned for easy thumb access)
+**Given** a learning session is active
+**When** the session screen loads
+**Then** the app displays a scrollable list of chat messages
+**And** agent messages appear as bot-aligned chat bubbles
+**And** user messages appear as user-aligned chat bubbles
 
-**Given** `preferred_input_method` is `'mic_only'` (FR113)
-**When** the session screen renders
-**Then** the mic button is prominently displayed and no keyboard input is shown
+**Given** the agent is generating a response
+**When** `token` SSE events arrive
+**Then** the current agent bubble updates in real-time with streaming text
 
-**Given** the user taps the mic button for the first time
-**When** the app does not yet have `RECORD_AUDIO` permission
-**Then** the Android permission dialog is shown — permission is not requested at app launch or module entry
+**Given** the user types a message and taps send
+**When** the message is submitted
+**Then** a user bubble appears immediately in the chat
+**And** `ISessionRepository.sendMessage(content)` is called
+**And** a new agent bubble begins streaming the response
 
-**Given** `RECORD_AUDIO` is granted
-**When** the user taps the mic button
-**Then** `expo-speech-recognition` starts listening in el-GR locale and `languageLearningStore.isListening` is set to `true`
+**Given** a session is resumed
+**When** the chat screen loads with history
+**Then** all previous messages from the resume response are rendered as chat bubbles
 
-**Given** STT is listening
-**When** the user finishes speaking
-**Then** the transcript is produced within 2 seconds (NFR29), `isListening` is set to `false`, and the mic button returns to its idle state
+**Given** a resumed session has many messages
+**When** the chat screen loads
+**Then** the view scrolls to the bottom (most recent message)
 
-**Given** STT is active
-**When** the user taps the mic button again
-**Then** listening stops and any partial transcript is discarded
+**Repo:** FamilyHub mobile
+**Files:** `app/(app)/(language-learning)/session.tsx`, `components/language-learning/chat-bubble.tsx`, `components/language-learning/chat-input.tsx`
+**FRs:** FR105
 
-**Given** `RECORD_AUDIO` is denied
-**When** the user taps the mic button
-**Then** a message explains that the mic requires permission and offers to open app settings
+## Epic 15: Interactive Learning — Voice & Audio
 
----
+Users hear Greek pronunciation via TTS double-speak with precise timing. Greek text is displayed in a visually distinct style. Users can speak Greek back via the mic button (STT), with the input method invisible to the agent.
 
-### Story 16.2: Transcript Delivery to Terminal
+### Story 15.1: TTS Double-Speak Queue
 
 As an admin,
-I want my spoken Greek to arrive in Claude's terminal exactly as if I typed it,
-So that Claude evaluates my answer without knowing how I entered it.
+I want the app to speak Greek phrases aloud twice so I can hear the correct pronunciation,
+with pauses that help me process what I'm hearing.
 
 **Acceptance Criteria:**
 
-**Given** STT produces a transcript
-**When** the transcript is ready
-**Then** it is sent to the Pi via WebSocket as a plain text message — no metadata about input method is included (FR108)
+**Given** a `speak` SSE event arrives with phrases `["Καλημέρα", "Με λένε"]`
+**When** the phrases are enqueued into the TTS queue
+**Then** the app speaks "Καλημέρα" via expo-speech (el-GR)
+**And** waits 0.8 seconds
+**And** speaks "Καλημέρα" again
+**And** waits 1.2 seconds
+**And** speaks "Με λένε"
+**And** waits 0.8 seconds
+**And** speaks "Με λένε" again (NFR30)
 
-**Given** the transcript is sent
-**When** Claude receives it
-**Then** it is indistinguishable from keyboard-typed text — no enter key, no special formatting (FR107, FR108)
+**Given** a speak event arrives while TTS is already playing
+**When** the phrases are enqueued
+**Then** they wait in the queue until the current phrase finishes — no concurrent speech
 
-**Given** the TTS queue is currently speaking when the user taps mic
-**When** STT starts
-**Then** TTS continues playing — mic and speaker work concurrently (the user can speak while audio plays)
+**Given** a speak event arrives
+**When** TTS playback begins
+**Then** the first sound starts within 500ms of the SSE event arriving on the phone (NFR28)
 
-**Given** the WebSocket is disconnected when STT produces a transcript
-**When** the transcript is ready
-**Then** an error toast is shown and the transcript is not silently dropped
+**Given** TTS is playing
+**When** the user views the chat
+**Then** a visual indicator shows which phrase is currently being spoken
+
+**Repo:** FamilyHub mobile
+**Files:** `hooks/use-tts-queue.ts`, `constants/language-learning-defaults.ts` (TTS_REPEAT_PAUSE=800, TTS_PHRASE_PAUSE=1200)
+**FRs:** FR106
+**NFRs:** NFR28, NFR30
+
+### Story 15.2: Greek Text Styling
+
+As an admin,
+I want Greek text in the chat to look visually distinct from other text,
+so that I can easily identify the language content I need to focus on.
+
+**Acceptance Criteria:**
+
+**Given** an agent chat bubble contains Greek text
+**When** the bubble is rendered
+**Then** the Greek text is displayed with a larger font size and distinct color compared to other text in the bubble
+
+**Given** the agent's response contains both Greek and non-Greek text
+**When** the bubble is rendered
+**Then** the Greek portion is visually distinct while the non-Greek portion uses standard styling
+
+**Given** TTS is currently speaking a phrase
+**When** the phrase corresponds to text in a chat bubble
+**Then** the spoken text is highlighted or indicated in the bubble (FR107)
+
+**Repo:** FamilyHub mobile
+**Files:** `components/language-learning/chat-bubble.tsx` (updated with Greek detection + styling)
+**FRs:** FR107
+
+### Story 15.3: STT Voice Input
+
+As an admin,
+I want to tap a mic button and speak Greek so that my speech is transcribed and sent as a message,
+without needing to type.
+
+**Acceptance Criteria:**
+
+**Given** the admin is on the session screen
+**When** they tap the mic button for the first time
+**Then** the app requests the RECORD_AUDIO permission
+**And** if granted, starts listening via expo-speech-recognition with el-GR locale
+
+**Given** the admin is recording
+**When** they speak Greek and pause
+**Then** the STT transcription completes within 2 seconds (NFR29)
+**And** the transcript is sent via `ISessionRepository.sendMessage(transcript)` as plain text
+**And** the agent receives it identically to a typed message — unaware of input method (FR109)
+
+**Given** the admin is recording
+**When** the mic button shows the listening state
+**Then** `languageLearningStore.isListening` is `true` and the button shows a visual recording indicator
+
+**Given** STT transcription completes
+**When** the transcript is sent
+**Then** a user chat bubble appears with the transcript
+**And** `languageLearningStore.isListening` is set to `false`
+
+**Given** RECORD_AUDIO permission is denied
+**When** the admin taps the mic button
+**Then** a Portuguese message explains the permission is needed
+
+**Repo:** FamilyHub mobile
+**Files:** `hooks/use-stt.ts`, `components/language-learning/chat-input.tsx` (mic button integration)
+**FRs:** FR108, FR109
+**NFRs:** NFR29

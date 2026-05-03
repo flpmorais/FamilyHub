@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import type { DishType, DishTypeKey } from '../types/dish-type.types';
-import type { IDishTypeRepository } from '../repositories/interfaces/dish-type.repository.interface';
+import { create } from "zustand";
+import type { DishType, DishTypeKey } from "../types/dish-type.types";
+import type { IDishTypeRepository } from "../repositories/interfaces/dish-type.repository.interface";
 
 interface DishTypeState {
   dishTypes: DishType[];

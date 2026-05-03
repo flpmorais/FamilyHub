@@ -1,7 +1,7 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IDishTypeRepository } from '../interfaces/dish-type.repository.interface';
-import type { DishType, DishTypeKey } from '../../types/dish-type.types';
-import { logger } from '../../utils/logger';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IDishTypeRepository } from "../interfaces/dish-type.repository.interface";
+import type { DishType, DishTypeKey } from "../../types/dish-type.types";
+import { logger } from "../../utils/logger";
 
 function mapDishType(row: any): DishType {
   return {
@@ -22,17 +22,17 @@ export class SupabaseDishTypeRepository implements IDishTypeRepository {
   async getByFamilyId(familyId: string): Promise<DishType[]> {
     try {
       const { data, error } = await this.client
-        .from('dish_types')
-        .select('*')
-        .eq('family_id', familyId)
-        .order('sort_order', { ascending: true });
+        .from("dish_types")
+        .select("*")
+        .eq("family_id", familyId)
+        .order("sort_order", { ascending: true });
 
       if (error) throw error;
       return (data ?? []).map(mapDishType);
     } catch (err) {
-      logger.error('DishTypeRepository', 'getByFamilyId failed', err);
+      logger.error("DishTypeRepository", "getByFamilyId failed", err);
       throw new Error(
-        `Não foi possível carregar os tipos de prato: ${err instanceof Error ? err.message : 'Erro'}`,
+        `Não foi possível carregar os tipos de prato: ${err instanceof Error ? err.message : "Erro"}`,
       );
     }
   }

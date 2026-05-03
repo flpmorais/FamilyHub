@@ -1,7 +1,6 @@
 # Story 14.2: Session Lifecycle Endpoints
 
 Status: done
-
 branch: feature/14-2-session-lifecycle-endpoints
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -79,6 +78,16 @@ so that my learning sessions persist and I can resume where I left off.
 - [x] [Review][Defer] SQLite connection shared across threads (main + worker) — needs verification with langgraph version (`session_manager.py:42-49`) — deferred, needs langgraph version check
 - [x] [Review][Defer] `load_user_fluent_data` dead code — utility method, may be used by future stories (`session_manager.py:105-117`) — deferred, future utility
 - [x] [Review][Defer] Skill validation in router — handled by `session_manager.create_agent` ValueError (`routers/session.py`) — deferred, already handled
+
+### Review Findings (Round 2 — 2026-05-03)
+
+- [x] [Review][Defer] `end_session` pop-before-write trades stuck-user for data loss — deferred, acceptable tradeoff at family scale (`session_manager.py:179-188`)
+- [ ] [Review][Patch] AC-6: Add Fluent data persistence (update-db) at end-session — resolved: literal AC-6 compliance, call update-db functions before writing result file (`session_manager.py:end_session`)
+- [x] [Review][Patch] Resume generates random UUIDs for message IDs on every call — `str(uuid.uuid4())` in `resume_session` means same messages get different IDs across resume calls, breaking client-side deduplication. Derive deterministic IDs from checkpoint data (`session_manager.py:167`) — fixed: SHA-256 hash of user_id+session_id+index+content
+- [x] [Review][Patch] Inconsistent timestamp units — `additional_kwargs` path treats raw int as ms (`int(ts_meta)`), `response_metadata` path assumes seconds (`int(ts_meta * 1000)`). One path is wrong by 1000x (`session_manager.py:155-162`) — fixed: `_normalize_ts_ms()` helper detects seconds vs milliseconds
+- [ ] [Review][Patch] `_agents`/`_sessions` can desync on partial failure — if `create_agent` raises after `self._agents[user_id] = agent` (line ~89) but before `self._sessions[user_id] = info` (line ~90), agent exists without session info. Future `create_agent` sees agent exists, calls `end_session` which finds no session info and does nothing (`session_manager.py:89-90`) — skipped: consecutive assignments cannot desync in practice
+- [x] [Review][Patch] `load_user_api_key` doesn't validate key content — empty string, whitespace, or null `api_key` value passes through and causes opaque LLM auth failure later. Add `if not data["api_key"] or not data["api_key"].strip(): raise ValueError(...)` (`user_provisioner.py:150-151`) — fixed: empty/whitespace check added
+- [x] [Review][Patch] `json.JSONDecodeError` and `OSError` uncaught in `load_user_api_key` path — corrupted or unreadable `api_key.json` falls through router's `except (KeyError, ValueError)` to generic 500 instead of 403. Add `json.JSONDecodeError` and `OSError` to catch list (`routers/session.py:27`) — fixed: both added to catch list
 
 ## Dev Notes
 

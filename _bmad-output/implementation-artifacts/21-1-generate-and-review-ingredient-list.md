@@ -1,6 +1,6 @@
 # Story 21.1: Generate and Review Ingredient List
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

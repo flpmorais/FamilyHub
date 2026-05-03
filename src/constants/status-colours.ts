@@ -1,5 +1,5 @@
-import { useColorScheme } from 'react-native';
-import { PackingStatus } from '../types/packing.types';
+import { useColorScheme } from "react-native";
+import { PackingStatus } from "../types/packing.types";
 
 export type StatusColourTokens = {
   bg: string;
@@ -15,35 +15,35 @@ export const STATUS_COLOURS: Record<
   { light: StatusColourTokens; dark: StatusColourTokens }
 > = {
   new: {
-    light: { bg: '#757575', text: '#FFFFFF', border: '#616161' },
-    dark: { bg: '#BDBDBD', text: '#1C1B1F', border: '#9E9E9E' },
+    light: { bg: "#757575", text: "#FFFFFF", border: "#616161" },
+    dark: { bg: "#BDBDBD", text: "#1C1B1F", border: "#9E9E9E" },
   },
   buy: {
-    light: { bg: '#F59300', text: '#1C1B1F', border: '#E68900' },
-    dark: { bg: '#FFB300', text: '#1C1B1F', border: '#FFA000' },
+    light: { bg: "#F59300", text: "#1C1B1F", border: "#E68900" },
+    dark: { bg: "#FFB300", text: "#1C1B1F", border: "#FFA000" },
   },
   issue: {
-    light: { bg: '#D32F2F', text: '#FFFFFF', border: '#C62828' },
-    dark: { bg: '#EF5350', text: '#1C1B1F', border: '#E53935' },
+    light: { bg: "#D32F2F", text: "#FFFFFF", border: "#C62828" },
+    dark: { bg: "#EF5350", text: "#1C1B1F", border: "#E53935" },
   },
   ready: {
-    light: { bg: '#1976D2', text: '#FFFFFF', border: '#1565C0' },
-    dark: { bg: '#64B5F6', text: '#1C1B1F', border: '#42A5F5' },
+    light: { bg: "#1976D2", text: "#FFFFFF", border: "#1565C0" },
+    dark: { bg: "#64B5F6", text: "#1C1B1F", border: "#42A5F5" },
   },
   last_minute: {
-    light: { bg: '#00897B', text: '#FFFFFF', border: '#00796B' },
-    dark: { bg: '#4DB6AC', text: '#1C1B1F', border: '#26A69A' },
+    light: { bg: "#00897B", text: "#FFFFFF", border: "#00796B" },
+    dark: { bg: "#4DB6AC", text: "#1C1B1F", border: "#26A69A" },
   },
   packed: {
-    light: { bg: '#388E3C', text: '#FFFFFF', border: '#2E7D32' },
-    dark: { bg: '#66BB6A', text: '#1C1B1F', border: '#4CAF50' },
+    light: { bg: "#388E3C", text: "#FFFFFF", border: "#2E7D32" },
+    dark: { bg: "#66BB6A", text: "#1C1B1F", border: "#4CAF50" },
   },
 };
 
 /** Returns the status colour tokens for the current colour scheme. */
 export function useStatusColours(): Record<PackingStatus, StatusColourTokens> {
   const colorScheme = useColorScheme();
-  const mode = colorScheme === 'dark' ? 'dark' : 'light';
+  const mode = colorScheme === "dark" ? "dark" : "light";
   return {
     new: STATUS_COLOURS.new[mode],
     buy: STATUS_COLOURS.buy[mode],

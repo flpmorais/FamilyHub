@@ -1,8 +1,8 @@
-import type { IShoppingRepository } from '../repositories/interfaces/shopping.repository.interface';
-import type { IShoppingCategoryRepository } from '../repositories/interfaces/shopping-category.repository.interface';
-import type { IClassificationRepository } from '../repositories/interfaces/classification.repository.interface';
-import { OTHER_CATEGORY_NAME } from '../constants/shopping-defaults';
-import { logger } from '../utils/logger';
+import type { IShoppingRepository } from "../repositories/interfaces/shopping.repository.interface";
+import type { IShoppingCategoryRepository } from "../repositories/interfaces/shopping-category.repository.interface";
+import type { IClassificationRepository } from "../repositories/interfaces/classification.repository.interface";
+import { OTHER_CATEGORY_NAME } from "../constants/shopping-defaults";
+import { logger } from "../utils/logger";
 
 interface MergeItem {
   name: string;
@@ -35,18 +35,26 @@ export async function mergeIntoShoppingList(
   const existingByName = new Map(
     existingItems.map((item) => [item.name.toLowerCase(), item]),
   );
-  const activeCategoryNames = categories.filter((c) => c.active).map((c) => c.name);
+  const activeCategoryNames = categories
+    .filter((c) => c.active)
+    .map((c) => c.name);
   const otherCatId =
-    categories.find((c) => c.name === OTHER_CATEGORY_NAME)?.id ?? categories[0]?.id;
+    categories.find((c) => c.name === OTHER_CATEGORY_NAME)?.id ??
+    categories[0]?.id;
 
   // 2. Partition items into updates vs creates
-  const toUpdate: { id: string; isTicked: boolean; quantity: string | null }[] = [];
+  const toUpdate: { id: string; isTicked: boolean; quantity: string | null }[] =
+    [];
   const toCreate: MergeItem[] = [];
 
   for (const item of items) {
     const existing = existingByName.get(item.name.toLowerCase());
     if (existing) {
-      toUpdate.push({ id: existing.id, isTicked: existing.isTicked, quantity: item.quantity });
+      toUpdate.push({
+        id: existing.id,
+        isTicked: existing.isTicked,
+        quantity: item.quantity,
+      });
     } else {
       toCreate.push(item);
     }
@@ -63,7 +71,11 @@ export async function mergeIntoShoppingList(
           await shoppingRepo.editItem(upd.id, { quantityNote: upd.quantity });
         }
       } catch (err) {
-        logger.error('ShoppingMergeService', `update failed for item ${upd.id}`, err);
+        logger.error(
+          "ShoppingMergeService",
+          `update failed for item ${upd.id}`,
+          err,
+        );
       }
     }),
   );
@@ -72,9 +84,12 @@ export async function mergeIntoShoppingList(
   await Promise.all(
     toCreate.map(async (item) => {
       try {
-        let categoryId = otherCatId ?? '';
+        let categoryId = otherCatId ?? "";
         try {
-          const result = await classificationRepo.classifyItem(item.name, activeCategoryNames);
+          const result = await classificationRepo.classifyItem(
+            item.name,
+            activeCategoryNames,
+          );
           const matched = categories.find((c) => c.name === result.category);
           if (matched) categoryId = matched.id;
         } catch {
@@ -88,7 +103,11 @@ export async function mergeIntoShoppingList(
           quantityNote: item.quantity ?? undefined,
         });
       } catch (err) {
-        logger.error('ShoppingMergeService', `create failed for "${item.name}"`, err);
+        logger.error(
+          "ShoppingMergeService",
+          `create failed for "${item.name}"`,
+          err,
+        );
       }
     }),
   );
