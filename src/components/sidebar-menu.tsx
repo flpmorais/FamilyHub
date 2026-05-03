@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,32 +8,45 @@ import {
   Pressable,
   Alert,
   BackHandler,
-} from 'react-native';
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Icon } from 'react-native-paper';
-import { router } from 'expo-router';
-import { useUiStore } from '../stores/ui.store';
-import { useAuthStore } from '../stores/auth.store';
-import { useCurrentProfile } from '../hooks/use-current-profile';
-import { RepositoryContext } from '../repositories/repository.context';
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icon } from "react-native-paper";
+import { router } from "expo-router";
+import { useUiStore } from "../stores/ui.store";
+import { useAuthStore } from "../stores/auth.store";
+import { useCurrentProfile } from "../hooks/use-current-profile";
+import { RepositoryContext } from "../repositories/repository.context";
 
 const SIDEBAR_WIDTH = 280;
 const ANIMATION_DURATION = 250;
 
 const MENU_ITEMS = [
-  { label: 'Início', icon: 'home', route: '/(app)/(home)' },
-  { label: 'Ementa Semanal', icon: 'silverware-fork-knife', route: '/(app)/(meal-plan)' },
-  { label: 'Compras', icon: 'cart-outline', route: '/(app)/(shopping)' },
-  { label: 'Restos', icon: 'recycle-variant', route: '/(app)/(leftovers)' },
-  { label: 'Receitas', icon: 'book-open-variant', route: '/(app)/(recipes)' },
-  { label: 'Viagens', icon: 'airplane', route: '/(app)/(vacations)' },
-  { label: 'Sugestões', icon: 'lightbulb-outline', route: '/(app)/(suggestions)' },
-  { label: 'Definições', icon: 'cog', route: '/(app)/(settings)' },
+  { label: "Início", icon: "home", route: "/(app)/(home)" },
+  {
+    label: "Ementa Semanal",
+    icon: "silverware-fork-knife",
+    route: "/(app)/(meal-plan)",
+  },
+  { label: "Compras", icon: "cart-outline", route: "/(app)/(shopping)" },
+  { label: "Restos", icon: "recycle-variant", route: "/(app)/(leftovers)" },
+  { label: "Receitas", icon: "book-open-variant", route: "/(app)/(recipes)" },
+  { label: "Viagens", icon: "airplane", route: "/(app)/(vacations)" },
+  {
+    label: "Sugestões",
+    icon: "lightbulb-outline",
+    route: "/(app)/(suggestions)",
+  },
+  {
+    label: "Aprender Grego",
+    icon: "translate",
+    route: "/(app)/(language-learning)",
+  },
+  { label: "Definições", icon: "cog", route: "/(app)/(settings)" },
 ] as const;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -60,7 +73,7 @@ export function SidebarMenu() {
   useEffect(() => {
     if (!isSidebarOpen) return;
 
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+    const handler = BackHandler.addEventListener("hardwareBackPress", () => {
       setSidebarOpen(false);
       return true;
     });
@@ -82,11 +95,11 @@ export function SidebarMenu() {
   }
 
   function handleLogout() {
-    Alert.alert('Terminar sessão', 'Tens a certeza que queres sair?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert("Terminar sessão", "Tens a certeza que queres sair?", [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: 'Sair',
-        style: 'destructive',
+        text: "Sair",
+        style: "destructive",
         onPress: async () => {
           setSidebarOpen(false);
           try {
@@ -100,7 +113,10 @@ export function SidebarMenu() {
   }
 
   return (
-    <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} pointerEvents={isSidebarOpen ? 'auto' : 'none'}>
+    <View
+      style={[StyleSheet.absoluteFill, { zIndex: 100 }]}
+      pointerEvents={isSidebarOpen ? "auto" : "none"}
+    >
       {/* Backdrop */}
       <AnimatedPressable
         style={[styles.backdrop, backdropStyle]}
@@ -116,13 +132,11 @@ export function SidebarMenu() {
           ) : (
             <View style={styles.avatarFallback}>
               <Text style={styles.avatarInitial}>
-                {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
+                {profile?.displayName?.[0]?.toUpperCase() ?? "?"}
               </Text>
             </View>
           )}
-          <Text style={styles.profileName}>
-            {profile?.displayName ?? ''}
-          </Text>
+          <Text style={styles.profileName}>{profile?.displayName ?? ""}</Text>
         </View>
 
         <View style={styles.separator} />
@@ -155,7 +169,9 @@ export function SidebarMenu() {
           <View style={styles.iconWrap}>
             <Icon source="logout" size={22} color="#D32F2F" />
           </View>
-          <Text style={[styles.menuLabel, { color: '#D32F2F' }]}>Terminar sessão</Text>
+          <Text style={[styles.menuLabel, { color: "#D32F2F" }]}>
+            Terminar sessão
+          </Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -165,23 +181,23 @@ export function SidebarMenu() {
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sidebar: {
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
     shadowOffset: { width: -2, height: 0 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 10,
   },
   profileSection: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
@@ -195,43 +211,43 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#B5451B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    backgroundColor: "#B5451B",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
     marginBottom: 8,
   },
   avatarInitial: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 30,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   profileName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
   },
   separator: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     marginHorizontal: 16,
   },
   menuSection: {
     paddingTop: 8,
   },
   menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   iconWrap: {
     width: 36,
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: 12,
   },
   menuLabel: {
     fontSize: 16,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
 });
