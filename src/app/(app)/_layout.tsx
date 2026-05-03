@@ -1,10 +1,10 @@
-import { View } from 'react-native';
-import { Tabs } from 'expo-router';
-import { Icon } from 'react-native-paper';
-import { useAuthGuard } from '../../hooks/use-auth-guard';
-import { useDishTypes } from '../../hooks/use-dish-types';
-import { useUiStore } from '../../stores/ui.store';
-import { SidebarMenu } from '../../components/sidebar-menu';
+import { View } from "react-native";
+import { Tabs } from "expo-router";
+import { Icon } from "react-native-paper";
+import { useAuthGuard } from "../../hooks/use-auth-guard";
+import { useDishTypes } from "../../hooks/use-dish-types";
+import { useUiStore } from "../../stores/ui.store";
+import { SidebarMenu } from "../../components/sidebar-menu";
 
 export default function AppLayout() {
   useAuthGuard();
@@ -16,8 +16,8 @@ export default function AppLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#B5451B',
-          tabBarInactiveTintColor: '#888888',
+          tabBarActiveTintColor: "#B5451B",
+          tabBarInactiveTintColor: "#888888",
           tabBarStyle: { paddingBottom: 12, height: 68 },
           tabBarLabelStyle: { fontSize: 11 },
         }}
@@ -25,52 +25,60 @@ export default function AppLayout() {
         <Tabs.Screen
           name="(home)"
           options={{
-            title: 'Início',
-            tabBarIcon: ({ color, size }) => <Icon source="home" size={size} color={color} />,
+            title: "Início",
+            tabBarIcon: ({ color, size }) => (
+              <Icon source="home" size={size} color={color} />
+            ),
           }}
           listeners={({ navigation }) => ({
             tabPress: (e) => {
               e.preventDefault();
-              navigation.navigate('(home)', { screen: 'index' });
+              navigation.navigate("(home)", { screen: "index" });
             },
           })}
         />
         <Tabs.Screen
           name="(meal-plan)"
           options={{
-            title: 'Ementa',
-            tabBarIcon: ({ color, size }) => <Icon source="silverware-fork-knife" size={size} color={color} />,
+            title: "Ementa",
+            tabBarIcon: ({ color, size }) => (
+              <Icon source="silverware-fork-knife" size={size} color={color} />
+            ),
           }}
           listeners={({ navigation }) => ({
             tabPress: (e) => {
               e.preventDefault();
-              navigation.navigate('(meal-plan)', { screen: 'index' });
+              navigation.navigate("(meal-plan)", { screen: "index" });
             },
           })}
         />
         <Tabs.Screen
           name="(shopping)"
           options={{
-            title: 'Compras',
-            tabBarIcon: ({ color, size }) => <Icon source="cart-outline" size={size} color={color} />,
+            title: "Compras",
+            tabBarIcon: ({ color, size }) => (
+              <Icon source="cart-outline" size={size} color={color} />
+            ),
           }}
           listeners={({ navigation }) => ({
             tabPress: (e) => {
               e.preventDefault();
-              navigation.navigate('(shopping)', { screen: 'index' });
+              navigation.navigate("(shopping)", { screen: "index" });
             },
           })}
         />
         <Tabs.Screen
           name="(leftovers)"
           options={{
-            title: 'Restos',
-            tabBarIcon: ({ color, size }) => <Icon source="recycle-variant" size={size} color={color} />,
+            title: "Restos",
+            tabBarIcon: ({ color, size }) => (
+              <Icon source="recycle-variant" size={size} color={color} />
+            ),
           }}
           listeners={({ navigation }) => ({
             tabPress: (e) => {
               e.preventDefault();
-              navigation.navigate('(leftovers)', { screen: 'index' });
+              navigation.navigate("(leftovers)", { screen: "index" });
             },
           })}
         />
@@ -93,10 +101,18 @@ export default function AppLayout() {
           }}
         />
         <Tabs.Screen
+          name="(language-learning)"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="(settings)"
           options={{
-            title: 'Menu',
-            tabBarIcon: ({ color, size }) => <Icon source="dots-horizontal" size={size} color={color} />,
+            title: "Menu",
+            tabBarIcon: ({ color, size }) => (
+              <Icon source="dots-horizontal" size={size} color={color} />
+            ),
           }}
           listeners={() => ({
             tabPress: (e) => {

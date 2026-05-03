@@ -50,6 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
     googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+    harnessUrl: process.env.HARNESS_URL,
     eas: {
       projectId: process.env.EAS_PROJECT_ID ?? '373701cc-d3cf-495d-9853-e36487965d6e',
     },
