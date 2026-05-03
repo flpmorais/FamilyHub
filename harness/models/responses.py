@@ -12,3 +12,17 @@ class AuthStatusResponse(BaseModel):
 
 class ConfigureResponse(BaseModel):
     provisioned: bool
+
+
+class SessionStartResponse(BaseModel):
+    session_id: str
+    skill: str
+
+
+class SessionStatusResponse(BaseModel):
+    active: bool
+    skill: str | None = None
+
+
+class ResumeSessionResponse(BaseModel):
+    messages: list[dict]

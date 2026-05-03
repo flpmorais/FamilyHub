@@ -19,3 +19,16 @@
 - Unbounded `ttsQueue` in language-learning store — no max size guard; will need bounds when TTS is implemented (Epic 15)
 - `SessionInfo.skill` typed as `string` instead of `LearningSkill` — matches spec interface definition; can tighten later when skill values are validated server-side
 - Architecture Mandate #12 ("All harness API calls require JWT") should be updated to exempt `GET /health` — health check is intentionally unauthenticated per code review decision
+
+## Deferred from: code review of 13-4-mobile-api-key-setup-screen.md (2026-05-03)
+
+- Relative navigation path `router.replace("../")` is fragile — maintainability concern, not a bug. If route hierarchy changes, navigation breaks silently.
+- Stale `authStatus` persists in store across disconnection/reconnection — self-corrects when useFocusEffect re-fires on reconnection
+- No cancellation guard on api-key-setup.tsx async flow — router.replace is global so safe, but store state updates fire after potential unmount
+- Transient state inconsistency when connectionStatus changes mid-flight in index.tsx — self-corrects on next useFocusEffect cycle
+- Navigation useEffect in index.tsx doesn't guard on connectionStatus — authStatus is only set when connected via useFocusEffect, so the race is theoretical
+
+## Deferred from: code review of 14-1-langgraph-agent-and-fluent-skill-integration.md (2026-05-03)
+
+- Model and base_url hardcoded in `create_agent` — `glm-4-flash` and `https://open.bigmodel.cn/api/paas/v4` are hardcoded; not specified as configurable in this story. Future enhancement.
+- `sys.path` thread-safety during `_import_fluent_update_functions` — theoretical race condition in async server; GIL makes this practically impossible. No action needed at family scale.
