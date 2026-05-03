@@ -1,5 +1,5 @@
 # generated: 2026-03-25
-# last_updated: 2026-05-02
+# last_updated: 2026-05-03
 # project: FamilyHub
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-25
-last_updated: 2026-05-02
+last_updated: 2026-05-03
 project: FamilyHub
 project_key: NOKEY
 tracking_system: file-system
@@ -146,7 +146,7 @@ development_status:
   13-1-harness-api-foundation: done
   13-2-api-key-configuration-and-user-provisioning: done
   13-3-mobile-language-learning-route-shell-and-connection-status: done
-  13-4-mobile-api-key-setup-screen: backlog
+  13-4-mobile-api-key-setup-screen: review
   epic-13-retrospective: optional
 
   # ─── Epic 14: Learning Sessions & Skill Selection (V4) ──────────────────

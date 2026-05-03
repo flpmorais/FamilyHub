@@ -13,6 +13,9 @@ interface LanguageLearningState {
   ttsQueue: string[];
   isSpeaking: boolean;
   isListening: boolean;
+  authStatus: { configured: boolean; setupComplete: boolean } | null;
+  isConfiguring: boolean;
+  authError: string | null;
   setConnectionStatus: (status: ConnectionStatus) => void;
   setActiveSession: (session: SessionInfo) => void;
   addMessage: (message: ChatMessage) => void;
@@ -21,6 +24,11 @@ interface LanguageLearningState {
   dequeueTts: () => void;
   setSpeaking: (isSpeaking: boolean) => void;
   setListening: (isListening: boolean) => void;
+  setAuthStatus: (
+    status: { configured: boolean; setupComplete: boolean } | null,
+  ) => void;
+  setConfiguring: (isConfiguring: boolean) => void;
+  setAuthError: (error: string | null) => void;
   reset: () => void;
 }
 
@@ -32,6 +40,12 @@ const initialState = {
   ttsQueue: [] as string[],
   isSpeaking: false,
   isListening: false,
+  authStatus: null as {
+    configured: boolean;
+    setupComplete: boolean;
+  } | null,
+  isConfiguring: false,
+  authError: null as string | null,
 };
 
 export const useLanguageLearningStore = create<LanguageLearningState>(
@@ -47,6 +61,9 @@ export const useLanguageLearningStore = create<LanguageLearningState>(
     dequeueTts: () => set((state) => ({ ttsQueue: state.ttsQueue.slice(1) })),
     setSpeaking: (isSpeaking) => set({ isSpeaking }),
     setListening: (isListening) => set({ isListening }),
+    setAuthStatus: (authStatus) => set({ authStatus }),
+    setConfiguring: (isConfiguring) => set({ isConfiguring }),
+    setAuthError: (authError) => set({ authError }),
     reset: () => set(initialState),
   }),
 );

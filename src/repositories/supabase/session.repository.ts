@@ -25,15 +25,38 @@ export class SessionRepository implements ISessionRepository {
     }
   }
 
-  async configureApiKey(_apiKey: string): Promise<void> {
-    throw new Error("Not implemented");
+  async configureApiKey(apiKey: string): Promise<void> {
+    const token = await this.getToken();
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch(`${this.baseUrl}/auth/configure`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new Error(data?.detail ?? "Erro ao configurar a chave API");
+    }
   }
 
   async getAuthStatus(): Promise<{
     configured: boolean;
     setupComplete: boolean;
   }> {
-    throw new Error("Not implemented");
+    const token = await this.getToken();
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch(`${this.baseUrl}/auth/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("Failed to get auth status");
+    const data = await response.json();
+    return {
+      configured: data.configured,
+      setupComplete: data.setup_complete,
+    };
   }
 
   async startSession(_skill: string): Promise<void> {
