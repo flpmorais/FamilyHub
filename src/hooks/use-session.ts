@@ -7,6 +7,8 @@ export function useSession() {
   const store = useLanguageLearningStore();
 
   async function sendMessage(content: string) {
+    if (store.isStreaming) return;
+
     store.setStreaming(true);
     store.addMessage({
       id: Date.now().toString(),
@@ -14,15 +16,16 @@ export function useSession() {
       content,
       timestamp: Date.now(),
     });
-    store.addMessage({
-      id: `agent-${Date.now()}`,
-      role: "agent",
-      content: "",
-      timestamp: Date.now(),
-    });
 
     try {
       const stream = await sessionRepo.sendMessage(content);
+      store.addMessage({
+        id: `agent-${Date.now()}`,
+        role: "agent",
+        content: "",
+        timestamp: Date.now(),
+      });
+
       for await (const event of stream) {
         switch (event.type) {
           case "token":
@@ -52,8 +55,8 @@ export function useSession() {
 
   async function startSession(skill: string) {
     try {
-      await sessionRepo.startSession(skill);
-      store.setActiveSession({ id: "", skill });
+      const result = await sessionRepo.startSession(skill);
+      store.setActiveSession({ id: result.sessionId, skill: result.skill });
     } catch (e: any) {
       store.setAuthError(e?.message ?? "Erro ao iniciar sessão");
     }
@@ -61,7 +64,10 @@ export function useSession() {
 
   async function resumeSession() {
     try {
-      await sessionRepo.resumeSession();
+      const messages = await sessionRepo.resumeSession();
+      for (const msg of messages) {
+        store.addMessage(msg);
+      }
     } catch (e: any) {
       store.setAuthError(e?.message ?? "Erro ao retomar sessão");
     }

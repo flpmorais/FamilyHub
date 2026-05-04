@@ -1,6 +1,6 @@
 # Story 14.6: Chat Interface
 
-Status: review
+Status: done
 branch: feature/14-6-chat-interface
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -293,3 +293,18 @@ glm-5.1
 - src/components/language-learning/chat-input.tsx (new)
 - src/components/language-learning/index.ts (modified — added exports)
 - src/app/(app)/(language-learning)/session.tsx (modified — replaced placeholder with chat UI)
+
+### Review Findings
+
+- [x] [Review][Patch] Missing `extraData={isStreaming}` on FlatList [session.tsx] — Fixed: added `extraData={isStreaming}`.
+- [x] [Review][Patch] Unused `scrollToEnd` function [session.tsx] — Dismissed: function IS used at `onContentSizeChange={scrollToEnd}`.
+- [x] [Review][Patch] Missing error display for sendMessage failure [session.tsx] — Fixed: reads `authError` from store, renders error banner below header.
+- [x] [Review][Patch] Keyboard stays visible when input becomes disabled [chat-input.tsx] — Fixed: added `Keyboard.dismiss()` in handleSend.
+- [x] [Review][Defer] Excessive scrollToEnd calls during streaming [session.tsx] — deferred, performance optimization for later
+- [x] [Review][Defer] Missing KeyboardAvoidingView [session.tsx] — deferred, out of scope for this story
+- [x] [Review][Defer] skill-complete navigation race in use-session.ts — deferred, pre-existing issue
+- [x] [Review][Defer] Empty agent bubble persists on stream error — deferred, pre-existing in use-session.ts
+- [x] [Review][Defer] User message optimistic add without rollback on failure — deferred, pre-existing in use-session.ts
+- [x] [Review][Defer] useSession() subscribes to entire store — deferred, pre-existing in use-session.ts
+- [x] [Review][Defer] updateLastAgentMessage no-op array copy — deferred, pre-existing in store
+- [x] [Review][Defer] No accessibility labels — deferred, out of scope for this story

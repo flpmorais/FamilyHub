@@ -93,7 +93,7 @@ export default function SessionScreen() {
         <FlatList
           ref={flatListRef}
           data={messages}
-          extraData={isStreaming}
+          extraData={{ isStreaming, currentTtsPhrase }}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const isLastAgent =

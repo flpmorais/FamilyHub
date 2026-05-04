@@ -43,3 +43,40 @@
 ## Deferred from: code review round 2 of 14-2-session-lifecycle-endpoints.md (2026-05-03)
 
 - `end_session` pop-before-write trades stuck-user for data loss — acceptable tradeoff at family scale. Pop-first avoids stuck user (worse UX); data loss on write failure is unlikely in containerized deployment.
+
+## Deferred from: code review of 14-3-sse-streaming-and-event-emission.md (2026-05-04)
+
+- TOCTOU race between `get_session_info` and `get_agent` in `/session/message` — pre-existing pattern across all session.py endpoints, not introduced by this change
+- Concurrent messages can corrupt SqliteSaver checkpoints — systemic issue with session_manager design; needs per-user stream lock
+- Session end while stream active causes data loss — needs coordination layer between session_manager and active streams
+- No input length validation on `body.content` — not specified in AC, out of scope for this story
+- SkillCompleteEvent emitted unconditionally — deferred to story 14.4+. Fluent has no explicit completion signal yet; acceptable simplification.
+- `/session/start` SSE greeting — unchecking task. Keep JSON response; mobile client handles post-start streaming via /message endpoint.
+
+## Deferred from: code review of 14-4-mobile-sse-client-and-session-hooks.md (2026-05-04)
+
+- **setAuthError used for non-auth errors** (`src/hooks/use-session.ts:39`) — naming issue only, works functionally. Store has no separate error field for SSE/session errors.
+- **router.replace("../") navigation target** (`src/hooks/use-session.ts:37`) — depends on route structure from story 14.5. May need updating when skill menu is implemented.
+- **No retry mechanism on network failure** (`src/hooks/use-session.ts:46-48`) — AC-5 requires "user can retry" but retry UI is story 14.6's responsibility.
+
+## Deferred from: code review of 14-5-skill-selection-screen.md (2026-05-04)
+
+- **Unsafe `as LearningSkill` type assertion** (`session.tsx:15`) — placeholder file to be replaced in story 14.6. No action needed now.
+- **No error boundary for async errors in skill press handler** (`index.tsx:122-144`) — pre-existing architectural concern. Not specific to this story; applies to all async handlers project-wide.
+
+## Deferred from: code review of 14-6-chat-interface.md (2026-05-04)
+
+- Excessive `scrollToEnd` calls during streaming — `onContentSizeChange` fires per token; debounce or remove `onLayout` scroll for performance (not a bug)
+- Missing `KeyboardAvoidingView` — out of scope for this story; Android handles keyboard via `adjustResize` by default
+- `skill-complete` navigation race in `use-session.ts:39-40` — pre-existing; `router.replace("../")` may resolve to wrong route if user navigates away during streaming
+- Empty agent bubble persists on stream error — pre-existing in `use-session.ts`; agent message added before stream starts, no cleanup on failure
+- User message optimistic add without rollback — pre-existing in `use-session.ts`; message added to store before network call, no removal on failure
+- `useSession()` subscribes to entire store — pre-existing in `use-session.ts:7`; causes unnecessary re-renders during streaming
+- `updateLastAgentMessage` creates new array on no-op — pre-existing in store; wasteful during streaming but not a correctness issue
+- No accessibility labels on chat components — out of scope for this story; project-wide concern
+
+## Deferred from: code review of 15-1-tts-double-speak-queue.md (2026-05-04)
+
+- Date.now() message ID collisions in `use-session.ts` — rapid sends may produce duplicate IDs; pre-existing
+- updateLastAgentMessage appends to wrong message if last message isn't agent — pre-existing race condition in store
+- router.replace post-navigation state write in `use-session.ts` — finally block writes to cleared store; pre-existing

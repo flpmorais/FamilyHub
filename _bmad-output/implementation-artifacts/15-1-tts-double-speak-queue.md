@@ -1,6 +1,6 @@
 # Story 15.1: TTS Double-Speak Queue
 
-Status: review
+Status: done
 branch: feature/15-1-tts-double-speak-queue
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -296,3 +296,14 @@ GLM 5.1
 ### Change Log
 
 - 2026-05-04: Implemented TTS double-speak queue — expo-speech installed, store updated with currentTtsPhrase, useTtsQueue hook created, session screen integrated with visual indicator
+
+### Review Findings
+
+- [x] [Review][Patch] Self-cancelling effect causes permanent TTS queue deadlock [src/hooks/use-tts-queue.ts] — Fixed: replaced store `isSpeaking` dep with `useRef` processing lock, deps now `[ttsQueue.length]` only.
+- [x] [Review][Patch] Trailing 1.2s pause after the final phrase [src/hooks/use-tts-queue.ts:55] — Fixed: `TTS_PHRASE_PAUSE_MS` only applied when `liveStore().ttsQueue.length > 0`.
+- [x] [Review][Patch] Silent TTS error swallowing without logging [src/hooks/use-tts-queue.ts:15] — Fixed: added `logger.error("TTS", "speak failed", error)` in onError before resolve.
+- [x] [Review][Patch] Full store subscription causes unnecessary re-renders [src/hooks/use-tts-queue.ts:34] — Fixed: replaced `useLanguageLearningStore()` with `useLanguageLearningStore.getState()` for actions.
+- [x] [Review][Patch] `clearSession` doesn't cancel in-flight speech [src/hooks/use-tts-queue.ts:33] — Fixed: added useEffect watching `activeSession`, calls `Speech.stop()` when null.
+- [x] [Review][Defer] Date.now() message ID collisions [use-session.ts] — deferred, pre-existing
+- [x] [Review][Defer] updateLastAgentMessage race condition [language-learning.store.ts] — deferred, pre-existing
+- [x] [Review][Defer] router.replace post-navigation state write [use-session.ts] — deferred, pre-existing

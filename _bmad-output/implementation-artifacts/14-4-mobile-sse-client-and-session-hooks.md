@@ -1,6 +1,6 @@
 # Story 14.4: Mobile SSE Client & Session Hooks
 
-Status: review
+Status: done
 branch: feature/14-4-mobile-sse-client-and-session-hooks
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -387,6 +387,20 @@ glm-5.1
 - `src/repositories/supabase/session.repository.ts` (modified)
 - `src/stores/language-learning.store.ts` (modified)
 - `src/hooks/use-session.ts` (new)
+
+## Review Findings
+
+- [x] [Review][Decision] **setStreaming(true) timing contradicts AC-2** — dismissed: keep early set for loading UX, dev notes prescribe this pattern
+- [x] [Review][Patch] **JSON.parse crash in parseSSEChunk** [`src/services/sse-client.ts:46`] — fixed: wrapped in try/catch, yields error event on malformed JSON
+- [x] [Review][Patch] **No concurrency guard on sendMessage** [`src/hooks/use-session.ts:9`] — fixed: added `if (store.isStreaming) return` guard
+- [x] [Review][Patch] **SSE reader never released on early termination** [`src/services/sse-client.ts:6`] — fixed: added try/finally with `reader.releaseLock()`
+- [x] [Review][Patch] **Empty agent message persists on failed sendMessage** [`src/hooks/use-session.ts:17-22`] — fixed: agent message creation moved after successful `sendMessage` call
+- [x] [Review][Patch] **Multiple SSE data: lines overwritten** [`src/services/sse-client.ts:39-41`] — fixed: data lines now concatenated with `\n`
+- [x] [Review][Patch] **startSession discards session_id from response** [`src/repositories/supabase/session.repository.ts:90`] — fixed: returns `{ sessionId, skill }`, maps `session_id` → `sessionId`
+- [x] [Review][Patch] **resumeSession doesn't populate store with messages** [`src/repositories/supabase/session.repository.ts:112`] — fixed: returns `ChatMessage[]`, hook adds to store
+- [x] [Review][Defer] **setAuthError used for non-auth errors** [`src/hooks/use-session.ts:39`] — deferred, naming issue only — works functionally, no separate error field exists in store
+- [x] [Review][Defer] **router.replace("../") navigation target** [`src/hooks/use-session.ts:37`] — deferred, depends on route structure from story 14.5
+- [x] [Review][Defer] **No retry mechanism on network failure** [`src/hooks/use-session.ts:46-48`] — deferred, retry UI is story 14.6's responsibility
 
 ## Change Log
 

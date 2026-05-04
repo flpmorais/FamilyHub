@@ -1,6 +1,6 @@
 # Story 14.3: SSE Streaming & Event Emission
 
-Status: review
+Status: done
 branch: feature/14-3-sse-streaming-and-event-emission
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -54,9 +54,9 @@ so that I see the learning content appear immediately as the agent generates it.
   - [x] Return `StreamingResponse` with `media_type="text/event-stream"`
   - [x] Call `sse_streamer.stream_agent_response()` and format each event as `event: {type}\ndata: {json}\n\n`
   - [x] All error messages in Portuguese
-- [x] Update `POST /session/start` to optionally return SSE stream with greeting (AC: #1)
-  - [x] If agent emits initial greeting on start, stream it via SSE
-  - [x] If no greeting, return current JSON response (backward compatible)
+- [ ] Update `POST /session/start` to optionally return SSE stream with greeting (AC: #1)
+  - [ ] If agent emits initial greeting on start, stream it via SSE
+  - [ ] If no greeting, return current JSON response (backward compatible)
 - [x] Verify end-to-end with test script (AC: #1–#7)
 
 ## Dev Notes
@@ -282,6 +282,20 @@ glm-5.1
 - `harness/services/sse_streamer.py` — new file, SSE streaming service
 - `harness/routers/session.py` — modified, added POST /session/message endpoint
 - `harness/tests/test_sse_streaming.py` — new file, 14 tests for SSE streaming
+
+### Review Findings
+
+- [x] [Review][Defer] SkillCompleteEvent emitted unconditionally, not "detected" [sse_streamer.py:38] — deferred to story 14.4+. Fluent has no explicit completion signal yet; always emitting on success is acceptable.
+- [x] [Review][Defer] `/session/start` SSE greeting task marked `[x]` but not implemented — unchecking task. Dev notes chose to keep JSON response; mobile client handles post-start streaming via /message.
+- [x] [Review][Patch] `type` field leaks into every SSE data payload [sse_streamer.py:47] — Fixed: exclude `type` from serialized output via dict comprehension filter.
+- [x] [Review][Patch] `agent` could be None — no null check after `get_agent()` [session.py:128] — Fixed: added None check with 404 HTTPException.
+- [x] [Review][Patch] `content` can be a list (structured LLM output) [sse_streamer.py:29] — Fixed: detect list content and extract text via join.
+- [x] [Review][Patch] Missing defensive `.get()` for event data keys [sse_streamer.py:28,34] — Fixed: use `.get()` with None checks for all event data access.
+- [x] [Review][Patch] No `on_chat_model_error`/`on_tool_error` event handling [sse_streamer.py:25-36] — Fixed: added handler for error event kinds yielding ErrorEvent.
+- [x] [Review][Defer] TOCTOU race between `get_session_info` and `get_agent` [session.py:121,128] — deferred, pre-existing pattern across all session.py endpoints
+- [x] [Review][Defer] Concurrent messages can corrupt SqliteSaver checkpoints [session.py:130-134] — deferred, systemic issue with session_manager design
+- [x] [Review][Defer] Session end while stream active causes data loss [session.py + session_manager.py] — deferred, needs coordination layer
+- [x] [Review][Defer] No input length validation on `body.content` [session.py:118] — deferred, not specified in AC
 
 ### Change Log
 

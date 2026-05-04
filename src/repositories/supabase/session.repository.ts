@@ -1,4 +1,7 @@
-import type { SSEEvent } from "../../types/language-learning.types";
+import type {
+  SSEEvent,
+  ChatMessage,
+} from "../../types/language-learning.types";
 import type { ISessionRepository } from "../interfaces/session.repository.interface";
 import { HEALTH_CHECK_TIMEOUT_MS } from "../../constants/language-learning-defaults";
 import { consumeSSE } from "../../services/sse-client";
@@ -87,7 +90,9 @@ export class SessionRepository implements ISessionRepository {
     };
   }
 
-  async startSession(skill: string): Promise<void> {
+  async startSession(
+    skill: string,
+  ): Promise<{ sessionId: string; skill: string }> {
     const token = await this.getToken();
     if (!token) throw new Error("Sessão expirada. Inicie sessão novamente.");
     let response: Response;
@@ -107,9 +112,14 @@ export class SessionRepository implements ISessionRepository {
       const data = await response.json().catch(() => null);
       throw new Error(data?.detail ?? "Erro ao iniciar sessão");
     }
+    const data = await response.json();
+    return {
+      sessionId: data?.session_id ?? "",
+      skill: data?.skill ?? skill,
+    };
   }
 
-  async resumeSession(): Promise<void> {
+  async resumeSession(): Promise<ChatMessage[]> {
     const token = await this.getToken();
     if (!token) throw new Error("Sessão expirada. Inicie sessão novamente.");
     let response: Response;
@@ -125,6 +135,14 @@ export class SessionRepository implements ISessionRepository {
       const data = await response.json().catch(() => null);
       throw new Error(data?.detail ?? "Erro ao retomar sessão");
     }
+    const data = await response.json();
+    const raw: Record<string, unknown>[] = data?.messages ?? [];
+    return raw.map((m) => ({
+      id: (m.id as string) ?? "",
+      role: (m.role as "user" | "agent") ?? "agent",
+      content: (m.content as string) ?? "",
+      timestamp: (m.timestamp as number) ?? 0,
+    }));
   }
 
   async endSession(): Promise<void> {

@@ -1,6 +1,6 @@
 # Story 14.5: Skill Selection Screen
 
-Status: review
+Status: done
 branch: feature/14-5-skill-selection-screen
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -234,6 +234,18 @@ glm-5.1
 - `src/app/(app)/(language-learning)/index.tsx` — MODIFIED: Replaced placeholder with skill selection grid and all AC logic
 - `src/app/(app)/(language-learning)/session.tsx` — NEW: Minimal placeholder for navigation testing
 
+### Review Findings
+
+- [x] [Review][Patch] Mandate 4 violation: `loadingSkill` and `activeSkill` use local `useState` instead of `languageLearningStore` [index.tsx:28-29] — Mandate says "no local useState for session state or active session." Both must move to the store.
+- [x] [Review][Patch] `handleSkillPress` error escalates to global `authError`, wiping the skill grid [index.tsx:138] — Transient per-skill failure shows error screen instead of staying on grid. Should use a per-skill/local error or separate store field.
+- [x] [Review][Patch] `loadingSkill` leaks after successful navigation or auto-setup cancellation [index.tsx:85-101] — `mounted.current` becomes false on blur, `finally` skips clearing. Fix: clear `loadingSkill` unconditionally in cleanup, or use per-callback cancelled flag for the finally guard.
+- [x] [Review][Patch] Rapid tap on skill card fires duplicate concurrent sessions [index.tsx:122] — `disabled` prop allows re-tapping the loading skill itself. Add re-entry guard at top of `handleSkillPress`.
+- [x] [Review][Patch] `addMessage` called in tight loop causes N sequential store mutations [index.tsx:127-129] — Batch messages into single store update when resuming.
+- [x] [Review][Patch] `handleSkillPress` state updates and navigation fire without mount guard after await [index.tsx:130-136] — Add `mounted.current` check after each await before calling setState/router.
+- [x] [Review][Defer] Unsafe `as LearningSkill` type assertion in session.tsx placeholder [session.tsx:15] — deferred, placeholder file replaced in story 14.6
+- [x] [Review][Defer] No error boundary for async errors in skill press handler [index.tsx:122-144] — deferred, pre-existing architectural concern
+
 ### Change Log
 
 - 2026-05-04: Implemented skill selection screen (Story 14-5) — all 5 ACs satisfied
+- 2026-05-04: Code review — 6 patches, 2 deferred, 1 dismissed

@@ -45,7 +45,7 @@ class TestSerializeEvent:
         event = TokenEvent(content="Καλημέρα!")
         result = serialize_event(event)
         assert result.startswith("event: token\n")
-        assert result == 'event: token\ndata: {"type": "token", "content": "Καλημέρα!"}\n\n'
+        assert result == 'event: token\ndata: {"content": "Καλημέρα!"}\n\n'
 
     def test_speak_event(self):
         event = SpeakEvent(phrases=["Καλημέρα", "Με λένε"])
@@ -73,7 +73,7 @@ class TestSerializeEvent:
         result = serialize_event(event)
         assert result.startswith("event: done\n")
         data = json.loads(result.split("data: ", 1)[1].strip())
-        assert data == {"type": "done"}
+        assert data == {}
 
 
 class TestStreamAgentResponse:

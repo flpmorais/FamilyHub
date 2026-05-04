@@ -126,6 +126,11 @@ async def send_message(
         )
 
     agent = session_manager.get_agent(user.user_id)
+    if agent is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nenhuma sessão ativa encontrada.",
+        )
 
     async def event_generator():
         async for sse_event in stream_agent_response(

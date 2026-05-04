@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -22,11 +22,15 @@ export default function LanguageLearningScreen() {
   const authError = useLanguageLearningStore((s) => s.authError);
   const connectionStatus = useLanguageLearningStore((s) => s.connectionStatus);
   const setActiveSession = useLanguageLearningStore((s) => s.setActiveSession);
-  const addMessage = useLanguageLearningStore((s) => s.addMessage);
+  const addMessages = useLanguageLearningStore((s) => s.addMessages);
   const activeSession = useLanguageLearningStore((s) => s.activeSession);
+  const activeSkill = useLanguageLearningStore((s) => s.activeSkill);
+  const loadingSkill = useLanguageLearningStore((s) => s.loadingSkill);
+  const skillError = useLanguageLearningStore((s) => s.skillError);
+  const setActiveSkill = useLanguageLearningStore((s) => s.setActiveSkill);
+  const setLoadingSkill = useLanguageLearningStore((s) => s.setLoadingSkill);
+  const setSkillError = useLanguageLearningStore((s) => s.setSkillError);
 
-  const [loadingSkill, setLoadingSkill] = useState<LearningSkill | null>(null);
-  const [activeSkill, setActiveSkill] = useState<string | null>(null);
   const mounted = useRef(true);
 
   useFocusEffect(
@@ -73,7 +77,7 @@ export default function LanguageLearningScreen() {
       return () => {
         cancelled = true;
       };
-    }, [authStatus, sessionRepo]),
+    }, [authStatus, sessionRepo, setActiveSkill]),
   );
 
   useFocusEffect(
@@ -103,8 +107,15 @@ export default function LanguageLearningScreen() {
       })();
       return () => {
         cancelled = true;
+        setLoadingSkill(null);
       };
-    }, [authStatus, sessionRepo, setActiveSession, setAuthError]),
+    }, [
+      authStatus,
+      sessionRepo,
+      setActiveSession,
+      setAuthError,
+      setLoadingSkill,
+    ]),
   );
 
   useEffect(() => {
@@ -120,26 +131,26 @@ export default function LanguageLearningScreen() {
   }
 
   async function handleSkillPress(skill: LearningSkill) {
+    if (loadingSkill !== null) return;
     setLoadingSkill(skill);
+    setSkillError(null);
     try {
       if (activeSkill === skill) {
         const messages = await sessionRepo.resumeSession();
-        for (const msg of messages) {
-          addMessage(msg);
-        }
+        if (!mounted.current) return;
+        addMessages(messages);
         router.push("session");
       } else {
         const result = await sessionRepo.startSession(skill);
+        if (!mounted.current) return;
         setActiveSession({ id: result.sessionId, skill: result.skill });
         setActiveSkill(skill);
         router.push("session");
       }
     } catch {
-      setAuthError("Erro de ligação. Verifique a sua conexão.");
+      setSkillError("Erro de ligação. Verifique a sua conexão.");
     } finally {
-      if (mounted.current) {
-        setLoadingSkill(null);
-      }
+      setLoadingSkill(null);
     }
   }
 
@@ -181,6 +192,7 @@ export default function LanguageLearningScreen() {
 
   return (
     <View style={s.gridContainer}>
+      {skillError ? <Text style={s.skillError}>{skillError}</Text> : null}
       <FlatList
         data={SKILLS}
         keyExtractor={(item) => item}
@@ -232,6 +244,13 @@ const s = StyleSheet.create({
   gridContainer: {
     flex: 1,
     backgroundColor: "#F8F8F8",
+  },
+  skillError: {
+    fontSize: 14,
+    color: "#F44336",
+    textAlign: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   list: {
     padding: 16,

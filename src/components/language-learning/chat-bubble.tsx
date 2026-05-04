@@ -4,6 +4,8 @@ import type { ChatMessage } from "../../types/language-learning.types";
 interface TextSegment {
   text: string;
   isGreek: boolean;
+  start: number;
+  end: number;
 }
 
 function isGreekChar(char: string): boolean {
@@ -19,19 +21,31 @@ function segmentText(content: string): TextSegment[] {
   const segments: TextSegment[] = [];
   let current = "";
   let currentIsGreek = false;
+  let segStart = 0;
 
-  for (const char of content) {
-    const greek = isGreekChar(char);
+  for (let i = 0; i < content.length; i++) {
+    const greek = isGreekChar(content[i]);
     if (greek !== currentIsGreek && current.length > 0) {
-      segments.push({ text: current, isGreek: currentIsGreek });
+      segments.push({
+        text: current,
+        isGreek: currentIsGreek,
+        start: segStart,
+        end: i,
+      });
       current = "";
+      segStart = i;
     }
     currentIsGreek = greek;
-    current += char;
+    current += content[i];
   }
 
   if (current.length > 0) {
-    segments.push({ text: current, isGreek: currentIsGreek });
+    segments.push({
+      text: current,
+      isGreek: currentIsGreek,
+      start: segStart,
+      end: content.length,
+    });
   }
 
   return segments;
@@ -51,6 +65,11 @@ export function ChatBubble({
   const isAgent = message.role === "agent";
   const ttsActive =
     !!currentTtsPhrase && message.content.includes(currentTtsPhrase);
+  const phraseStart = ttsActive
+    ? message.content.indexOf(currentTtsPhrase!)
+    : -1;
+  const phraseEnd =
+    phraseStart >= 0 ? phraseStart + currentTtsPhrase!.length : -1;
 
   function renderAgentContent() {
     const segments = segmentText(message.content);
@@ -58,9 +77,7 @@ export function ChatBubble({
       <Text style={[s.text, s.agentText]}>
         {segments.map((seg, i) => {
           const isTtsHighlighted =
-            ttsActive &&
-            !!currentTtsPhrase &&
-            seg.text.includes(currentTtsPhrase);
+            ttsActive && seg.start < phraseEnd && seg.end > phraseStart;
 
           if (seg.isGreek) {
             return (

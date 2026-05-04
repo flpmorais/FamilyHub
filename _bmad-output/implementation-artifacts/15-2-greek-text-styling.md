@@ -1,6 +1,6 @@
 # Story 15.2: Greek Text Styling
 
-Status: review
+Status: done
 branch: feature/15-2-greek-text-styling
 
 ## ARCHITECTURE MANDATES — NON-NEGOTIABLE
@@ -262,3 +262,8 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 ### Change Log
 
 - 2026-05-04: Story 15.2 implemented — Greek text detection + distinct styling + TTS highlight in agent chat bubbles
+
+### Review Findings
+
+- [x] [Review][Patch] TTS highlight broken for multi-word Greek phrases [`chat-bubble.tsx:63`] — Per-segment `seg.text.includes(currentTtsPhrase)` fails when the TTS phrase spans a Greek/non-Greek boundary (e.g., spaces between Greek words like "Γεια σου"). The phrase is split into separate segments, none of which contain the full phrase, so the highlight never activates despite `ttsActive` being `true`.
+- [x] [Review][Patch] FlatList extraData missing currentTtsPhrase [`session.tsx:96`] — `extraData={isStreaming}` does not include `currentTtsPhrase`. FlatList (PureComponent) may skip re-rendering when the TTS phrase changes, leaving highlights stale.

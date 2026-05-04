@@ -162,7 +162,7 @@ development_status:
   # ─── Epic 15: Interactive Learning — Voice & Audio (V4) ────────────────
   epic-15: in-progress
   15-1-tts-double-speak-queue: done
-  15-2-greek-text-styling: review
+  15-2-greek-text-styling: done
   15-3-stt-voice-input: backlog
   epic-15-retrospective: optional
 

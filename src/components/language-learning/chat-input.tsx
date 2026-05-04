@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Keyboard,
   StyleSheet,
 } from "react-native";
 
@@ -20,6 +21,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     if (!trimmed || disabled) return;
     onSend(trimmed);
     setText("");
+    Keyboard.dismiss();
   }
 
   return (
