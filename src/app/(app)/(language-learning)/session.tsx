@@ -10,6 +10,7 @@ import {
 import { router } from "expo-router";
 import { useLanguageLearningStore } from "../../../stores/language-learning.store";
 import { useSession } from "../../../hooks/use-session";
+import { useTtsQueue } from "../../../hooks/use-tts-queue";
 import { SKILL_LABELS } from "../../../constants/language-learning-defaults";
 import { ChatBubble } from "../../../components/language-learning/chat-bubble";
 import { ChatInput } from "../../../components/language-learning/chat-input";
@@ -19,7 +20,10 @@ export default function SessionScreen() {
   const activeSession = useLanguageLearningStore((s) => s.activeSession);
   const messages = useLanguageLearningStore((s) => s.messages);
   const isStreaming = useLanguageLearningStore((s) => s.isStreaming);
+  const authError = useLanguageLearningStore((s) => s.authError);
   const { sendMessage } = useSession();
+  useTtsQueue();
+  const currentTtsPhrase = useLanguageLearningStore((s) => s.currentTtsPhrase);
   const flatListRef = useRef<FlatList>(null);
 
   const skillLabel = activeSession
@@ -75,6 +79,12 @@ export default function SessionScreen() {
         <Text style={s.headerTitle}>{skillLabel}</Text>
       </View>
 
+      {authError ? (
+        <View style={s.errorBanner}>
+          <Text style={s.errorBannerText}>{authError}</Text>
+        </View>
+      ) : null}
+
       {messages.length === 0 ? (
         <View style={s.center}>
           <Text style={s.emptyText}>Inicie a conversa...</Text>
@@ -83,6 +93,7 @@ export default function SessionScreen() {
         <FlatList
           ref={flatListRef}
           data={messages}
+          extraData={isStreaming}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const isLastAgent =
@@ -96,6 +107,12 @@ export default function SessionScreen() {
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
       )}
+
+      {currentTtsPhrase ? (
+        <View style={s.ttsIndicator}>
+          <Text style={s.ttsText}>🔊 {currentTtsPhrase}</Text>
+        </View>
+      ) : null}
 
       <ChatInput onSend={handleSend} disabled={isStreaming} />
     </View>
@@ -139,8 +156,29 @@ const s = StyleSheet.create({
     fontSize: 16,
     color: "#D32F2F",
   },
+  errorBanner: {
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  errorBannerText: {
+    fontSize: 14,
+    color: "#D32F2F",
+  },
   messageList: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  ttsIndicator: {
+    backgroundColor: "#F0F7FF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+  ttsText: {
+    fontSize: 14,
+    color: "#1A1A1A",
+    fontWeight: "500",
   },
 });

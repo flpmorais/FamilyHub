@@ -156,12 +156,12 @@ development_status:
   14-3-sse-streaming-and-event-emission: done
   14-4-mobile-sse-client-and-session-hooks: done
   14-5-skill-selection-screen: done
-  14-6-chat-interface: review
+  14-6-chat-interface: done
   epic-14-retrospective: optional
 
   # ─── Epic 15: Interactive Learning — Voice & Audio (V4) ────────────────
-  epic-15: backlog
-  15-1-tts-double-speak-queue: backlog
+  epic-15: in-progress
+  15-1-tts-double-speak-queue: review
   15-2-greek-text-styling: backlog
   15-3-stt-voice-input: backlog
   epic-15-retrospective: optional
