@@ -14,3 +14,14 @@ export const SKILLS: LearningSkill[] = [
   "reading",
   "progress",
 ];
+
+export const SKILL_LABELS: Record<LearningSkill, string> = {
+  setup: "Configuração",
+  learn: "Aprender",
+  review: "Revisão",
+  vocab: "Vocabulário",
+  writing: "Escrita",
+  speaking: "Conversação",
+  reading: "Leitura",
+  progress: "Progresso",
+};
