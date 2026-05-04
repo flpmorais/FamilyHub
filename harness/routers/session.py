@@ -3,9 +3,10 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 from dependencies import UserContext, get_current_user
-from models.requests import StartSessionRequest
+from models.requests import MessageRequest, StartSessionRequest
 from models.responses import (
     ResumeSessionResponse,
     SessionEndResponse,
@@ -13,6 +14,7 @@ from models.responses import (
     SessionStatusResponse,
 )
 from services.session_manager import session_manager
+from services.sse_streamer import serialize_event, stream_agent_response
 from services.user_provisioner import load_user_api_key
 
 logger = logging.getLogger(__name__)
@@ -109,3 +111,26 @@ async def end_session(
         )
 
     return SessionEndResponse()
+
+
+@router.post("/message")
+async def send_message(
+    body: MessageRequest,
+    user: UserContext = Depends(get_current_user),
+):
+    info = session_manager.get_session_info(user.user_id)
+    if info is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nenhuma sessão ativa encontrada.",
+        )
+
+    agent = session_manager.get_agent(user.user_id)
+
+    async def event_generator():
+        async for sse_event in stream_agent_response(
+            agent, user.user_id, body.content, info.skill,
+        ):
+            yield serialize_event(sse_event)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
