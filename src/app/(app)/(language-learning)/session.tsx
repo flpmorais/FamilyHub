@@ -100,7 +100,13 @@ export default function SessionScreen() {
               item.role === "agent" &&
               isStreaming &&
               messages[messages.length - 1]?.id === item.id;
-            return <ChatBubble message={item} isStreaming={isLastAgent} />;
+            return (
+              <ChatBubble
+                message={item}
+                isStreaming={isLastAgent}
+                currentTtsPhrase={currentTtsPhrase}
+              />
+            );
           }}
           contentContainerStyle={s.messageList}
           onContentSizeChange={scrollToEnd}
