@@ -29,6 +29,8 @@ interface LanguageLearningState {
   ) => void;
   setConfiguring: (isConfiguring: boolean) => void;
   setAuthError: (error: string | null) => void;
+  updateLastAgentMessage: (content: string) => void;
+  clearSession: () => void;
   reset: () => void;
 }
 
@@ -64,6 +66,23 @@ export const useLanguageLearningStore = create<LanguageLearningState>(
     setAuthStatus: (authStatus) => set({ authStatus }),
     setConfiguring: (isConfiguring) => set({ isConfiguring }),
     setAuthError: (authError) => set({ authError }),
+    updateLastAgentMessage: (content) =>
+      set((state) => {
+        const msgs = [...state.messages];
+        const last = msgs[msgs.length - 1];
+        if (last && last.role === "agent") {
+          msgs[msgs.length - 1] = { ...last, content: last.content + content };
+        }
+        return { messages: msgs };
+      }),
+    clearSession: () =>
+      set({
+        activeSession: null,
+        messages: [],
+        isStreaming: false,
+        ttsQueue: [],
+        isSpeaking: false,
+      }),
     reset: () => set(initialState),
   }),
 );

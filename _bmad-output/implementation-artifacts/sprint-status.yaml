@@ -153,8 +153,8 @@ development_status:
   epic-14: in-progress
   14-1-langgraph-agent-and-fluent-skill-integration: done
   14-2-session-lifecycle-endpoints: done
-  14-3-sse-streaming-and-event-emission: review
-  14-4-mobile-sse-client-and-session-hooks: backlog
+  14-3-sse-streaming-and-event-emission: done
+  14-4-mobile-sse-client-and-session-hooks: review
   14-5-skill-selection-screen: backlog
   14-6-chat-interface: backlog
   epic-14-retrospective: optional
